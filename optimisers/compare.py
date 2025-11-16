@@ -14,8 +14,8 @@ from typing import Dict, List, Tuple, Any
 import warnings
 
 # Import the implementations
-from jax_imp import custom_sgd, custom_sgd_log, custom_sgd_rms
-from torch_imp import CustomSGD, CustomSGDLog, CustomSGDRMS
+from jax_fixed import custom_sgd, custom_sgd_log, custom_sgd_rms
+from torch_fixed import CustomSGD, CustomSGDLog, CustomSGDRMS
 
 
 def set_seeds(seed: int = 42):
@@ -454,7 +454,7 @@ if __name__ == "__main__":
         
     except ImportError as e:
         print(f"Import error: {e}")
-        print("Make sure both jax_imp.py and torch_imp.py are in the same directory")
+        print("Make sure both jax_fixed.py and torch_fixed.py are in the same directory")
         print("and that JAX and PyTorch are installed.")
     except Exception as e:
         print(f"Unexpected error: {e}")
