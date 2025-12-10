@@ -193,7 +193,6 @@ def custom_sgd_offdiag(
             momentum=jax.tree.map(jnp.zeros_like, params),
         )
 
-    @jax.jit
     def update(grads, state, params=None):
         if params is None:
             raise ValueError("params must be provided to custom_sgd_offdiag.update")
