@@ -217,7 +217,6 @@ is an exponentially-smoothed average of past gradients (the usual ``momentum'' v
 This separation between the geometric direction $l_i$ appearing in the metric
 and the update direction $r_i$ allows the optimizer to use the metric
 to shape the descent direction in a more flexible way.
-Note: the results discussed later will only take $r_j = l_j$.
 
 \subsection*{Update Computational Cost}
 Recall that the induced bilinear form is $$
@@ -328,31 +327,33 @@ In general the results are not promising as seen in the following figures.
 
 \begin{figure}[h]
     \centering
-    \begin{minipage}{0.72\textwidth}
+    \begin{minipage}{0.70\textwidth}
         \centering
         \includegraphics[width=\textwidth]{../images/Beale_116da11.png}
     \end{minipage}
-    \begin{minipage}{0.72\textwidth}
+    \begin{minipage}{0.70\textwidth}
         \centering
         \includegraphics[width=\textwidth]{../images/Rosenbrock_116da11.png}
     \end{minipage}
-    \begin{minipage}{0.72\textwidth}
+    \begin{minipage}{0.70\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../images/Himmeiblau_116da11.png}
+        \includegraphics[width=\textwidth]{../images/Himmelblau_116da11.png}
     \end{minipage}
-    \begin{minipage}{0.72\textwidth}
+    \begin{minipage}{0.70\textwidth}
         \centering
         \includegraphics[width=\textwidth]{../images/Ackley_116da11.png}
     \end{minipage}
-    \begin{minipage}{0.72\textwidth}
+    \begin{minipage}{0.70\textwidth}
         \centering
         \includegraphics[width=\textwidth]{../images/Rastrigin_116da11.png}
     \end{minipage}
     \caption{
         All small example results for \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/116da11f0ac0c299b67f8376fba8a5c0ecce7af4/analysis/small_examples.ipynb}{NopPruner + RandomSampler}, 
         that is no early pruning (so train all models to completion or max 1000 epochs).
-        Each plot shows the best hyper parameter configuration for each optimizer.
+        Each plot shows the best hyperparameter configuration for each optimizer.
         Note that the naming scheme for the off-diagonal optimizers: \texttt{custom\_sgd\_offdiag\_\{mode a\}\_\{mode b\}}.
+        Also these off-diagonal optimizers are using the momenturm mode for $\vecb{r}$. 
+        I am currently running the gradient mode for $\vecb{r}$ and will update the results when they are ready (:
     }
 \end{figure}
 
