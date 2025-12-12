@@ -10,7 +10,7 @@
 \usepackage{hyperref}
 
 \newcommand{\loss}{\mathcal{L}}
-\newcommand{\Id}{\mathbb{I}}
+\newcommand{\Id}{\mathbbm{1}}
 \newcommand{\vecb}[1]{\boldsymbol{#1}}
 
 \title{Off-Diagonal Inverse}
@@ -190,18 +190,9 @@ where
             + l^i\big(-(c_{ba}+c_{al})c_{ll} + (1+c_{al})(c_{bl}+c_{ll})\big)
         \Big) \right] \\
     &= -\frac{\eta}{D}\left[ D\,l^i - a^i c_{ll} - l^i\big(-(c_{ba}+c_{al})c_{ll} + (1+c_{al})(c_{bl}+c_{ll})\big) \right] \\
-    &= -\frac{\eta}{D}\left[
-        l^i\big(1 + c_{al} + c_{bl} + c_{al}c_{bl} + c_{ll} - c_{ll}c_{ba}\big)
-        - a^i c_{ll}
-        - l^i\big(-(c_{ba}+c_{al})c_{ll} + (1+c_{al})(c_{bl}+c_{ll})\big)
-    \right] \\
-    &= -\frac{\eta}{D}\left[ l^i\big((1+c_{al})(1+c_{bl}) - c_{ll}c_{ba} - 1\big) - a^i c_{ll} \right] \\
-    &= -\frac{\eta}{D}\left[ l^i(D - 1) - a^i c_{ll} \right] \\
-    &= -\eta\left[ \frac{D - 1}{D}\,l^i - \frac{c_{ll}}{D}\,a^i \right] \\
+    &= -\frac{\eta}{D}\left[ (1 + c_{al})\,l^i - a^i c_{ll} \right] \\
     &= -\eta\left[ \frac{1 + c_{al}}{D}\,l^i - \frac{c_{ll}}{D}\,a^i \right].
 \end{align*}
-
-
 
 
 
@@ -242,8 +233,8 @@ $$ We can write this as $$
     \qquad U = (\vecb{a},\, \vecb{l}),
     \qquad V = (\vecb{l},\, \vecb{b} + \vecb{l}).
 $$ Using the inverse of $G$ we found above, we have $$
-    G^{-1} r
-    = \frac{1}{\gamma} \vecb{r} - \frac{\xi}{\gamma^2} U \bigl(\Id_2 + V^\top U\bigr)^{-1} V^\top \vecb{r}.
+    G^{-1} \vecb{r}
+    = \frac{1}{\gamma} \vecb{r} - \frac{\xi}{\gamma^2} U \left(\Id_2 + \frac{\xi}{\gamma} V^\top U\right)^{-1} V^\top \vecb{r}.
 $$ Thus, the contraction $G^{-1} \vecb{r}$ has computational cost $O(N)$ 
 since it only involves the inversion of a $2\times 2$ matrix 
 and scalar products never producing a full $N\times N$ matrix.
