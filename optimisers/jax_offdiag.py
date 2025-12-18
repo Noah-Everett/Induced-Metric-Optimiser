@@ -28,6 +28,18 @@ The metric structure is highly configurable:
     * a_mode: how to choose a  (default: "momentum")
     * b_mode: how to choose b  (default: "same_as_a")
 
+Aliases supported (case-insensitive):
+
+    * base_mode:
+        - grad: "grad", "g", "gr", "gradient", "l"
+        - momentum: "momentum", "mom", "m"
+    * a_mode / b_mode:
+        - zero: "zero", "z", "0", "none"
+        - grad: same as base_mode "grad" aliases
+        - momentum: same as base_mode "momentum" aliases
+        - params: "params", "param", "p", "theta"
+        - b_mode only: same_as_a: "same_as_a", "same", "a"
+
 AND you can override these with:
 
     * a_static: a PyTree (same structure as params) used as fixed a
@@ -133,6 +145,48 @@ def _apply_inverse_metric_offdiag(
     return y
 
 
+# -----------------------------
+# Mode alias normalization
+# -----------------------------
+def _normalize_base_mode(mode: str) -> str:
+    m = (mode or "").lower()
+    if m in {"grad", "g", "gr", "gradient", "l"}:
+        return "grad"
+    if m in {"momentum", "mom", "m"}:
+        return "momentum"
+    raise ValueError(
+        f"Unknown base_mode: {mode}. Accepted: grad (g, gr, gradient), momentum (mom, m)"
+    )
+
+
+def _normalize_vec_mode(mode: str) -> str:
+    m = (mode or "").lower()
+    if m in {"zero", "z", "0", "none"}:
+        return "zero"
+    if m in {"grad", "g", "gr", "gradient", "l"}:
+        return "grad"
+    if m in {"momentum", "mom", "m"}:
+        return "momentum"
+    if m in {"params", "param", "p", "theta"}:
+        return "params"
+    raise ValueError(
+        f"Unknown vector mode: {mode}. Accepted: zero (z, 0, none), grad (g, gr, gradient), momentum (mom, m), params (param, p, theta)"
+    )
+
+
+def _normalize_b_mode(mode: str) -> str:
+    m = (mode or "").lower()
+    if m in {"same_as_a", "same", "a"}:
+        return "same_as_a"
+    # otherwise defer to generic vector modes
+    try:
+        return _normalize_vec_mode(m)
+    except ValueError:
+        raise ValueError(
+            f"Unknown b_mode: {mode}. Accepted: same_as_a (same, a) or any vector mode alias"
+        )
+
+
 def custom_sgd_offdiag(
     learning_rate: float = 0.1,
     momentum: float = 0.9,
@@ -210,10 +264,15 @@ def custom_sgd_offdiag(
         mom_correction = 1.0 - momentum ** step
         m_hat = jax.tree.map(lambda m: m / mom_correction, new_momentum)
 
+        # Normalize modes (aliases supported)
+        base_mode_norm = _normalize_base_mode(base_mode)
+        a_mode_norm = _normalize_vec_mode(a_mode)
+        b_mode_norm = _normalize_b_mode(b_mode)
+
         # Choose base vector l
-        if base_mode == "grad":
+        if base_mode_norm == "grad":
             l_tree = grads
-        elif base_mode == "momentum":
+        elif base_mode_norm == "momentum":
             l_tree = m_hat
         else:
             raise ValueError(f"Unknown base_mode: {base_mode}")
@@ -230,13 +289,13 @@ def custom_sgd_offdiag(
             a_tree = a_static
         else:
             # Mode-based construction
-            if a_mode == "zero":
+            if a_mode_norm == "zero":
                 a_tree = jax.tree.map(jnp.zeros_like, l_tree)
-            elif a_mode == "grad":
+            elif a_mode_norm == "grad":
                 a_tree = grads
-            elif a_mode == "momentum":
+            elif a_mode_norm == "momentum":
                 a_tree = m_hat
-            elif a_mode == "params":
+            elif a_mode_norm == "params":
                 a_tree = params
             else:
                 raise ValueError(f"Unknown a_mode: {a_mode}")
@@ -247,15 +306,15 @@ def custom_sgd_offdiag(
         elif b_static is not None:
             b_tree = b_static
         else:
-            if b_mode == "same_as_a":
+            if b_mode_norm == "same_as_a":
                 b_tree = a_tree
-            elif b_mode == "zero":
+            elif b_mode_norm == "zero":
                 b_tree = jax.tree.map(jnp.zeros_like, l_tree)
-            elif b_mode == "grad":
+            elif b_mode_norm == "grad":
                 b_tree = grads
-            elif b_mode == "momentum":
+            elif b_mode_norm == "momentum":
                 b_tree = m_hat
-            elif b_mode == "params":
+            elif b_mode_norm == "params":
                 b_tree = params
             else:
                 raise ValueError(f"Unknown b_mode: {b_mode}")
