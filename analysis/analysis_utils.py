@@ -395,38 +395,32 @@ def extract_history(backend, best_runs, metric_keys):
 # ---------------------------------------------------------------------------
 
 def compute_wall_times(train_time_values):
-    """Convert train_time_seconds values to positive wall-clock seconds.
+    """Convert train_time_seconds values to wall-clock seconds from epoch 0.
 
     The sweep scripts accumulate time as::
 
-        train_time += time.time()
+        epoch_start = time.time()
         ... training ...
-        train_time -= time.time()
+        train_time += time.time() - epoch_start
 
-    which produces an increasingly negative cumulative value.  This helper
-    converts those raw values to positive seconds elapsed from the first
-    recorded epoch.
+    which produces a monotonically increasing cumulative value.  This helper
+    normalizes those values to start from 0.
 
     Parameters
     ----------
     train_time_values : array-like
-        Raw ``train_time_seconds`` values from training history.
+        Cumulative ``train_time_seconds`` values from training history.
 
     Returns
     -------
     np.ndarray
-        Non-negative wall-clock seconds starting from 0.
+        Wall-clock seconds starting from 0.
     """
     vals = np.asarray(train_time_values, dtype=float)
-    if len(vals) < 2:
-        return np.zeros(len(vals))
-    # Estimate per-step time
-    total_elapsed = vals[0] - vals[-1]
-    per_step = total_elapsed / (len(vals) - 1)
-    # Convert to positive cumulative
-    wall = -vals + vals[0] + per_step
-    wall -= wall[0]
-    return wall
+    if len(vals) == 0:
+        return np.zeros(0)
+    # Normalize to start from 0
+    return vals - vals[0]
 
 
 def add_wall_times(optimizer_data, time_key="train_time_seconds"):
