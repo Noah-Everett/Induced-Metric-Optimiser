@@ -28,22 +28,22 @@ import optax
 
 def _tree_dot(a, b):
     """Sum_i a_i * b_i over a pytree of matching structure."""
-    return jax.tree_util.tree_reduce(
+    return jax.tree.reduce(
         lambda acc, x: acc + jnp.sum(x),
-        jax.tree_util.tree_map(lambda x, y: x * y, a, b),
+        jax.tree.map(lambda x, y: x * y, a, b),
         initializer=jnp.array(0.0),
     )
 
 def _apply_diag(log_diag, x):
     """Apply diagonal inverse metric diag(exp(log_diag)) to x, per leaf."""
-    return jax.tree_util.tree_map(lambda s, t: jnp.exp(s) * t, log_diag, x)
+    return jax.tree.map(lambda s, t: jnp.exp(s) * t, log_diag, x)
 
 def _mean_center(log_diag):
     """Per-leaf mean-centre s to control global scale (keeps gamma^{-1} near identity scale)."""
-    return jax.tree_util.tree_map(lambda s: s - jnp.mean(s), log_diag)
+    return jax.tree.map(lambda s: s - jnp.mean(s), log_diag)
 
 def _clip(log_diag, lo, hi):
-    return jax.tree_util.tree_map(lambda s: jnp.clip(s, lo, hi), log_diag)
+    return jax.tree.map(lambda s: jnp.clip(s, lo, hi), log_diag)
 
 # ---- state containers --------------------------------------------------------
 
@@ -84,9 +84,9 @@ def custom_sgd_learnable_diag(
     def init(params):
         return SGDLearnableDiagState(
             step=jnp.zeros([], dtype=jnp.int32),
-            momentum=jax.tree_util.tree_map(jnp.zeros_like, params),
+            momentum=jax.tree.map(jnp.zeros_like, params),
             metric_ema=jnp.zeros([]),
-            log_diag=jax.tree_util.tree_map(lambda p: jnp.zeros_like(p), params),
+            log_diag=jax.tree.map(lambda p: jnp.zeros_like(p), params),
         )
 
     @jax.jit
@@ -101,28 +101,28 @@ def custom_sgd_learnable_diag(
         r = 1.0 / (1.0 + jnp.abs(v_hat))
 
         # Momentum
-        new_momentum = jax.tree_util.tree_map(
+        new_momentum = jax.tree.map(
             lambda m, g: momentum * m + one_minus_momentum * g,
             state.momentum, grads
         )
 
         # Apply inverse metric to momentum (with bias correction)
-        m_corr = jax.tree_util.tree_map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
+        m_corr = jax.tree.map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
         m_tilde = _apply_diag(state.log_diag, m_corr)
 
         # Parameter updates (Optax semantics: 'updates' are added to params)
         if params is None:
-            updates = jax.tree_util.tree_map(lambda mt: neg_lr * r * mt, m_tilde)
+            updates = jax.tree.map(lambda mt: neg_lr * r * mt, m_tilde)
         else:
-            updates = jax.tree_util.tree_map(
+            updates = jax.tree.map(
                 lambda mt, p: neg_lr * r * mt - learning_rate * weight_decay * p,
                 m_tilde, params
             )
 
         # --- Online metric learning step (diagonal only) ---
         # Exact gradient for s: d/ds sum(exp(s) * g^2) = exp(s) * g^2
-        s_grad = jax.tree_util.tree_map(lambda s, g: jnp.exp(s) * (g * g), state.log_diag, grads)
-        new_log_diag = jax.tree_util.tree_map(
+        s_grad = jax.tree.map(lambda s, g: jnp.exp(s) * (g * g), state.log_diag, grads)
+        new_log_diag = jax.tree.map(
             lambda s, sg: s + metric_lr * sg - metric_lr * metric_reg * s,
             state.log_diag, s_grad
         )
@@ -168,9 +168,9 @@ def custom_sgd_log_learnable_diag(
     def init(params):
         return SGDLearnableDiagState(
             step=jnp.zeros([], dtype=jnp.int32),
-            momentum=jax.tree_util.tree_map(jnp.zeros_like, params),
+            momentum=jax.tree.map(jnp.zeros_like, params),
             metric_ema=jnp.zeros([]),
-            log_diag=jax.tree_util.tree_map(lambda p: jnp.zeros_like(p), params),
+            log_diag=jax.tree.map(lambda p: jnp.zeros_like(p), params),
         )
 
     @jax.jit
@@ -183,24 +183,24 @@ def custom_sgd_log_learnable_diag(
         v_hat = new_metric_ema / (1.0 - (beta ** step))
         r = loss / (jnp.square(loss) + jnp.abs(v_hat))
 
-        new_momentum = jax.tree_util.tree_map(
+        new_momentum = jax.tree.map(
             lambda m, g: momentum * m + one_minus_momentum * g,
             state.momentum, grads
         )
-        m_corr = jax.tree_util.tree_map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
+        m_corr = jax.tree.map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
         m_tilde = _apply_diag(state.log_diag, m_corr)
 
         if params is None:
-            updates = jax.tree_util.tree_map(lambda mt: neg_lr * r * mt, m_tilde)
+            updates = jax.tree.map(lambda mt: neg_lr * r * mt, m_tilde)
         else:
-            updates = jax.tree_util.tree_map(
+            updates = jax.tree.map(
                 lambda mt, p: neg_lr * r * mt - learning_rate * weight_decay * p,
                 m_tilde, params
             )
 
         # Metric learning step (same as plain)
-        s_grad = jax.tree_util.tree_map(lambda s, g: jnp.exp(s) * (g * g), state.log_diag, grads)
-        new_log_diag = jax.tree_util.tree_map(
+        s_grad = jax.tree.map(lambda s, g: jnp.exp(s) * (g * g), state.log_diag, grads)
+        new_log_diag = jax.tree.map(
             lambda s, sg: s + metric_lr * sg - metric_lr * metric_reg * s,
             state.log_diag, s_grad
         )

@@ -283,7 +283,7 @@ def custom_sgd_rms(learning_rate=0.1, momentum=0.9, xi=0.1, beta=0.8, beta_rms=0
         )
 
         # Calculate RMS-scaled gradient norm for metric computation
-        grad_norm_sq = jax.tree_util.tree_reduce(
+        grad_norm_sq = jax.tree.reduce(
         lambda acc, g_r_pair: acc + jnp.sum(g_r_pair),
         jax.tree.map(lambda g, r: g ** 2 / (jnp.sqrt(r) + eps), grads, rms_corrected),
         initializer=0.0)

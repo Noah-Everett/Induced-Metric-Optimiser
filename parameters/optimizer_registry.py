@@ -78,6 +78,97 @@ _MODE_MAP = {
 
 
 # ---------------------------------------------------------------------------
+# Unified hyperparameter bounds (single source of truth)
+# ---------------------------------------------------------------------------
+
+# Format: (min, max, log_scale, wandb_distribution)
+# log_scale=True means log-uniform; False means uniform
+_PARAM_BOUNDS = {
+    # Common parameters
+    "learning_rate": (1e-6, 1e1, True),
+    "momentum": (0.0, 0.99, False),
+    "weight_decay": (1e-6, 1e-1, True),
+    "eps": (1e-10, 1e-6, True),
+    # Adam/AdamW parameters
+    "beta1": (0.0, 0.99, False),
+    "beta2": (0.8, 0.9999, False),
+    # Muon parameters
+    "adam_b1": (0.0, 0.99, False),
+    "adam_b2": (0.8, 0.9999, False),
+    "muon_beta": (0.5, 0.999, False),  # muon's momentum parameter
+    # Custom SGD metric parameters
+    "xi": (1e-3, 1e1, True),
+    "beta": (0.5, 0.99, False),
+    "beta_rms": (0.8, 0.9999, False),
+    # Learnable metric parameters
+    "metric_lr": (1e-5, 1.0, True),
+    "metric_reg": (1e-6, 1e-2, True),
+    "metric_clip": (1.0, 5.0, False),
+    # Off-diagonal parameters
+    "gamma": (1e-4, 10.0, True),
+}
+
+
+def _wandb_param(name, fixed_value=None, categorical_values=None):
+    """Generate WandB sweep parameter definition from unified bounds.
+
+    Parameters
+    ----------
+    name : str
+        Parameter name (must exist in _PARAM_BOUNDS unless fixed/categorical).
+    fixed_value : any, optional
+        If provided, return a fixed value parameter.
+    categorical_values : list, optional
+        If provided, return a categorical parameter.
+
+    Returns
+    -------
+    dict
+        WandB sweep parameter specification.
+    """
+    if fixed_value is not None:
+        return {"values": [fixed_value]}
+    if categorical_values is not None:
+        return {"values": categorical_values}
+
+    lo, hi, log_scale = _PARAM_BOUNDS[name]
+    if log_scale:
+        return {"distribution": "log_uniform_values", "min": lo, "max": hi}
+    else:
+        return {"distribution": "uniform", "min": lo, "max": hi}
+
+
+def _optuna_suggest(trial, name, prefix="", fixed_value=None, categorical_values=None):
+    """Suggest parameter value from unified bounds using Optuna trial.
+
+    Parameters
+    ----------
+    trial : optuna.Trial
+        Active Optuna trial.
+    name : str
+        Parameter name (must exist in _PARAM_BOUNDS unless fixed/categorical).
+    prefix : str
+        Optional prefix for parameter names.
+    fixed_value : any, optional
+        If provided, return this fixed value.
+    categorical_values : list, optional
+        If provided, suggest from these values.
+
+    Returns
+    -------
+    any
+        Suggested parameter value.
+    """
+    if fixed_value is not None:
+        return fixed_value
+    if categorical_values is not None:
+        return trial.suggest_categorical(prefix + name, categorical_values)
+
+    lo, hi, log_scale = _PARAM_BOUNDS[name]
+    return trial.suggest_float(prefix + name, lo, hi, log=log_scale)
+
+
+# ---------------------------------------------------------------------------
 # Factory functions
 # ---------------------------------------------------------------------------
 
@@ -245,82 +336,86 @@ def get_sweep_parameters(name):
     These are merged into the sweep config's ``parameters`` key.
     Task-specific fixed parameters (batch_size, n_epochs, etc.) are added
     by each sweep script.
+
+    Uses unified _PARAM_BOUNDS to ensure consistency with Optuna suggestions.
     """
     if name == "adam":
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "beta1": {"distribution": "uniform", "min": 0.8, "max": 0.99},
-            "beta2": {"distribution": "uniform", "min": 0.9, "max": 0.999},
-            "eps": {"values": [1e-8]},
+            "learning_rate": _wandb_param("learning_rate"),
+            "beta1": _wandb_param("beta1"),
+            "beta2": _wandb_param("beta2"),
+            "eps": _wandb_param("eps", fixed_value=1e-8),
         }
 
     if name == "adamw":
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "beta1": {"distribution": "uniform", "min": 0.8, "max": 0.99},
-            "beta2": {"distribution": "uniform", "min": 0.9, "max": 0.999},
-            "eps": {"values": [1e-8]},
-            "weight_decay": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
+            "learning_rate": _wandb_param("learning_rate"),
+            "beta1": _wandb_param("beta1"),
+            "beta2": _wandb_param("beta2"),
+            "eps": _wandb_param("eps", fixed_value=1e-8),
+            "weight_decay": _wandb_param("weight_decay"),
         }
 
     if name == "sgd":
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "momentum": {"distribution": "uniform", "min": 0.1, "max": 0.99},
+            "learning_rate": _wandb_param("learning_rate"),
+            "momentum": _wandb_param("momentum"),
         }
 
     if name == "muon":
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "adam_b1": {"distribution": "uniform", "min": 0.8, "max": 0.99},
-            "adam_b2": {"distribution": "uniform", "min": 0.9, "max": 0.999},
-            "eps": {"values": [1e-8]},
-            "beta": {"distribution": "uniform", "min": 0.9, "max": 0.99},
-            "weight_decay": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
+            "learning_rate": _wandb_param("learning_rate"),
+            "adam_b1": _wandb_param("adam_b1"),
+            "adam_b2": _wandb_param("adam_b2"),
+            "eps": _wandb_param("eps", fixed_value=1e-8),
+            "beta": _wandb_param("muon_beta"),
+            "weight_decay": _wandb_param("weight_decay"),
         }
 
     if name in ("sgd_metric", "sgd_log_metric"):
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "momentum": {"distribution": "uniform", "min": 0.8, "max": 0.99},
-            "xi": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1e-1},
-            "beta": {"distribution": "uniform", "min": 0.6, "max": 0.9},
-            "weight_decay": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
+            "learning_rate": _wandb_param("learning_rate"),
+            "momentum": _wandb_param("momentum"),
+            "xi": _wandb_param("xi"),
+            "beta": _wandb_param("beta"),
+            "weight_decay": _wandb_param("weight_decay"),
         }
 
     if name == "sgd_rms":
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "momentum": {"distribution": "uniform", "min": 0.8, "max": 0.99},
-            "xi": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1e-1},
-            "beta": {"distribution": "uniform", "min": 0.6, "max": 0.9},
-            "beta_rms": {"distribution": "uniform", "min": 0.9, "max": 0.999},
-            "eps": {"values": [1e-8]},
-            "weight_decay": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
+            "learning_rate": _wandb_param("learning_rate"),
+            "momentum": _wandb_param("momentum"),
+            "xi": _wandb_param("xi"),
+            "beta": _wandb_param("beta"),
+            "beta_rms": _wandb_param("beta_rms"),
+            "eps": _wandb_param("eps", fixed_value=1e-8),
+            "weight_decay": _wandb_param("weight_decay"),
         }
 
     if name in ("sgd_learn_scalar", "sgd_learn_scalar_log",
                  "sgd_learn_diag", "sgd_learn_diag_log"):
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "momentum": {"distribution": "uniform", "min": 0.0, "max": 0.99},
-            "xi": {"distribution": "log_uniform_values", "min": 1e-3, "max": 1e1},
-            "beta": {"distribution": "uniform", "min": 0.5, "max": 0.99},
-            "weight_decay": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
-            "metric_lr": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1.0},
-            "metric_reg": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
-            "metric_clip": {"distribution": "uniform", "min": 1.0, "max": 5.0},
+            "learning_rate": _wandb_param("learning_rate"),
+            "momentum": _wandb_param("momentum"),
+            "xi": _wandb_param("xi"),
+            "beta": _wandb_param("beta"),
+            "weight_decay": _wandb_param("weight_decay"),
+            "metric_lr": _wandb_param("metric_lr"),
+            "metric_reg": _wandb_param("metric_reg"),
+            "metric_clip": _wandb_param("metric_clip"),
         }
 
     if name.startswith("sgd_offdiag_"):
         return {
-            "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1},
-            "momentum": {"distribution": "uniform", "min": 0.0, "max": 0.99},
-            "xi": {"distribution": "log_uniform_values", "min": 1e-4, "max": 1e1},
-            "gamma": {"distribution": "log_uniform_values", "min": 1e-4, "max": 10.0},
-            "weight_decay": {"distribution": "log_uniform_values", "min": 1e-6, "max": 1e-2},
-            "base_mode": {"values": ["grad", "momentum"]},
-            "use_momentum_for_update": {"values": [True, False]},
+            "learning_rate": _wandb_param("learning_rate"),
+            "momentum": _wandb_param("momentum"),
+            "xi": _wandb_param("xi"),
+            "gamma": _wandb_param("gamma"),
+            "weight_decay": _wandb_param("weight_decay"),
+            "base_mode": _wandb_param("base_mode", categorical_values=["grad", "momentum"]),
+            "use_momentum_for_update": _wandb_param(
+                "use_momentum_for_update", categorical_values=[True, False]
+            ),
         }
 
     raise ValueError(f"Unknown optimizer: {name!r}")
@@ -332,6 +427,8 @@ def get_sweep_parameters(name):
 
 def suggest_optuna_parameters(name, trial, prefix=""):
     """Suggest hyperparameters using an Optuna trial.
+
+    Uses unified _PARAM_BOUNDS to ensure consistency with WandB sweep parameters.
 
     Parameters
     ----------
@@ -351,76 +448,78 @@ def suggest_optuna_parameters(name, trial, prefix=""):
 
     if name == "adam":
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "beta1": trial.suggest_float(p + "beta1", 0.0, 0.99),
-            "beta2": trial.suggest_float(p + "beta2", 0.8, 0.9999),
-            "eps": trial.suggest_float(p + "eps", 1e-10, 1e-6, log=True),
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "beta1": _optuna_suggest(trial, "beta1", p),
+            "beta2": _optuna_suggest(trial, "beta2", p),
+            "eps": _optuna_suggest(trial, "eps", p, fixed_value=1e-8),
         }
 
     if name == "adamw":
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "beta1": trial.suggest_float(p + "beta1", 0.0, 0.99),
-            "beta2": trial.suggest_float(p + "beta2", 0.8, 0.9999),
-            "eps": trial.suggest_float(p + "eps", 1e-10, 1e-6, log=True),
-            "weight_decay": trial.suggest_float(p + "weight_decay", 1e-6, 1e-1, log=True),
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "beta1": _optuna_suggest(trial, "beta1", p),
+            "beta2": _optuna_suggest(trial, "beta2", p),
+            "eps": _optuna_suggest(trial, "eps", p, fixed_value=1e-8),
+            "weight_decay": _optuna_suggest(trial, "weight_decay", p),
         }
 
     if name == "sgd":
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "momentum": trial.suggest_float(p + "momentum", 0.0, 0.99),
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "momentum": _optuna_suggest(trial, "momentum", p),
         }
 
     if name == "muon":
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "adam_b1": trial.suggest_float(p + "adam_b1", 0.0, 0.99),
-            "adam_b2": trial.suggest_float(p + "adam_b2", 0.8, 0.9999),
-            "eps": trial.suggest_float(p + "eps", 1e-10, 1e-6, log=True),
-            "beta": trial.suggest_float(p + "beta", 0.5, 0.999),
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "adam_b1": _optuna_suggest(trial, "adam_b1", p),
+            "adam_b2": _optuna_suggest(trial, "adam_b2", p),
+            "eps": _optuna_suggest(trial, "eps", p, fixed_value=1e-8),
+            "beta": _optuna_suggest(trial, "muon_beta", p),
         }
 
     if name in ("sgd_metric", "sgd_log_metric"):
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "momentum": trial.suggest_float(p + "momentum", 0.0, 0.99),
-            "xi": trial.suggest_float(p + "xi", 1e-3, 1e1, log=True),
-            "beta": 0.0,
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "momentum": _optuna_suggest(trial, "momentum", p),
+            "xi": _optuna_suggest(trial, "xi", p),
+            "beta": _optuna_suggest(trial, "beta", p),
         }
 
     if name == "sgd_rms":
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "momentum": trial.suggest_float(p + "momentum", 0.0, 0.99),
-            "xi": trial.suggest_float(p + "xi", 1e-3, 1e1, log=True),
-            "beta": 0.0,
-            "beta_rms": trial.suggest_float(p + "beta_rms", 0.8, 0.9999),
-            "eps": trial.suggest_float(p + "eps", 1e-10, 1e-6, log=True),
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "momentum": _optuna_suggest(trial, "momentum", p),
+            "xi": _optuna_suggest(trial, "xi", p),
+            "beta": _optuna_suggest(trial, "beta", p),
+            "beta_rms": _optuna_suggest(trial, "beta_rms", p),
+            "eps": _optuna_suggest(trial, "eps", p, fixed_value=1e-8),
         }
 
     if name in ("sgd_learn_scalar", "sgd_learn_scalar_log",
                  "sgd_learn_diag", "sgd_learn_diag_log"):
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "momentum": trial.suggest_float(p + "momentum", 0.0, 0.99),
-            "xi": trial.suggest_float(p + "xi", 1e-3, 1e1, log=True),
-            "beta": trial.suggest_float(p + "beta", 0.5, 0.99),
-            "metric_lr": trial.suggest_float(p + "metric_lr", 1e-5, 1.0, log=True),
-            "metric_reg": trial.suggest_float(p + "metric_reg", 1e-6, 1e-2, log=True),
-            "metric_clip": trial.suggest_float(p + "metric_clip", 1.0, 5.0),
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "momentum": _optuna_suggest(trial, "momentum", p),
+            "xi": _optuna_suggest(trial, "xi", p),
+            "beta": _optuna_suggest(trial, "beta", p),
+            "metric_lr": _optuna_suggest(trial, "metric_lr", p),
+            "metric_reg": _optuna_suggest(trial, "metric_reg", p),
+            "metric_clip": _optuna_suggest(trial, "metric_clip", p),
         }
 
     if name.startswith("sgd_offdiag_"):
         return {
-            "learning_rate": trial.suggest_float(p + "learning_rate", 1e-6, 1e1, log=True),
-            "momentum": trial.suggest_float(p + "momentum", 0.0, 0.99),
-            "xi": trial.suggest_float(p + "xi", 1e-4, 1e1, log=True),
-            "gamma": trial.suggest_float(p + "gamma", 1e-4, 10.0, log=True),
-            "weight_decay": trial.suggest_float(p + "weight_decay", 0.0, 1e-2),
-            "base_mode": trial.suggest_categorical(p + "base_mode", ["grad", "momentum"]),
-            "use_momentum_for_update": trial.suggest_categorical(
-                p + "use_momentum_for_update", [True, False]
+            "learning_rate": _optuna_suggest(trial, "learning_rate", p),
+            "momentum": _optuna_suggest(trial, "momentum", p),
+            "xi": _optuna_suggest(trial, "xi", p),
+            "gamma": _optuna_suggest(trial, "gamma", p),
+            "weight_decay": _optuna_suggest(trial, "weight_decay", p),
+            "base_mode": _optuna_suggest(
+                trial, "base_mode", p, categorical_values=["grad", "momentum"]
+            ),
+            "use_momentum_for_update": _optuna_suggest(
+                trial, "use_momentum_for_update", p, categorical_values=[True, False]
             ),
         }
 

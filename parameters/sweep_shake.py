@@ -214,12 +214,12 @@ def train(config, seed, logger):
     for epoch in range(n_epochs):
         epoch_losses = []
 
-        train_time += time.time()
+        epoch_start = time.time()
         for i, (x_batch, y_batch) in enumerate(train_batches):
             batch_key = batch_keys_per_epoch[epoch][i]
             params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch, batch_key)
             epoch_losses.append(loss)
-        train_time -= time.time()
+        train_time += time.time() - epoch_start
 
         avg_train_loss = float(jnp.mean(jnp.array(epoch_losses)))
 

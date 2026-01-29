@@ -180,13 +180,13 @@ def train(config, seed, logger):
         train_batches = create_shuffled_batches(x_train, y_train, batch_size, seed + epoch)
         epoch_losses = []
 
-        train_time += time.time()
+        epoch_start = time.time()
         for x_batch, y_batch in train_batches:
             params, batch_stats, opt_state, loss = train_step(
                 params, batch_stats, opt_state, x_batch, y_batch
             )
             epoch_losses.append(loss)
-        train_time -= time.time()
+        train_time += time.time() - epoch_start
 
         avg_loss = float(jnp.mean(jnp.array(epoch_losses)))
 
