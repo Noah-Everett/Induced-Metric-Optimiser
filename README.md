@@ -31,15 +31,10 @@ images/              # Figures
 ### Dependencies
 
 ```bash
-pip install jax jaxlib optax flax numpy matplotlib seaborn pandas
+pip install -r requirements.txt
 ```
 
-For local sweeps (no WandB required):
-```bash
-pip install optuna
-```
-
-For WandB sweeps:
+For WandB sweeps (optional):
 ```bash
 pip install wandb
 ```
