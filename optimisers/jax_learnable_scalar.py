@@ -19,14 +19,14 @@ import jax.numpy as jnp
 import optax
 
 def _tree_dot(a, b):
-    return jax.tree_util.tree_reduce(
+    return jax.tree.reduce(
         lambda acc, x: acc + jnp.sum(x),
-        jax.tree_util.tree_map(lambda x, y: x * y, a, b),
+        jax.tree.map(lambda x, y: x * y, a, b),
         initializer=jnp.array(0.0),
     )
 
 def _scale_tree(x, scalar):
-    return jax.tree_util.tree_map(lambda t: scalar * t, x)
+    return jax.tree.map(lambda t: scalar * t, x)
 
 class SGDLearnableScalarState(NamedTuple):
     step: jnp.ndarray            # int32 scalar
@@ -58,7 +58,7 @@ def custom_sgd_learnable_scalar(
     def init(params):
         return SGDLearnableScalarState(
             step=jnp.zeros([], dtype=jnp.int32),
-            momentum=jax.tree_util.tree_map(jnp.zeros_like, params),
+            momentum=jax.tree.map(jnp.zeros_like, params),
             metric_ema=jnp.zeros([]),
             log_scale=jnp.zeros([]),  # s = 0 => gamma^{-1}=I
         )
@@ -76,17 +76,17 @@ def custom_sgd_learnable_scalar(
         r = 1.0 / (1.0 + jnp.abs(v_hat))
 
         # momentum (EMA) and bias correction
-        new_momentum = jax.tree_util.tree_map(
+        new_momentum = jax.tree.map(
             lambda m, g: momentum * m + one_minus_momentum * g, state.momentum, grads
         )
-        m_corr = jax.tree_util.tree_map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
+        m_corr = jax.tree.map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
 
         # apply inverse metric (scalar) then step + decoupled WD
         m_tilde = _scale_tree(m_corr, alpha)
         if params is None:
-            updates = jax.tree_util.tree_map(lambda mt: neg_lr * r * mt, m_tilde)
+            updates = jax.tree.map(lambda mt: neg_lr * r * mt, m_tilde)
         else:
-            updates = jax.tree_util.tree_map(
+            updates = jax.tree.map(
                 lambda mt, p: neg_lr * r * mt - learning_rate * weight_decay * p, m_tilde, params
             )
 
@@ -128,7 +128,7 @@ def custom_sgd_log_learnable_scalar(
     def init(params):
         return SGDLearnableScalarState(
             step=jnp.zeros([], dtype=jnp.int32),
-            momentum=jax.tree_util.tree_map(jnp.zeros_like, params),
+            momentum=jax.tree.map(jnp.zeros_like, params),
             metric_ema=jnp.zeros([]),
             log_scale=jnp.zeros([]),
         )
@@ -144,16 +144,16 @@ def custom_sgd_log_learnable_scalar(
         v_hat = new_metric_ema / (1.0 - (beta ** step))
         r = loss / (jnp.square(loss) + jnp.abs(v_hat))
 
-        new_momentum = jax.tree_util.tree_map(
+        new_momentum = jax.tree.map(
             lambda m, g: momentum * m + one_minus_momentum * g, state.momentum, grads
         )
-        m_corr = jax.tree_util.tree_map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
+        m_corr = jax.tree.map(lambda m: m / (1.0 - (momentum ** step)), new_momentum)
 
         m_tilde = _scale_tree(m_corr, alpha)
         if params is None:
-            updates = jax.tree_util.tree_map(lambda mt: neg_lr * r * mt, m_tilde)
+            updates = jax.tree.map(lambda mt: neg_lr * r * mt, m_tilde)
         else:
-            updates = jax.tree_util.tree_map(
+            updates = jax.tree.map(
                 lambda mt, p: neg_lr * r * mt - learning_rate * weight_decay * p, m_tilde, params
             )
 
