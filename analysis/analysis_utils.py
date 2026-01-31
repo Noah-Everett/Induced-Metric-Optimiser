@@ -124,8 +124,10 @@ def _extract_history_wandb(best_runs, metric_keys):
         data["epoch"] = []
 
         for row in history:
-            if "epoch" in row and row["epoch"] is not None:
-                data["epoch"].append(row["epoch"])
+            # Support both "epoch" (training sweeps) and "iteration" (small_examples)
+            epoch_val = row.get("epoch", row.get("iteration", None))
+            if epoch_val is not None:
+                data["epoch"].append(epoch_val)
                 for key in metric_keys:
                     data[key].append(row.get(key, None))
 
@@ -226,8 +228,10 @@ def _extract_history_local(best_runs, metric_keys):
         data["epoch"] = []
 
         for row in history:
-            if "epoch" in row:
-                data["epoch"].append(row["epoch"])
+            # Support both "epoch" (training sweeps) and "iteration" (small_examples)
+            epoch_val = row.get("epoch", row.get("iteration", None))
+            if epoch_val is not None:
+                data["epoch"].append(epoch_val)
                 for key in metric_keys:
                     data[key].append(row.get(key, None))
 

@@ -476,6 +476,7 @@ def suggest_optuna_parameters(name, trial, prefix=""):
             "adam_b2": _optuna_suggest(trial, "adam_b2", p),
             "eps": _optuna_suggest(trial, "eps", p, fixed_value=1e-8),
             "beta": _optuna_suggest(trial, "muon_beta", p),
+            "weight_decay": _optuna_suggest(trial, "weight_decay", p),
         }
 
     if name in ("sgd_metric", "sgd_log_metric"):
@@ -484,6 +485,7 @@ def suggest_optuna_parameters(name, trial, prefix=""):
             "momentum": _optuna_suggest(trial, "momentum", p),
             "xi": _optuna_suggest(trial, "xi", p),
             "beta": _optuna_suggest(trial, "beta", p),
+            "weight_decay": _optuna_suggest(trial, "weight_decay", p),
         }
 
     if name == "sgd_rms":
@@ -494,6 +496,7 @@ def suggest_optuna_parameters(name, trial, prefix=""):
             "beta": _optuna_suggest(trial, "beta", p),
             "beta_rms": _optuna_suggest(trial, "beta_rms", p),
             "eps": _optuna_suggest(trial, "eps", p, fixed_value=1e-8),
+            "weight_decay": _optuna_suggest(trial, "weight_decay", p),
         }
 
     if name in ("sgd_learn_scalar", "sgd_learn_scalar_log",
@@ -503,6 +506,7 @@ def suggest_optuna_parameters(name, trial, prefix=""):
             "momentum": _optuna_suggest(trial, "momentum", p),
             "xi": _optuna_suggest(trial, "xi", p),
             "beta": _optuna_suggest(trial, "beta", p),
+            "weight_decay": _optuna_suggest(trial, "weight_decay", p),
             "metric_lr": _optuna_suggest(trial, "metric_lr", p),
             "metric_reg": _optuna_suggest(trial, "metric_reg", p),
             "metric_clip": _optuna_suggest(trial, "metric_clip", p),
