@@ -60,6 +60,7 @@ Note:
 
 from typing import NamedTuple, Any, Callable, Optional
 
+import numpy as np
 import jax
 import jax.numpy as jnp
 import optax
@@ -73,7 +74,7 @@ class OffDiagSGDState(NamedTuple):
 
 def _tree_to_flat(tree):
     """Flatten a PyTree of arrays to a single 1D jnp.ndarray."""
-    leaves, _ = jax.tree_util.tree_flatten(tree)
+    leaves, _ = jax.tree.flatten(tree)
     if not leaves:
         return jnp.array([], dtype=jnp.float32)
     flat_leaves = [jnp.ravel(x) for x in leaves]
@@ -82,13 +83,13 @@ def _tree_to_flat(tree):
 
 def _flat_to_tree(vec, template_tree):
     """Unflatten a 1D vector back into a PyTree with the shapes of template_tree."""
-    leaves, treedef = jax.tree_util.tree_flatten(template_tree)
+    leaves, treedef = jax.tree.flatten(template_tree)
     if not leaves:
         return template_tree
     sizes = [x.size for x in leaves]
-    splits = jnp.split(vec, jnp.cumsum(jnp.array(sizes[:-1])))
+    splits = jnp.split(vec, np.cumsum(np.array(sizes[:-1])))
     new_leaves = [v.reshape(x.shape) for v, x in zip(splits, leaves)]
-    return jax.tree_util.tree_unflatten(treedef, new_leaves)
+    return jax.tree.unflatten(treedef, new_leaves)
 
 
 def _apply_inverse_metric_offdiag(
