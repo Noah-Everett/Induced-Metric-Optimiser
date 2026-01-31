@@ -111,7 +111,11 @@ def _load_top_n_runs_wandb(project, task_tag, run_index, optimizers,
 
 
 def _extract_history_wandb(best_runs, metric_keys):
-    """Extract training history from WandB runs."""
+    """Extract training history from WandB runs.
+
+    Missing metric values are stored as ``np.nan`` to keep all arrays
+    aligned with the epoch array.
+    """
     optimizer_data = {}
 
     for optimizer, run_info in best_runs.items():
@@ -129,11 +133,10 @@ def _extract_history_wandb(best_runs, metric_keys):
             if epoch_val is not None:
                 data["epoch"].append(epoch_val)
                 for key in metric_keys:
-                    data[key].append(row.get(key, None))
+                    data[key].append(row.get(key, np.nan))
 
-        # Convert to numpy arrays, filtering None values per key
         for key in data:
-            data[key] = np.array([x for x in data[key] if x is not None])
+            data[key] = np.array(data[key], dtype=float)
 
         optimizer_data[optimizer] = data
 
@@ -216,7 +219,12 @@ def _load_top_n_runs_local(results_dir, task_tag, run_index, optimizers,
 
 
 def _extract_history_local(best_runs, metric_keys):
-    """Extract training history from local run data."""
+    """Extract training history from local run data.
+
+    Keeps all arrays aligned to the epoch array.  Missing metric values
+    are stored as ``np.nan`` so downstream code can use ``np.nanmean``
+    etc. without length mismatches.
+    """
     optimizer_data = {}
 
     for optimizer, run_info in best_runs.items():
@@ -233,10 +241,10 @@ def _extract_history_local(best_runs, metric_keys):
             if epoch_val is not None:
                 data["epoch"].append(epoch_val)
                 for key in metric_keys:
-                    data[key].append(row.get(key, None))
+                    data[key].append(row.get(key, np.nan))
 
         for key in data:
-            data[key] = np.array([x for x in data[key] if x is not None])
+            data[key] = np.array(data[key], dtype=float)
 
         optimizer_data[optimizer] = data
 
@@ -430,6 +438,9 @@ def compute_wall_times(train_time_values):
 def add_wall_times(optimizer_data, time_key="train_time_seconds"):
     """Add ``wall_times`` to each entry in optimizer_data in-place.
 
+    When *time_key* is sparse (contains NaN for epochs where timing was
+    not logged), the function linearly interpolates to fill all epochs.
+
     Parameters
     ----------
     optimizer_data : dict
@@ -444,10 +455,33 @@ def add_wall_times(optimizer_data, time_key="train_time_seconds"):
     """
     for opt, data in optimizer_data.items():
         raw = data.get(time_key, np.array([]))
-        if len(raw) > 0:
-            data["wall_times"] = compute_wall_times(raw)
+        epochs = data.get("epoch", np.array([]))
+        n_epochs = len(epochs)
+
+        if len(raw) == 0 or n_epochs == 0:
+            data["wall_times"] = np.arange(n_epochs, dtype=float)
+            continue
+
+        # Find valid (non-NaN) time entries
+        valid_mask = ~np.isnan(raw)
+        valid_indices = np.where(valid_mask)[0]
+
+        if len(valid_indices) == 0:
+            data["wall_times"] = np.arange(n_epochs, dtype=float)
+            continue
+
+        # Compute wall times for valid entries
+        valid_times = compute_wall_times(raw[valid_mask])
+
+        if len(valid_indices) == n_epochs:
+            # All entries have timing — no interpolation needed
+            data["wall_times"] = valid_times
         else:
-            data["wall_times"] = np.arange(len(data.get("epoch", [])), dtype=float)
+            # Interpolate to fill all epochs
+            data["wall_times"] = np.interp(
+                np.arange(n_epochs), valid_indices, valid_times
+            )
+
     return optimizer_data
 
 
