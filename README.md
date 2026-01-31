@@ -28,7 +28,16 @@ images/              # Figures
 
 ## Setup
 
-### Dependencies
+### Dependencies (conda)
+
+```bash
+conda env create -f environment.yml
+conda activate jaxvenv
+```
+
+### Dependencies (pip)
+
+If not using conda:
 
 ```bash
 pip install jax jaxlib optax flax numpy matplotlib seaborn pandas
