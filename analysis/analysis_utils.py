@@ -147,32 +147,43 @@ def _extract_history_wandb(best_runs, metric_keys):
 # Data loading - Local backend
 # ---------------------------------------------------------------------------
 
-def _load_local_runs(results_dir, task_tag, run_index, optimizer):
-    """Load all runs for an optimizer from local JSON files."""
-    run_dir = Path(results_dir) / task_tag / optimizer / f"run_{run_index}"
+def _load_local_runs(results_dir, task_tag, run_index, optimizer, iteration=0):
+    """Load all runs for an optimizer from local JSON files.
 
-    if not run_dir.exists():
+    Args:
+        results_dir: Base results directory
+        task_tag: Task identifier (e.g., "mnist_mlp")
+        run_index: Run index (0-4)
+        optimizer: Optimizer name
+        iteration: Iteration/batch number (default: 0)
+
+    Returns:
+        list: List containing single run data dict, or empty list if file doesn't exist
+    """
+    # New structure: results/task_tag/optimizer/itr_N/run_N.json
+    result_file = Path(results_dir) / task_tag / optimizer / f"itr_{iteration}" / f"run_{run_index}.json"
+
+    if not result_file.exists():
         return []
 
     runs = []
-    for json_file in run_dir.glob("*.json"):
-        with open(json_file) as f:
-            data = json.load(f)
-            data["_file"] = str(json_file)
-            runs.append(data)
+    with open(result_file) as f:
+        data = json.load(f)
+        data["_file"] = str(result_file)
+        runs.append(data)
 
     return runs
 
 
 def _load_best_runs_local(results_dir, task_tag, run_index, optimizers,
-                          metric_key="sweep_metric", direction="minimize"):
+                          metric_key="sweep_metric", direction="minimize", iteration=0):
     """Load best runs from local JSON files."""
     best_runs = {}
 
     for optimizer in optimizers:
         print(f"Finding best run for {optimizer}...")
 
-        runs = _load_local_runs(results_dir, task_tag, run_index, optimizer)
+        runs = _load_local_runs(results_dir, task_tag, run_index, optimizer, iteration=iteration)
 
         if runs:
             key_fn = lambda r: r["summary"].get(
@@ -195,14 +206,14 @@ def _load_best_runs_local(results_dir, task_tag, run_index, optimizers,
 
 
 def _load_top_n_runs_local(results_dir, task_tag, run_index, optimizers,
-                           n=50, metric_key="sweep_metric", direction="minimize"):
+                           n=50, metric_key="sweep_metric", direction="minimize", iteration=0):
     """Load top N runs for each optimizer from local JSON files."""
     top_n_runs = {}
 
     for optimizer in optimizers:
         print(f"Loading top {n} runs for {optimizer}...")
 
-        runs = _load_local_runs(results_dir, task_tag, run_index, optimizer)
+        runs = _load_local_runs(results_dir, task_tag, run_index, optimizer, iteration=iteration)
 
         if runs:
             key_fn = lambda r: r["summary"].get(
@@ -267,6 +278,7 @@ def load_best_runs(
     direction="minimize",
     sort_metric=None,
     sort_order=None,
+    iteration=0,
 ):
     """
     Load best runs for each optimizer.
@@ -295,6 +307,8 @@ def load_best_runs(
         WandB summary metric to sort by (default: metric_key)
     sort_order : str, optional
         "+" ascending or "-" descending (default: "+" for minimize, "-" for maximize)
+    iteration : int
+        Iteration/batch number (default: 0, local backend only)
 
     Returns
     -------
@@ -311,7 +325,7 @@ def load_best_runs(
         )
     else:
         return _load_best_runs_local(
-            results_dir, task_tag, run_index, optimizers, metric_key, direction
+            results_dir, task_tag, run_index, optimizers, metric_key, direction, iteration=iteration
         )
 
 
@@ -328,6 +342,7 @@ def load_top_n_runs(
     direction="minimize",
     sort_metric=None,
     sort_order=None,
+    iteration=0,
 ):
     """
     Load top N runs for each optimizer.
@@ -358,6 +373,8 @@ def load_top_n_runs(
         WandB summary metric to sort by (default: metric_key)
     sort_order : str, optional
         "+" ascending or "-" descending (default: "+" for minimize, "-" for maximize)
+    iteration : int
+        Iteration/batch number (default: 0, local backend only)
 
     Returns
     -------
@@ -374,7 +391,7 @@ def load_top_n_runs(
         )
     else:
         return _load_top_n_runs_local(
-            results_dir, task_tag, run_index, optimizers, n, metric_key, direction
+            results_dir, task_tag, run_index, optimizers, n, metric_key, direction, iteration=iteration
         )
 
 

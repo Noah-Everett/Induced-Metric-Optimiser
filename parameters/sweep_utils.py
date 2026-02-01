@@ -35,11 +35,12 @@ class SweepLogger:
         logger.finish({"final_metric": value})
     """
 
-    def __init__(self, backend="wandb", project=None, tags=None, local_dir=None):
+    def __init__(self, backend="wandb", project=None, tags=None, local_dir=None, run_index=None):
         self.backend = backend
         self.project = project
         self.tags = tags or []
         self.local_dir = local_dir
+        self.run_index = run_index
         self._history = []
         self._config = {}
         self._run_dir = None
@@ -51,10 +52,16 @@ class SweepLogger:
         else:
             self._config = dict(config) if config else {}
             self._history = []
-            run_id = uuid.uuid4().hex[:8]
             self._run_dir = Path(self.local_dir)
             self._run_dir.mkdir(parents=True, exist_ok=True)
-            self._run_file = self._run_dir / f"{run_id}.json"
+
+            # Use run index instead of UUID for predictable filenames
+            if self.run_index is not None:
+                self._run_file = self._run_dir / f"run_{self.run_index}.json"
+            else:
+                # Fallback to UUID if no run_index provided (backward compatibility)
+                run_id = uuid.uuid4().hex[:8]
+                self._run_file = self._run_dir / f"{run_id}.json"
 
     def log(self, metrics):
         if self.backend == "wandb":
@@ -196,9 +203,11 @@ class SweepRunner:
         import optuna
         optuna.logging.set_verbosity(optuna.logging.WARNING)
 
+        # Use iteration-based directory structure
+        iteration = getattr(self.args, 'iteration', 0)  # Default to 0 if not provided
         local_dir = os.path.join(
             self.results_dir, self.task_tag, self.optimizer_name,
-            f"run_{self.args.index}"
+            f"itr_{iteration}"
         )
 
         study = optuna.create_study(
@@ -217,7 +226,8 @@ class SweepRunner:
                 else:
                     config[k] = v
 
-            logger = SweepLogger("local", local_dir=local_dir)
+            # Pass run_index to logger for predictable filenames
+            logger = SweepLogger("local", local_dir=local_dir, run_index=self.args.index)
             logger.init_run(config)
             seed = np.random.randint(1, 1_000_000)
             start = time.time()
@@ -277,5 +287,9 @@ def setup_argparser(description):
     parser.add_argument(
         "--results_dir", type=str, default="results",
         help="Base directory for local results (local backend only)",
+    )
+    parser.add_argument(
+        "--iteration", type=int, default=0,
+        help="Iteration/batch number for organizing multiple experiment runs",
     )
     return parser
