@@ -105,9 +105,12 @@ def train(config, seed, logger):
     test_array = jnp.ones((1000, 1000))
     _ = jnp.dot(test_array, test_array).block_until_ready()
     warmup_time = time.time() - warmup_start
-    print(f"GPU warmup time: {warmup_time:.3f}s", flush=True)
-    print(f"Data on device: {train_batches[0][0].devices()}", flush=True)
-    print(f"Params on device: {jax.tree_util.tree_leaves(params)[0].devices()}", flush=True)
+
+    # Only print diagnostics for the first run (to avoid spam in batch sweeps)
+    if args.index == 0:
+        print(f"GPU warmup time: {warmup_time:.3f}s", flush=True)
+        print(f"Data on device: {train_batches[0][0].devices()}", flush=True)
+        print(f"Params on device: {jax.tree_util.tree_leaves(params)[0].devices()}", flush=True)
 
     optimizer = create_optimizer(args.optimiser, config)
     opt_state = optimizer.init(params)
@@ -135,12 +138,12 @@ def train(config, seed, logger):
 
         epoch_start = time.time()
         for batch_idx, (x_batch, y_batch) in enumerate(train_batches):
-            if epoch == 0 and batch_idx < 3:
+            if epoch == 0 and batch_idx < 3 and args.index == 0:
                 batch_start = time.time()
 
             params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch)
 
-            if epoch == 0 and batch_idx < 3:
+            if epoch == 0 and batch_idx < 3 and args.index == 0:
                 batch_time = time.time() - batch_start
                 label = "with JIT compilation" if batch_idx == 0 else "post-compilation"
                 print(f"Batch {batch_idx} ({label}): {batch_time:.3f}s", flush=True)
@@ -150,7 +153,7 @@ def train(config, seed, logger):
         epoch_time = time.time() - epoch_start
         train_time += epoch_time
 
-        if epoch == 0:
+        if epoch == 0 and args.index == 0:
             print(f"First epoch total time: {epoch_time:.3f}s ({len(train_batches)} batches)", flush=True)
 
         avg_loss = float(jnp.mean(jnp.array(epoch_losses)))
