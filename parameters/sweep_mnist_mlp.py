@@ -7,7 +7,14 @@ Usage::
     python sweep_mnist_mlp.py --optimiser sgd_learn_scalar --num_runs 100 --backend local
 """
 
+import os
 import time
+
+# Configure JAX for optimal performance on both GPU and CPU
+# These settings work on M1 Pro (Metal/CPU), CUDA GPUs, and CPU-only systems
+os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'true'  # Preallocate device memory
+os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'  # Use platform-specific allocator
+# Note: Do NOT set JAX_PLATFORMS - let JAX auto-detect (Metal on M1, CUDA on NVIDIA, CPU otherwise)
 
 import jax
 import jax.numpy as jnp
@@ -34,11 +41,11 @@ args = parser.parse_args()
 
 def load_mnist():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    # Convert to JAX arrays immediately to avoid CPU→GPU transfers every step
-    x_train = jnp.array(x_train.reshape(-1, 784).astype(np.float32) / 255.0)
-    x_test = jnp.array(x_test.reshape(-1, 784).astype(np.float32) / 255.0)
-    y_train = jnp.array(y_train)
-    y_test = jnp.array(y_test)
+    # Convert to JAX arrays and explicitly pin to default device (GPU if available)
+    x_train = jax.device_put(jnp.array(x_train.reshape(-1, 784).astype(np.float32) / 255.0))
+    x_test = jax.device_put(jnp.array(x_test.reshape(-1, 784).astype(np.float32) / 255.0))
+    y_train = jax.device_put(jnp.array(y_train))
+    y_test = jax.device_put(jnp.array(y_test))
     return x_train, y_train, x_test, y_test
 
 
@@ -74,13 +81,19 @@ def loss_fn(params, x, y, model):
 
 
 def compute_full_accuracy(params, data_batches, model):
-    total_correct = 0
-    total_samples = 0
+    correct_counts = []
+    sample_counts = []
+
     for x_batch, y_batch in data_batches:
         logits = model.apply(params, x_batch)
-        total_correct += jnp.sum(jnp.argmax(logits, axis=1) == y_batch)
-        total_samples += len(x_batch)
-    return total_correct / total_samples
+        # Keep as JAX arrays - don't force sync
+        correct_counts.append(jnp.sum(jnp.argmax(logits, axis=1) == y_batch))
+        sample_counts.append(len(x_batch))
+
+    # Single synchronization point at the end
+    total_correct = jnp.sum(jnp.stack(correct_counts))
+    total_samples = sum(sample_counts)
+    return float(total_correct / total_samples)
 
 
 # ---------------------------------------------------------------------------
@@ -111,10 +124,11 @@ def train(config, seed, logger):
     # When using sweep_batch.py, only run_0 will print; when testing manually, it helps verify GPU usage
     if args.index == 0:
         print(f"\n=== Performance Diagnostics (run_0) ===", flush=True)
+        print(f"JAX backend: {jax.default_backend()}", flush=True)
+        print(f"JAX devices: {jax.devices()}", flush=True)
         print(f"GPU warmup time: {warmup_time:.3f}s", flush=True)
         print(f"Data on device: {train_batches[0][0].devices()}", flush=True)
         print(f"Params on device: {jax.tree_util.tree_leaves(params)[0].devices()}", flush=True)
-        print(f"args.index = {args.index}", flush=True)
         print("=" * 40 + "\n", flush=True)
 
     optimizer = create_optimizer(args.optimiser, config)
@@ -161,7 +175,8 @@ def train(config, seed, logger):
         if epoch == 0 and args.index == 0:
             print(f"First epoch total time: {epoch_time:.3f}s ({len(train_batches)} batches)", flush=True)
 
-        avg_loss = float(jnp.mean(jnp.array(epoch_losses)))
+        # Stack all losses first (JAX operation), then convert once to defer sync
+        avg_loss = float(jnp.mean(jnp.stack(epoch_losses)))
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
             train_acc = float(compute_full_accuracy(params, train_batches, model))

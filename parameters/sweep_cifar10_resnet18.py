@@ -10,6 +10,12 @@ Usage::
 import os
 import time
 
+# Configure JAX for optimal performance on both GPU and CPU
+# These settings work on M1 Pro (Metal/CPU), CUDA GPUs, and CPU-only systems
+os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'true'  # Preallocate device memory
+os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'  # Use platform-specific allocator
+# Note: Do NOT set JAX_PLATFORMS - let JAX auto-detect (Metal on M1, CUDA on NVIDIA, CPU otherwise)
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -65,10 +71,11 @@ def load_cifar10():
             else:
                 raise e
 
-    x_train = jnp.array(x_train, dtype=jnp.float32) / 255.0
-    x_test = jnp.array(x_test, dtype=jnp.float32) / 255.0
-    y_train = jnp.array(y_train.flatten(), dtype=jnp.int32)
-    y_test = jnp.array(y_test.flatten(), dtype=jnp.int32)
+    # Convert to JAX arrays and explicitly pin to default device (GPU if available)
+    x_train = jax.device_put(jnp.array(x_train, dtype=jnp.float32) / 255.0)
+    x_test = jax.device_put(jnp.array(x_test, dtype=jnp.float32) / 255.0)
+    y_train = jax.device_put(jnp.array(y_train.flatten(), dtype=jnp.int32))
+    y_test = jax.device_put(jnp.array(y_test.flatten(), dtype=jnp.int32))
     return x_train, y_train, x_test, y_test
 
 
@@ -102,16 +109,20 @@ def create_shuffled_batches(x_train, y_train, batch_size, epoch_seed):
 # ---------------------------------------------------------------------------
 
 def compute_full_accuracy(variables, data_batches, model):
-    total_acc = 0.0
-    total_samples = 0
+    correct_counts = []
+    sample_counts = []
+
     for x_batch, y_batch in data_batches:
         logits = model.apply(variables, x_batch, train=False)
         predictions = jnp.argmax(logits, axis=-1)
-        batch_acc = jnp.mean(predictions == y_batch)
-        batch_size = len(x_batch)
-        total_acc += batch_acc * batch_size
-        total_samples += batch_size
-    return total_acc / total_samples
+        # Keep as JAX arrays - don't force sync
+        correct_counts.append(jnp.sum(predictions == y_batch))
+        sample_counts.append(len(x_batch))
+
+    # Single synchronization point at the end
+    total_correct = jnp.sum(jnp.stack(correct_counts))
+    total_samples = sum(sample_counts)
+    return float(total_correct / total_samples)
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +199,8 @@ def train(config, seed, logger):
             epoch_losses.append(loss)
         train_time += time.time() - epoch_start
 
-        avg_loss = float(jnp.mean(jnp.array(epoch_losses)))
+        # Stack all losses first (JAX operation), then convert once to defer sync
+        avg_loss = float(jnp.mean(jnp.stack(epoch_losses)))
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
             variables = {"params": params, "batch_stats": batch_stats}

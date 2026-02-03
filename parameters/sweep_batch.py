@@ -107,18 +107,35 @@ def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir, 
         "--results_dir", str(results_dir),
     ]
 
-    # Suppress output unless verbose mode or if it fails
-    if verbose:
-        result = subprocess.run(cmd, capture_output=False)
-    else:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            # Print error output if the command failed
-            print(f"  ERROR OUTPUT:", flush=True)
-            if result.stdout:
-                print(result.stdout, flush=True)
-            if result.stderr:
-                print(result.stderr, flush=True)
+    # Always capture output for parsing
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    # In non-verbose mode, only show diagnostics for run_0
+    if not verbose and run_idx == 0 and result.stdout:
+        # Extract and display diagnostic sections
+        lines = result.stdout.split('\n')
+        in_diagnostic_section = False
+        for line in lines:
+            if '=== Performance Diagnostics' in line:
+                in_diagnostic_section = True
+            if in_diagnostic_section:
+                print(line, flush=True)
+            if in_diagnostic_section and line.startswith('===') and 'Diagnostics' not in line:
+                in_diagnostic_section = False
+    elif verbose:
+        # In verbose mode, show everything
+        if result.stdout:
+            print(result.stdout, flush=True)
+        if result.stderr:
+            print(result.stderr, flush=True)
+
+    # Show errors regardless of verbose mode
+    if result.returncode != 0:
+        print(f"  ERROR OUTPUT:", flush=True)
+        if result.stdout:
+            print(result.stdout, flush=True)
+        if result.stderr:
+            print(result.stderr, flush=True)
 
     return result.returncode == 0
 
