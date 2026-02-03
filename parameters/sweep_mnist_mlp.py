@@ -88,6 +88,7 @@ def compute_full_accuracy(params, data_batches, model):
 # ---------------------------------------------------------------------------
 
 def train(config, seed, logger):
+    print(f"\n[Train function called: seed={seed}, index={args.index}]", flush=True)
     x_train, y_train, x_test, y_test = load_mnist()
 
     model = MLP(features=64, output_dim=10)
@@ -106,11 +107,15 @@ def train(config, seed, logger):
     _ = jnp.dot(test_array, test_array).block_until_ready()
     warmup_time = time.time() - warmup_start
 
-    # Only print diagnostics for the first run (to avoid spam in batch sweeps)
+    # Always print diagnostics for run_0 of each optimizer (useful for debugging)
+    # When using sweep_batch.py, only run_0 will print; when testing manually, it helps verify GPU usage
     if args.index == 0:
+        print(f"\n=== Performance Diagnostics (run_0) ===", flush=True)
         print(f"GPU warmup time: {warmup_time:.3f}s", flush=True)
         print(f"Data on device: {train_batches[0][0].devices()}", flush=True)
         print(f"Params on device: {jax.tree_util.tree_leaves(params)[0].devices()}", flush=True)
+        print(f"args.index = {args.index}", flush=True)
+        print("=" * 40 + "\n", flush=True)
 
     optimizer = create_optimizer(args.optimiser, config)
     opt_state = optimizer.init(params)
