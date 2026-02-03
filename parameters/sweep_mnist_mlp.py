@@ -34,8 +34,9 @@ args = parser.parse_args()
 
 def load_mnist():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-    x_train = x_train.reshape(-1, 784).astype(np.float32) / 255.0
-    x_test = x_test.reshape(-1, 784).astype(np.float32) / 255.0
+    # Convert to JAX arrays immediately to avoid CPU→GPU transfers every step
+    x_train = jnp.array(x_train.reshape(-1, 784).astype(np.float32) / 255.0)
+    x_test = jnp.array(x_test.reshape(-1, 784).astype(np.float32) / 255.0)
     y_train = jnp.array(y_train)
     y_test = jnp.array(y_test)
     return x_train, y_train, x_test, y_test
@@ -99,6 +100,15 @@ def train(config, seed, logger):
     key = jax.random.PRNGKey(seed)
     params = model.init(key, jnp.ones((1, 784)))
 
+    # Warmup: Force compilation and GPU transfer
+    warmup_start = time.time()
+    test_array = jnp.ones((1000, 1000))
+    _ = jnp.dot(test_array, test_array).block_until_ready()
+    warmup_time = time.time() - warmup_start
+    print(f"GPU warmup time: {warmup_time:.3f}s", flush=True)
+    print(f"Data on device: {train_batches[0][0].devices()}", flush=True)
+    print(f"Params on device: {jax.tree_util.tree_leaves(params)[0].devices()}", flush=True)
+
     optimizer = create_optimizer(args.optimiser, config)
     opt_state = optimizer.init(params)
     use_loss = needs_loss(args.optimiser)
@@ -124,10 +134,24 @@ def train(config, seed, logger):
         epoch_losses = []
 
         epoch_start = time.time()
-        for x_batch, y_batch in train_batches:
+        for batch_idx, (x_batch, y_batch) in enumerate(train_batches):
+            if epoch == 0 and batch_idx < 3:
+                batch_start = time.time()
+
             params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch)
+
+            if epoch == 0 and batch_idx < 3:
+                batch_time = time.time() - batch_start
+                label = "with JIT compilation" if batch_idx == 0 else "post-compilation"
+                print(f"Batch {batch_idx} ({label}): {batch_time:.3f}s", flush=True)
+
             epoch_losses.append(loss)
-        train_time += time.time() - epoch_start
+
+        epoch_time = time.time() - epoch_start
+        train_time += epoch_time
+
+        if epoch == 0:
+            print(f"First epoch total time: {epoch_time:.3f}s ({len(train_batches)} batches)", flush=True)
 
         avg_loss = float(jnp.mean(jnp.array(epoch_losses)))
 
