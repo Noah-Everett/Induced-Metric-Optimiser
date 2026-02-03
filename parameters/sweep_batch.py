@@ -15,6 +15,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from tqdm import tqdm
+
 from optimizer_registry import ALL_OPTIMIZERS
 
 # Default configuration
@@ -79,7 +81,7 @@ def check_missing_runs(optimizer, iteration, task_tag, num_runs, results_dir):
     return runs_to_do
 
 
-def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir):
+def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir, verbose=False):
     """Run a single sweep for the given optimizer and run index.
 
     Args:
@@ -89,6 +91,7 @@ def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir):
         task_script: Path to the sweep task script
         backend: Backend to use ("wandb" or "local")
         results_dir: Base results directory
+        verbose: If True, show full output from sweep script
 
     Returns:
         bool: True if successful, False if failed
@@ -104,7 +107,19 @@ def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir):
         "--results_dir", str(results_dir),
     ]
 
-    result = subprocess.run(cmd, capture_output=False)
+    # Suppress output unless verbose mode or if it fails
+    if verbose:
+        result = subprocess.run(cmd, capture_output=False)
+    else:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            # Print error output if the command failed
+            print(f"  ERROR OUTPUT:", flush=True)
+            if result.stdout:
+                print(result.stdout, flush=True)
+            if result.stderr:
+                print(result.stderr, flush=True)
+
     return result.returncode == 0
 
 
@@ -115,11 +130,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Run default optimizers with 5 runs each
+  # Run default optimizers with 5 runs each (quiet mode)
   python sweep_batch.py --task sweep_mnist_mlp.py --iteration 0
 
-  # Run specific optimizers
-  python sweep_batch.py --optimisers adam sgd muon --num_runs 10
+  # Run specific optimizers with verbose output
+  python sweep_batch.py --optimisers adam sgd muon --num_runs 10 --verbose
 
   # Skip already completed runs
   python sweep_batch.py --skip_completed --iteration 1
@@ -170,6 +185,10 @@ Examples:
         "--continue_on_failure", action="store_true",
         help="Continue to next optimizer if one fails (default: False)"
     )
+    parser.add_argument(
+        "--verbose", action="store_true",
+        help="Show full output from individual sweep runs (default: False)"
+    )
 
     args = parser.parse_args()
 
@@ -194,6 +213,7 @@ Examples:
     print(f"Runs per opt:    {args.num_runs}", flush=True)
     print(f"Optimizers:      {len(optimizers)} total", flush=True)
     print(f"Skip completed:  {args.skip_completed}", flush=True)
+    print(f"Verbose output:  {args.verbose}", flush=True)
     print("=" * 60, flush=True)
     print(flush=True)
 
@@ -220,13 +240,21 @@ Examples:
             print(flush=True)
             continue
 
-        print(f"  Running {len(runs_to_do)} runs: {runs_to_do}", flush=True)
-
-        # Run each index
+        # Run each index with progress bar
         optimizer_failed = False
-        for run_idx in runs_to_do:
-            success = run_sweep(opt, run_idx, args.iteration, args.task, args.backend, results_dir)
+
+        if args.verbose:
+            print(f"  Running {len(runs_to_do)} runs: {runs_to_do}", flush=True)
+            iterator = runs_to_do
+        else:
+            iterator = tqdm(runs_to_do, desc=f"  {opt}", unit="run", ncols=80, leave=True)
+
+        for run_idx in iterator:
+            success = run_sweep(opt, run_idx, args.iteration, args.task, args.backend, results_dir, args.verbose)
+
             if not success:
+                if not args.verbose:
+                    iterator.close()
                 print(f"  FAILED: {opt} run {run_idx}", flush=True)
                 optimizer_failed = True
                 if not args.continue_on_failure:
