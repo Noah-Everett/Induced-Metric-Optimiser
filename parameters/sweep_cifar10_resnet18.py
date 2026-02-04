@@ -10,6 +10,13 @@ Usage::
 import os
 import time
 
+# XLA persistent cache to avoid recompiling on every run
+# This saves ~15 seconds per run by caching compiled kernels and autotuning results
+os.environ['XLA_FLAGS'] = '--xla_gpu_enable_persistent_autotuning=true'
+cache_dir = os.path.expanduser('~/.cache/xla_compile')
+os.makedirs(cache_dir, exist_ok=True)
+os.environ['XLA_COMPILE_CACHE_DIR'] = cache_dir
+
 # Configure JAX for optimal performance on both GPU and CPU
 # These settings work on M1 Pro (Metal/CPU), CUDA GPUs, and CPU-only systems
 os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'true'  # Preallocate device memory
