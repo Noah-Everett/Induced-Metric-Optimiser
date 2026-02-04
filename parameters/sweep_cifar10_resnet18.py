@@ -7,6 +7,7 @@ Usage::
     python sweep_cifar10_resnet18.py --optimiser sgd_learn_scalar --num_runs 100 --backend local
 """
 
+import functools
 import os
 import time
 
@@ -112,18 +113,21 @@ def create_shuffled_batches(x_train, y_train, batch_size, epoch_seed):
 # Loss / accuracy helpers
 # ---------------------------------------------------------------------------
 
+@functools.partial(jax.jit, static_argnums=(2,))
+def predict(variables, x, model):
+    return model.apply(variables, x, train=False)
+
+
 def compute_full_accuracy(variables, data_batches, model):
     correct_counts = []
     sample_counts = []
 
     for x_batch, y_batch in data_batches:
-        logits = model.apply(variables, x_batch, train=False)
+        logits = predict(variables, x_batch, model)
         predictions = jnp.argmax(logits, axis=-1)
-        # Keep as JAX arrays - don't force sync
         correct_counts.append(jnp.sum(predictions == y_batch))
         sample_counts.append(len(x_batch))
 
-    # Single synchronization point at the end
     total_correct = jnp.sum(jnp.stack(correct_counts))
     total_samples = sum(sample_counts)
     return float(total_correct / total_samples)

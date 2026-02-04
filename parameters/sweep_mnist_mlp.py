@@ -7,6 +7,7 @@ Usage::
     python sweep_mnist_mlp.py --optimiser sgd_learn_scalar --num_runs 100 --backend local
 """
 
+import functools
 import os
 import time
 
@@ -84,17 +85,20 @@ def loss_fn(params, x, y, model):
     return optax.softmax_cross_entropy_with_integer_labels(logits, y).mean()
 
 
+@functools.partial(jax.jit, static_argnums=(2,))
+def predict(params, x, model):
+    return model.apply(params, x)
+
+
 def compute_full_accuracy(params, data_batches, model):
     correct_counts = []
     sample_counts = []
 
     for x_batch, y_batch in data_batches:
-        logits = model.apply(params, x_batch)
-        # Keep as JAX arrays - don't force sync
+        logits = predict(params, x_batch, model)
         correct_counts.append(jnp.sum(jnp.argmax(logits, axis=1) == y_batch))
         sample_counts.append(len(x_batch))
 
-    # Single synchronization point at the end
     total_correct = jnp.sum(jnp.stack(correct_counts))
     total_samples = sum(sample_counts)
     return float(total_correct / total_samples)
@@ -183,8 +187,22 @@ def train(config, seed, logger):
         avg_loss = float(jnp.mean(jnp.stack(epoch_losses)))
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
+            if epoch == 0 and args.index == 0:
+                val_start = time.time()
+
             train_acc = float(compute_full_accuracy(params, train_batches, model))
+
+            if epoch == 0 and args.index == 0:
+                train_acc_time = time.time() - val_start
+                test_start = time.time()
+
             test_acc = float(compute_full_accuracy(params, test_batches, model))
+
+            if epoch == 0 and args.index == 0:
+                test_acc_time = time.time() - test_start
+                print(f"First epoch train_acc time: {train_acc_time:.3f}s ({len(train_batches)} batches)", flush=True)
+                print(f"First epoch test_acc time: {test_acc_time:.3f}s ({len(test_batches)} batches)", flush=True)
+                print(f"First epoch total (train+val): {epoch_time + train_acc_time + test_acc_time:.3f}s", flush=True)
             if test_acc > max_val_acc:
                 max_val_acc = test_acc
                 max_acc_epoch = epoch
