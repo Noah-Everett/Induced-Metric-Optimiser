@@ -15,6 +15,8 @@ import sys
 import time
 from pathlib import Path
 
+from tqdm import tqdm
+
 from optimizer_registry import ALL_OPTIMIZERS
 
 # Default configuration
@@ -257,8 +259,18 @@ Examples:
     failed_optimizers = []
     batch_start_time = time.time()
     diagnostics_shown = False
+    device_info = ""
 
-    for idx, opt in enumerate(optimizers, 1):
+    # Create progress bar
+    pbar = tqdm(
+        optimizers,
+        desc="Starting...",
+        unit="opt",
+        bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]",
+        leave=True,
+    )
+
+    for opt in pbar:
         # Check how many runs already exist
         existing = count_existing_runs(opt, args.iteration, task_tag, results_dir)
 
@@ -266,17 +278,17 @@ Examples:
             remaining = args.num_runs - existing
             run_offset = existing
             if remaining <= 0:
-                print(f"[{idx:2d}/{total_optimizers}] {opt:30s} skipped (all {args.num_runs} runs exist)", flush=True)
+                pbar.set_description(f"{opt}: skipped")
                 skipped_optimizers += 1
                 continue
-            status_note = f" (+{existing} existing)" if existing > 0 else ""
+            status_note = f" +{existing}" if existing > 0 else ""
         else:
             remaining = args.num_runs
             run_offset = 0
             status_note = ""
 
-        # Print progress inline
-        print(f"[{idx:2d}/{total_optimizers}] {opt:30s} running {remaining} trials{status_note}...", end="", flush=True)
+        # Update progress bar description
+        pbar.set_description(f"{opt}: {remaining} trials{status_note}")
 
         opt_start = time.time()
         success, diagnostics = run_sweep(
@@ -288,26 +300,29 @@ Examples:
 
         if success:
             completed_optimizers += 1
-            print(f" done ({format_duration(elapsed)})", flush=True)
+            pbar.set_description(f"{opt}: done ({format_duration(elapsed)})")
 
-            # Show diagnostics once after first successful optimizer
+            # Capture diagnostics once after first successful optimizer
             if diagnostics and not diagnostics_shown:
                 diagnostics_shown = True
                 device = diagnostics.get('device', diagnostics.get('backend', 'unknown'))
                 batches = diagnostics.get('batches', 'unknown')
-                print(f"      Device: {device} | Batches: {batches}", flush=True)
+                device_info = f"  Device: {device} | Batches: {batches}"
         else:
             failed_optimizers.append(opt)
-            print(f" FAILED ({format_duration(elapsed)})", flush=True)
+            pbar.set_description(f"{opt}: FAILED ({format_duration(elapsed)})")
             if not args.continue_on_failure:
-                print(f"      Stopping due to failure (use --continue_on_failure to proceed)", flush=True)
+                tqdm.write("  Stopping due to failure (use --continue_on_failure to proceed)")
                 break
+
+    pbar.close()
 
     # Print summary
     total_elapsed = time.time() - batch_start_time
     print("=" * 70, flush=True)
-    print(f"  SUMMARY: {completed_optimizers} completed, {skipped_optimizers} skipped, {len(failed_optimizers)} failed", flush=True)
-    print(f"  Total time: {format_duration(total_elapsed)}", flush=True)
+    if device_info:
+        print(device_info, flush=True)
+    print(f"  {completed_optimizers} completed, {skipped_optimizers} skipped, {len(failed_optimizers)} failed | {format_duration(total_elapsed)}", flush=True)
     if failed_optimizers:
         print(f"  Failed: {', '.join(failed_optimizers)}", flush=True)
     print("=" * 70, flush=True)
