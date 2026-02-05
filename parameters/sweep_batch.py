@@ -15,8 +15,6 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from tqdm import tqdm
-
 from optimizer_registry import ALL_OPTIMIZERS
 
 # Default configuration
@@ -60,33 +58,31 @@ def timestamp():
     return datetime.now().strftime("%H:%M:%S")
 
 
-def check_missing_runs(optimizer, iteration, task_tag, num_runs, results_dir):
-    """Check which run indices are missing for an optimizer in a specific iteration.
+def count_existing_runs(optimizer, iteration, task_tag, results_dir):
+    """Count how many run files already exist for an optimizer.
 
     Args:
         optimizer: Optimizer name
         iteration: Iteration/batch number
         task_tag: Task identifier (e.g., "mnist_mlp")
-        num_runs: Total number of runs expected
         results_dir: Base results directory
 
     Returns:
-        list: Indices of missing runs
+        int: Number of existing run files
     """
-    runs_to_do = []
-    for i in range(num_runs):
-        result_file = results_dir / task_tag / optimizer / f"itr_{iteration}" / f"run_{i}.json"
-        if not result_file.exists():
-            runs_to_do.append(i)
-    return runs_to_do
+    run_dir = results_dir / task_tag / optimizer / f"itr_{iteration}"
+    if not run_dir.exists():
+        return 0
+    return len(list(run_dir.glob("run_*.json")))
 
 
-def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir, verbose=False):
-    """Run a single sweep for the given optimizer and run index.
+def run_sweep(optimizer, num_runs, run_offset, iteration, task_script, backend, results_dir, verbose=False):
+    """Run a sweep for the given optimizer with all runs in a single subprocess.
 
     Args:
         optimizer: Optimizer name
-        run_idx: Run index
+        num_runs: Number of runs to execute
+        run_offset: Starting run index (for resuming)
         iteration: Iteration/batch number
         task_script: Path to the sweep task script
         backend: Backend to use ("wandb" or "local")
@@ -100,42 +96,39 @@ def run_sweep(optimizer, run_idx, iteration, task_script, backend, results_dir, 
         sys.executable,
         task_script,
         "--optimiser", optimizer,
-        "--num_runs", "1",
-        "--index", str(run_idx),
+        "--num_runs", str(num_runs),
+        "--run_offset", str(run_offset),
         "--iteration", str(iteration),
         "--backend", backend,
         "--results_dir", str(results_dir),
     ]
 
-    # Always capture output for parsing
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    if verbose:
+        # Stream output directly to terminal
+        result = subprocess.run(cmd)
+    else:
+        # Capture output and show only key info
+        result = subprocess.run(cmd, capture_output=True, text=True)
 
-    # In non-verbose mode, only show diagnostics for run_0
-    if not verbose and run_idx == 0 and result.stdout:
-        # Extract and display diagnostic sections
-        lines = result.stdout.split('\n')
-        in_diagnostic_section = False
-        for line in lines:
-            if '=== Performance Diagnostics' in line:
-                in_diagnostic_section = True
-            if in_diagnostic_section:
-                print(line, flush=True)
-            if in_diagnostic_section and line.startswith('===') and 'Diagnostics' not in line:
-                in_diagnostic_section = False
-    elif verbose:
-        # In verbose mode, show everything
+        # Extract and display diagnostic sections (only from first run)
         if result.stdout:
-            print(result.stdout, flush=True)
-        if result.stderr:
-            print(result.stderr, flush=True)
+            lines = result.stdout.split('\n')
+            in_diagnostic_section = False
+            for line in lines:
+                if '=== Performance Diagnostics' in line:
+                    in_diagnostic_section = True
+                if in_diagnostic_section:
+                    print(line, flush=True)
+                if in_diagnostic_section and line.startswith('===') and 'Diagnostics' not in line:
+                    in_diagnostic_section = False
 
-    # Show errors regardless of verbose mode
-    if result.returncode != 0:
-        print(f"  ERROR OUTPUT:", flush=True)
-        if result.stdout:
-            print(result.stdout, flush=True)
-        if result.stderr:
-            print(result.stderr, flush=True)
+        # Show errors
+        if result.returncode != 0:
+            print(f"  ERROR OUTPUT:", flush=True)
+            if result.stdout:
+                print(result.stdout, flush=True)
+            if result.stderr:
+                print(result.stderr, flush=True)
 
     return result.returncode == 0
 
@@ -244,44 +237,35 @@ Examples:
         print(f"{timestamp()} [{idx}/{total_optimizers}] Starting: {opt}", flush=True)
         print("=" * 60, flush=True)
 
-        # Check which run indices already exist
+        # Check how many runs already exist
+        existing = count_existing_runs(opt, args.iteration, task_tag, results_dir)
+
         if args.skip_completed:
-            runs_to_do = check_missing_runs(opt, args.iteration, task_tag, args.num_runs, results_dir)
+            remaining = args.num_runs - existing
+            run_offset = existing
+            if remaining <= 0:
+                print(f"  All {args.num_runs} runs already complete, skipping", flush=True)
+                completed_optimizers += 1
+                print(flush=True)
+                continue
+            if existing > 0:
+                print(f"  {existing} runs exist, running {remaining} more (offset={run_offset})", flush=True)
         else:
-            runs_to_do = list(range(args.num_runs))
+            remaining = args.num_runs
+            run_offset = 0
 
-        # Skip if all runs are complete
-        if not runs_to_do:
-            print(f"  All {args.num_runs} runs already complete, skipping", flush=True)
-            completed_optimizers += 1
-            print(flush=True)
-            continue
+        print(f"  Running {remaining} trials in single process...", flush=True)
 
-        # Run each index with progress bar
-        optimizer_failed = False
+        success = run_sweep(
+            opt, remaining, run_offset, args.iteration,
+            args.task, args.backend, results_dir, args.verbose
+        )
 
-        if args.verbose:
-            print(f"  Running {len(runs_to_do)} runs: {runs_to_do}", flush=True)
-            iterator = runs_to_do
-        else:
-            iterator = tqdm(runs_to_do, desc=f"  {opt}", unit="run", ncols=80, leave=True)
-
-        for run_idx in iterator:
-            success = run_sweep(opt, run_idx, args.iteration, args.task, args.backend, results_dir, args.verbose)
-
-            if not success:
-                if not args.verbose:
-                    iterator.close()
-                print(f"  FAILED: {opt} run {run_idx}", flush=True)
-                optimizer_failed = True
-                if not args.continue_on_failure:
-                    print(f"  Stopping batch sweep due to failure", flush=True)
-                    failed_optimizers.append(opt)
-                    break
-
-        if optimizer_failed:
+        if not success:
+            print(f"  FAILED: {opt}", flush=True)
             failed_optimizers.append(opt)
             if not args.continue_on_failure:
+                print(f"  Stopping batch sweep due to failure", flush=True)
                 break
         else:
             completed_optimizers += 1

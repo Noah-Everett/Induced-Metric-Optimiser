@@ -226,8 +226,9 @@ class SweepRunner:
                 else:
                     config[k] = v
 
-            # Pass run_index to logger for predictable filenames
-            logger = SweepLogger("local", local_dir=local_dir, run_index=self.args.index)
+            # Use trial.number + offset for unique, predictable filenames
+            run_offset = getattr(self.args, 'run_offset', 0)
+            logger = SweepLogger("local", local_dir=local_dir, run_index=run_offset + trial.number)
             logger.init_run(config)
             seed = np.random.randint(1, 1_000_000)
             start = time.time()
@@ -291,5 +292,9 @@ def setup_argparser(description):
     parser.add_argument(
         "--iteration", type=int, default=0,
         help="Iteration/batch number for organizing multiple experiment runs",
+    )
+    parser.add_argument(
+        "--run_offset", type=int, default=0,
+        help="Starting run index offset (for resuming partial sweeps)",
     )
     return parser
