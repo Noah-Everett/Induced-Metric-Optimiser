@@ -12,17 +12,12 @@ import time
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 import requests
 
 from shared_models import MiniGPT
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
-
-# Print JAX device information
-print(f"JAX devices: {jax.devices()}")
-print(f"JAX default backend: {jax.default_backend()}")
 
 # Parse CLI
 parser = setup_argparser("Tiny Shakespeare MiniGPT Hyperparameter Sweep")
@@ -48,11 +43,9 @@ def download_shakespeare():
     filename = "tinyshakespeare.txt"
 
     if not os.path.exists(filename):
-        print("Downloading tiny Shakespeare dataset...")
         response = requests.get(url)
         with open(filename, "w", encoding="utf-8") as f:
             f.write(response.text)
-        print("Download complete!")
 
     return filename
 
@@ -64,13 +57,9 @@ def load_shakespeare(seq_len=128, val_split=0.1):
     with open(filename, "r", encoding="utf-8") as f:
         text = f.read()
 
-    print(f"Text length: {len(text)} characters")
-
     chars = sorted(list(set(text)))
     vocab_size = len(chars)
     char_to_idx = {ch: i for i, ch in enumerate(chars)}
-
-    print(f"Vocabulary size: {vocab_size}")
 
     data = jnp.array([char_to_idx[ch] for ch in text])
 
@@ -239,9 +228,6 @@ def train(config, seed, logger):
             })
         else:
             logger.log({"epoch": epoch, "train_loss": avg_train_loss})
-
-        if epoch % 10 == 0:
-            print(f"Epoch {epoch}: train_loss={avg_train_loss:.4f}, time={train_time:.2f}s")
 
     return {
         "objective": min_val_perplexity,

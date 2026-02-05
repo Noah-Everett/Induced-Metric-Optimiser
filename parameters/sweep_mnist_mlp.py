@@ -23,17 +23,12 @@ os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'  # Use platform-specific 
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 import tensorflow as tf
 
 from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
-
-# Print JAX device information
-print(f"JAX devices: {jax.devices()}")
-print(f"JAX default backend: {jax.default_backend()}")
 
 # Parse CLI
 parser = setup_argparser("MNIST MLP Hyperparameter Sweep")
@@ -47,8 +42,8 @@ args = parser.parse_args()
 def load_mnist():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     # Convert to JAX arrays and explicitly pin to default device (GPU if available)
-    x_train = jax.device_put(jnp.array(x_train.reshape(-1, 784).astype(np.float32) / 255.0))
-    x_test = jax.device_put(jnp.array(x_test.reshape(-1, 784).astype(np.float32) / 255.0))
+    x_train = jax.device_put(jnp.array(x_train.reshape(-1, 784) / 255.0, dtype=jnp.float32))
+    x_test = jax.device_put(jnp.array(x_test.reshape(-1, 784) / 255.0, dtype=jnp.float32))
     y_train = jax.device_put(jnp.array(y_train))
     y_test = jax.device_put(jnp.array(y_test))
     return x_train, y_train, x_test, y_test
@@ -74,7 +69,6 @@ def count_correct(params, x, y, model):
 # ---------------------------------------------------------------------------
 
 def train(config, seed, logger):
-    print(f"\n[Train function called: seed={seed}, index={args.index}]", flush=True)
     x_train, y_train, x_test, y_test = load_mnist()
 
     model = MLP(features=64, output_dim=10)
@@ -157,23 +151,8 @@ def train(config, seed, logger):
             print(f"First epoch (scan, {n_train_batches} batches): {epoch_time:.3f}s", flush=True)
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
-            if epoch == 0 and args.index == 0:
-                val_start = time.time()
-
-            # Full-dataset accuracy (no batching loop — single GPU dispatch each)
             train_acc = float(count_correct(params, x_train, y_train, model) / len(y_train))
-
-            if epoch == 0 and args.index == 0:
-                train_acc_time = time.time() - val_start
-                test_start = time.time()
-
             test_acc = float(count_correct(params, x_test, y_test, model) / len(y_test))
-
-            if epoch == 0 and args.index == 0:
-                test_acc_time = time.time() - test_start
-                print(f"First epoch train_acc time: {train_acc_time:.3f}s (full dataset)", flush=True)
-                print(f"First epoch test_acc time: {test_acc_time:.3f}s (full dataset)", flush=True)
-                print(f"First epoch total (train+val): {epoch_time + train_acc_time + test_acc_time:.3f}s", flush=True)
 
             if test_acc > max_val_acc:
                 max_val_acc = test_acc

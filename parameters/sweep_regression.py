@@ -12,16 +12,11 @@ from itertools import product
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
 from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
-
-# Print JAX device information
-print(f"JAX devices: {jax.devices()}")
-print(f"JAX default backend: {jax.default_backend()}")
 
 # Parse CLI
 parser = setup_argparser("Regression Hyperparameter Sweep")

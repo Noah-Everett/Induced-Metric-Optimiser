@@ -22,16 +22,11 @@ os.environ['XLA_PYTHON_CLIENT_ALLOCATOR'] = 'platform'  # Use platform-specific 
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
 from shared_models import ResNet18
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
-
-# Print JAX device information
-print(f"JAX devices: {jax.devices()}")
-print(f"JAX default backend: {jax.default_backend()}")
 
 # Parse CLI
 parser = setup_argparser("CIFAR-10 ResNet18 Hyperparameter Sweep")
@@ -50,19 +45,12 @@ def load_cifar10():
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            print(f"Loading CIFAR-10 (attempt {attempt + 1}/{max_retries})...")
             (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-
             assert x_train.shape == (50000, 32, 32, 3), f"Unexpected train shape: {x_train.shape}"
             assert x_test.shape == (10000, 32, 32, 3), f"Unexpected test shape: {x_test.shape}"
-
-            print("CIFAR-10 loaded successfully!")
             break
-
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
-                print("Clearing cache and retrying...")
                 cache_dir = os.path.expanduser("~/.keras/datasets/")
                 for item in ["cifar-10-batches-py.tar.gz", "cifar-10-batches-py"]:
                     path = os.path.join(cache_dir, item)
@@ -210,7 +198,7 @@ def train(config, seed, logger):
         epoch_time = time.time() - epoch_start
         train_time += epoch_time
 
-        if epoch == 0:
+        if epoch == 0 and args.index == 0:
             print(f"First epoch (scan, {n_train_batches} batches): {epoch_time:.3f}s", flush=True)
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:

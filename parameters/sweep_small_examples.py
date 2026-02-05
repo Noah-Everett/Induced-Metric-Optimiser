@@ -20,7 +20,6 @@ import time
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import optax
 
 from optimizer_registry import create_optimizer, needs_loss
@@ -28,10 +27,6 @@ from sweep_utils import SweepLogger, SweepRunner, setup_argparser
 
 # Enable 64-bit precision for small-scale optimisation
 jax.config.update("jax_enable_x64", True)
-
-# Print JAX device information
-print(f"JAX devices: {jax.devices()}")
-print(f"JAX default backend: {jax.default_backend()}")
 
 
 # ---------------------------------------------------------------------------
