@@ -7,7 +7,6 @@ Usage::
     python sweep_cifar10_resnet18.py --optimiser sgd_learn_scalar --num_runs 100 --backend local
 """
 
-import functools
 import os
 import time
 
@@ -84,52 +83,8 @@ def load_cifar10():
     return x_train, y_train, x_test, y_test
 
 
-def create_data_loaders(x_train, y_train, x_test, y_test, batch_size, seed):
-    n_test_batches = len(x_test) // batch_size
-    test_batches = [
-        (x_test[i * batch_size:(i + 1) * batch_size],
-         y_test[i * batch_size:(i + 1) * batch_size])
-        for i in range(n_test_batches)
-    ]
-    return (x_train, y_train, batch_size), test_batches
-
-
-def create_shuffled_batches(x_train, y_train, batch_size, epoch_seed):
-    key = jax.random.PRNGKey(epoch_seed)
-    perm = jax.random.permutation(key, len(x_train))
-    x_train_shuffled = x_train[perm]
-    y_train_shuffled = y_train[perm]
-
-    n_train_batches = len(x_train) // batch_size
-    train_batches = [
-        (x_train_shuffled[i * batch_size:(i + 1) * batch_size],
-         y_train_shuffled[i * batch_size:(i + 1) * batch_size])
-        for i in range(n_train_batches)
-    ]
-    return train_batches
-
-
 # ---------------------------------------------------------------------------
-# Loss / accuracy helpers
-# ---------------------------------------------------------------------------
-
-@functools.partial(jax.jit, static_argnums=(3,))
-def count_correct(variables, x, y, model):
-    logits = model.apply(variables, x, train=False)
-    return jnp.sum(jnp.argmax(logits, axis=-1) == y)
-
-
-def compute_full_accuracy(variables, data_batches, model):
-    correct_counts = []
-    for x_batch, y_batch in data_batches:
-        correct_counts.append(count_correct(variables, x_batch, y_batch, model))
-    total_correct = jnp.sum(jnp.stack(correct_counts))
-    total_samples = sum(len(y) for _, y in data_batches)
-    return float(total_correct / total_samples)
-
-
-# ---------------------------------------------------------------------------
-# Generic training function
+# Training function
 # ---------------------------------------------------------------------------
 
 def train(config, seed, logger):
@@ -138,10 +93,24 @@ def train(config, seed, logger):
     model = ResNet18(num_classes=10)
     batch_size = config.get("batch_size", 1024)
     n_epochs = config.get("n_epochs", 400)
-    train_data, test_batches = create_data_loaders(
-        x_train, y_train, x_test, y_test, batch_size, seed
+
+    # Pre-batch data as arrays for jax.lax.scan (not Python lists)
+    n_train_batches = len(x_train) // batch_size
+    n_test_batches = len(x_test) // batch_size
+
+    # Fixed batched arrays for accuracy computation (no shuffle needed)
+    x_train_acc = x_train[:n_train_batches * batch_size].reshape(
+        n_train_batches, batch_size, 32, 32, 3
     )
-    x_train, y_train, batch_size = train_data
+    y_train_acc = y_train[:n_train_batches * batch_size].reshape(
+        n_train_batches, batch_size
+    )
+    x_test_batched = x_test[:n_test_batches * batch_size].reshape(
+        n_test_batches, batch_size, 32, 32, 3
+    )
+    y_test_batched = y_test[:n_test_batches * batch_size].reshape(
+        n_test_batches, batch_size
+    )
 
     key = jax.random.PRNGKey(seed)
     dummy_input = jnp.ones((1, 32, 32, 3))
@@ -153,62 +122,109 @@ def train(config, seed, logger):
     opt_state = optimizer.init(params)
     use_loss = needs_loss(args.optimiser)
 
+    # Use jax.lax.scan to process all batches in a single GPU dispatch per epoch
     if use_loss:
         @jax.jit
-        def train_step(params, batch_stats, opt_state, x, y):
-            def loss_fn_with_batch_stats(p):
-                variables = {"params": p, "batch_stats": batch_stats}
-                logits, new_batch_stats = model.apply(
-                    variables, x, train=True, mutable=["batch_stats"]
-                )
-                return optax.softmax_cross_entropy_with_integer_labels(logits, y).mean(), new_batch_stats
-
-            (loss, new_batch_stats), grads = jax.value_and_grad(
-                loss_fn_with_batch_stats, has_aux=True
-            )(params)
-            updates, opt_state_new = optimizer.update(grads, opt_state, loss, params)
-            params_new = optax.apply_updates(params, updates)
-            return params_new, new_batch_stats["batch_stats"], opt_state_new, loss
+        def train_epoch(params, batch_stats, opt_state, x_batched, y_batched):
+            def step(carry, batch):
+                params, batch_stats, opt_state = carry
+                x, y = batch
+                def loss_fn(p):
+                    variables = {"params": p, "batch_stats": batch_stats}
+                    logits, mutated = model.apply(
+                        variables, x, train=True, mutable=["batch_stats"]
+                    )
+                    return optax.softmax_cross_entropy_with_integer_labels(
+                        logits, y
+                    ).mean(), mutated
+                (loss, mutated), grads = jax.value_and_grad(
+                    loss_fn, has_aux=True
+                )(params)
+                batch_stats_new = mutated["batch_stats"]
+                updates, opt_state_new = optimizer.update(grads, opt_state, loss, params)
+                params_new = optax.apply_updates(params, updates)
+                return (params_new, batch_stats_new, opt_state_new), loss
+            (params, batch_stats, opt_state), losses = jax.lax.scan(
+                step, (params, batch_stats, opt_state), (x_batched, y_batched)
+            )
+            return params, batch_stats, opt_state, jnp.mean(losses)
     else:
         @jax.jit
-        def train_step(params, batch_stats, opt_state, x, y):
-            def loss_fn_with_batch_stats(p):
-                variables = {"params": p, "batch_stats": batch_stats}
-                logits, new_batch_stats = model.apply(
-                    variables, x, train=True, mutable=["batch_stats"]
-                )
-                return optax.softmax_cross_entropy_with_integer_labels(logits, y).mean(), new_batch_stats
+        def train_epoch(params, batch_stats, opt_state, x_batched, y_batched):
+            def step(carry, batch):
+                params, batch_stats, opt_state = carry
+                x, y = batch
+                def loss_fn(p):
+                    variables = {"params": p, "batch_stats": batch_stats}
+                    logits, mutated = model.apply(
+                        variables, x, train=True, mutable=["batch_stats"]
+                    )
+                    return optax.softmax_cross_entropy_with_integer_labels(
+                        logits, y
+                    ).mean(), mutated
+                (loss, mutated), grads = jax.value_and_grad(
+                    loss_fn, has_aux=True
+                )(params)
+                batch_stats_new = mutated["batch_stats"]
+                updates, opt_state_new = optimizer.update(grads, opt_state, params)
+                params_new = optax.apply_updates(params, updates)
+                return (params_new, batch_stats_new, opt_state_new), loss
+            (params, batch_stats, opt_state), losses = jax.lax.scan(
+                step, (params, batch_stats, opt_state), (x_batched, y_batched)
+            )
+            return params, batch_stats, opt_state, jnp.mean(losses)
 
-            (loss, new_batch_stats), grads = jax.value_and_grad(
-                loss_fn_with_batch_stats, has_aux=True
-            )(params)
-            updates, opt_state_new = optimizer.update(grads, opt_state, params)
-            params_new = optax.apply_updates(params, updates)
-            return params_new, new_batch_stats["batch_stats"], opt_state_new, loss
+    # Scan-based accuracy (full dataset too large for single forward pass)
+    @jax.jit
+    def count_correct_scan(params, batch_stats, x_batched, y_batched):
+        variables = {"params": params, "batch_stats": batch_stats}
+        def count_batch(total, batch):
+            x, y = batch
+            logits = model.apply(variables, x, train=False)
+            return total + jnp.sum(jnp.argmax(logits, axis=-1) == y), None
+        total_correct, _ = jax.lax.scan(
+            count_batch, jnp.array(0, dtype=jnp.int32), (x_batched, y_batched)
+        )
+        return total_correct
 
     max_val_acc = 0.0
     max_acc_epoch = 0
     train_time = 0.0
 
     for epoch in range(n_epochs):
-        train_batches = create_shuffled_batches(x_train, y_train, batch_size, seed + epoch)
-        epoch_losses = []
+        # Shuffle and reshape training data for this epoch
+        epoch_key = jax.random.PRNGKey(seed + epoch)
+        perm = jax.random.permutation(epoch_key, len(x_train))
+        x_epoch = x_train[perm][:n_train_batches * batch_size].reshape(
+            n_train_batches, batch_size, 32, 32, 3
+        )
+        y_epoch = y_train[perm][:n_train_batches * batch_size].reshape(
+            n_train_batches, batch_size
+        )
 
         epoch_start = time.time()
-        for x_batch, y_batch in train_batches:
-            params, batch_stats, opt_state, loss = train_step(
-                params, batch_stats, opt_state, x_batch, y_batch
-            )
-            epoch_losses.append(loss)
-        train_time += time.time() - epoch_start
+        params, batch_stats, opt_state, avg_loss = train_epoch(
+            params, batch_stats, opt_state, x_epoch, y_epoch
+        )
+        avg_loss = float(avg_loss)
+        epoch_time = time.time() - epoch_start
+        train_time += epoch_time
 
-        # Stack all losses first (JAX operation), then convert once to defer sync
-        avg_loss = float(jnp.mean(jnp.stack(epoch_losses)))
+        if epoch == 0:
+            print(f"First epoch (scan, {n_train_batches} batches): {epoch_time:.3f}s", flush=True)
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
-            variables = {"params": params, "batch_stats": batch_stats}
-            train_acc = float(compute_full_accuracy(variables, train_batches, model))
-            test_acc = float(compute_full_accuracy(variables, test_batches, model))
+            n_train_samples = n_train_batches * batch_size
+            n_test_samples = n_test_batches * batch_size
+            train_correct = count_correct_scan(
+                params, batch_stats, x_train_acc, y_train_acc
+            )
+            test_correct = count_correct_scan(
+                params, batch_stats, x_test_batched, y_test_batched
+            )
+            train_acc = float(train_correct / n_train_samples)
+            test_acc = float(test_correct / n_test_samples)
+
             if test_acc > max_val_acc:
                 max_val_acc = test_acc
                 max_acc_epoch = epoch
