@@ -85,22 +85,18 @@ def loss_fn(params, x, y, model):
     return optax.softmax_cross_entropy_with_integer_labels(logits, y).mean()
 
 
-@functools.partial(jax.jit, static_argnums=(2,))
-def predict(params, x, model):
-    return model.apply(params, x)
+@functools.partial(jax.jit, static_argnums=(3,))
+def count_correct(params, x, y, model):
+    logits = model.apply(params, x)
+    return jnp.sum(jnp.argmax(logits, axis=1) == y)
 
 
 def compute_full_accuracy(params, data_batches, model):
     correct_counts = []
-    sample_counts = []
-
     for x_batch, y_batch in data_batches:
-        logits = predict(params, x_batch, model)
-        correct_counts.append(jnp.sum(jnp.argmax(logits, axis=1) == y_batch))
-        sample_counts.append(len(x_batch))
-
+        correct_counts.append(count_correct(params, x_batch, y_batch, model))
     total_correct = jnp.sum(jnp.stack(correct_counts))
-    total_samples = sum(sample_counts)
+    total_samples = sum(len(y) for _, y in data_batches)
     return float(total_correct / total_samples)
 
 

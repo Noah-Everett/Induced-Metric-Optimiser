@@ -113,23 +113,18 @@ def create_shuffled_batches(x_train, y_train, batch_size, epoch_seed):
 # Loss / accuracy helpers
 # ---------------------------------------------------------------------------
 
-@functools.partial(jax.jit, static_argnums=(2,))
-def predict(variables, x, model):
-    return model.apply(variables, x, train=False)
+@functools.partial(jax.jit, static_argnums=(3,))
+def count_correct(variables, x, y, model):
+    logits = model.apply(variables, x, train=False)
+    return jnp.sum(jnp.argmax(logits, axis=-1) == y)
 
 
 def compute_full_accuracy(variables, data_batches, model):
     correct_counts = []
-    sample_counts = []
-
     for x_batch, y_batch in data_batches:
-        logits = predict(variables, x_batch, model)
-        predictions = jnp.argmax(logits, axis=-1)
-        correct_counts.append(jnp.sum(predictions == y_batch))
-        sample_counts.append(len(x_batch))
-
+        correct_counts.append(count_correct(variables, x_batch, y_batch, model))
     total_correct = jnp.sum(jnp.stack(correct_counts))
-    total_samples = sum(sample_counts)
+    total_samples = sum(len(y) for _, y in data_batches)
     return float(total_correct / total_samples)
 
 
