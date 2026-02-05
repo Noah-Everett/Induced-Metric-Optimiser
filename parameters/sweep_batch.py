@@ -12,7 +12,7 @@ import argparse
 import os
 import subprocess
 import sys
-from datetime import datetime
+import time
 from pathlib import Path
 
 from optimizer_registry import ALL_OPTIMIZERS
@@ -53,9 +53,13 @@ DEFAULT_OPTIMIZERS = [
 ]
 
 
-def timestamp():
-    """Return current time in HH:MM:SS format."""
-    return datetime.now().strftime("%H:%M:%S")
+def format_duration(seconds):
+    """Format duration in human-readable format."""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes = int(seconds // 60)
+    secs = seconds % 60
+    return f"{minutes}m {secs:.0f}s"
 
 
 def count_existing_runs(optimizer, iteration, task_tag, results_dir):
@@ -76,7 +80,36 @@ def count_existing_runs(optimizer, iteration, task_tag, results_dir):
     return len(list(run_dir.glob("run_*.json")))
 
 
-def run_sweep(optimizer, num_runs, run_offset, iteration, task_script, backend, results_dir, verbose=False):
+def extract_diagnostics(stdout):
+    """Extract the first diagnostics section from output.
+
+    Returns:
+        dict: Extracted diagnostic info (backend, device, batches) or None
+    """
+    if not stdout:
+        return None
+
+    info = {}
+    for line in stdout.split('\n'):
+        if 'JAX backend:' in line:
+            info['backend'] = line.split(':', 1)[1].strip()
+        elif 'JAX devices:' in line:
+            # Extract just the device type, e.g., "CudaDevice(id=0)" -> "CUDA:0"
+            devices_str = line.split(':', 1)[1].strip()
+            if 'CudaDevice' in devices_str:
+                info['device'] = 'GPU (CUDA)'
+            elif 'Metal' in devices_str:
+                info['device'] = 'GPU (Metal)'
+            else:
+                info['device'] = devices_str
+        elif 'Training batches:' in line:
+            info['batches'] = line.split(':', 1)[1].strip()
+
+    return info if info else None
+
+
+def run_sweep(optimizer, num_runs, run_offset, iteration, task_script, backend,
+              results_dir, verbose=False, show_diagnostics=False):
     """Run a sweep for the given optimizer with all runs in a single subprocess.
 
     Args:
@@ -88,9 +121,10 @@ def run_sweep(optimizer, num_runs, run_offset, iteration, task_script, backend, 
         backend: Backend to use ("wandb" or "local")
         results_dir: Base results directory
         verbose: If True, show full output from sweep script
+        show_diagnostics: If True, extract and return diagnostics info
 
     Returns:
-        bool: True if successful, False if failed
+        tuple: (success: bool, diagnostics: dict or None)
     """
     cmd = [
         sys.executable,
@@ -103,34 +137,33 @@ def run_sweep(optimizer, num_runs, run_offset, iteration, task_script, backend, 
         "--results_dir", str(results_dir),
     ]
 
+    diagnostics = None
+
     if verbose:
         # Stream output directly to terminal
         result = subprocess.run(cmd)
     else:
-        # Capture output and show only key info
+        # Capture output
         result = subprocess.run(cmd, capture_output=True, text=True)
 
-        # Extract and display diagnostic sections (only from first run)
-        if result.stdout:
-            lines = result.stdout.split('\n')
-            in_diagnostic_section = False
-            for line in lines:
-                if '=== Performance Diagnostics' in line:
-                    in_diagnostic_section = True
-                if in_diagnostic_section:
-                    print(line, flush=True)
-                if in_diagnostic_section and line.startswith('===') and 'Diagnostics' not in line:
-                    in_diagnostic_section = False
+        # Extract diagnostics if requested (only for first optimizer)
+        if show_diagnostics and result.stdout:
+            diagnostics = extract_diagnostics(result.stdout)
 
         # Show errors
         if result.returncode != 0:
-            print(f"  ERROR OUTPUT:", flush=True)
+            print(f"\n  ERROR:", flush=True)
             if result.stdout:
-                print(result.stdout, flush=True)
+                # Show last 20 lines of stdout
+                lines = result.stdout.strip().split('\n')
+                for line in lines[-20:]:
+                    print(f"    {line}", flush=True)
             if result.stderr:
-                print(result.stderr, flush=True)
+                print(f"  STDERR:", flush=True)
+                for line in result.stderr.strip().split('\n')[-10:]:
+                    print(f"    {line}", flush=True)
 
-    return result.returncode == 0
+    return result.returncode == 0, diagnostics
 
 
 def main():
@@ -211,32 +244,21 @@ Examples:
     # Extract task tag from task script filename
     task_tag = Path(args.task).stem.replace("sweep_", "")
 
-    # Print configuration
-    print("=" * 60, flush=True)
-    print("BATCH SWEEP CONFIGURATION", flush=True)
-    print("=" * 60, flush=True)
-    print(f"Task script:     {args.task}", flush=True)
-    print(f"Task tag:        {task_tag}", flush=True)
-    print(f"Iteration:       {args.iteration}", flush=True)
-    print(f"Backend:         {args.backend}", flush=True)
-    print(f"Results dir:     {results_dir}", flush=True)
-    print(f"Runs per opt:    {args.num_runs}", flush=True)
-    print(f"Optimizers:      {len(optimizers)} total", flush=True)
-    print(f"Skip completed:  {args.skip_completed}", flush=True)
-    print(f"Verbose output:  {args.verbose}", flush=True)
-    print("=" * 60, flush=True)
-    print(flush=True)
+    # Print configuration (compact)
+    print("=" * 70, flush=True)
+    print(f"  BATCH SWEEP: {task_tag} | iteration {args.iteration} | {args.backend} backend", flush=True)
+    print(f"  {len(optimizers)} optimizers x {args.num_runs} runs | results: {results_dir}", flush=True)
+    print("=" * 70, flush=True)
 
     # Run sweeps for each optimizer
     total_optimizers = len(optimizers)
     completed_optimizers = 0
+    skipped_optimizers = 0
     failed_optimizers = []
+    batch_start_time = time.time()
+    diagnostics_shown = False
 
     for idx, opt in enumerate(optimizers, 1):
-        print("=" * 60, flush=True)
-        print(f"{timestamp()} [{idx}/{total_optimizers}] Starting: {opt}", flush=True)
-        print("=" * 60, flush=True)
-
         # Check how many runs already exist
         existing = count_existing_runs(opt, args.iteration, task_tag, results_dir)
 
@@ -244,45 +266,51 @@ Examples:
             remaining = args.num_runs - existing
             run_offset = existing
             if remaining <= 0:
-                print(f"  All {args.num_runs} runs already complete, skipping", flush=True)
-                completed_optimizers += 1
-                print(flush=True)
+                print(f"[{idx:2d}/{total_optimizers}] {opt:30s} skipped (all {args.num_runs} runs exist)", flush=True)
+                skipped_optimizers += 1
                 continue
-            if existing > 0:
-                print(f"  {existing} runs exist, running {remaining} more (offset={run_offset})", flush=True)
+            status_note = f" (+{existing} existing)" if existing > 0 else ""
         else:
             remaining = args.num_runs
             run_offset = 0
+            status_note = ""
 
-        print(f"  Running {remaining} trials in single process...", flush=True)
+        # Print progress inline
+        print(f"[{idx:2d}/{total_optimizers}] {opt:30s} running {remaining} trials{status_note}...", end="", flush=True)
 
-        success = run_sweep(
+        opt_start = time.time()
+        success, diagnostics = run_sweep(
             opt, remaining, run_offset, args.iteration,
-            args.task, args.backend, results_dir, args.verbose
+            args.task, args.backend, results_dir, args.verbose,
+            show_diagnostics=(not diagnostics_shown)
         )
+        elapsed = time.time() - opt_start
 
-        if not success:
-            print(f"  FAILED: {opt}", flush=True)
-            failed_optimizers.append(opt)
-            if not args.continue_on_failure:
-                print(f"  Stopping batch sweep due to failure", flush=True)
-                break
-        else:
+        if success:
             completed_optimizers += 1
+            print(f" done ({format_duration(elapsed)})", flush=True)
 
-        print(f"{timestamp()} Completed: {opt}", flush=True)
-        print(flush=True)
+            # Show diagnostics once after first successful optimizer
+            if diagnostics and not diagnostics_shown:
+                diagnostics_shown = True
+                device = diagnostics.get('device', diagnostics.get('backend', 'unknown'))
+                batches = diagnostics.get('batches', 'unknown')
+                print(f"      Device: {device} | Batches: {batches}", flush=True)
+        else:
+            failed_optimizers.append(opt)
+            print(f" FAILED ({format_duration(elapsed)})", flush=True)
+            if not args.continue_on_failure:
+                print(f"      Stopping due to failure (use --continue_on_failure to proceed)", flush=True)
+                break
 
     # Print summary
-    print("=" * 60, flush=True)
-    print(f"{timestamp()} BATCH SWEEP SUMMARY", flush=True)
-    print("=" * 60, flush=True)
-    print(f"Total optimizers:     {total_optimizers}", flush=True)
-    print(f"Completed:            {completed_optimizers}", flush=True)
-    print(f"Failed:               {len(failed_optimizers)}", flush=True)
+    total_elapsed = time.time() - batch_start_time
+    print("=" * 70, flush=True)
+    print(f"  SUMMARY: {completed_optimizers} completed, {skipped_optimizers} skipped, {len(failed_optimizers)} failed", flush=True)
+    print(f"  Total time: {format_duration(total_elapsed)}", flush=True)
     if failed_optimizers:
-        print(f"Failed optimizers:    {', '.join(failed_optimizers)}", flush=True)
-    print("=" * 60, flush=True)
+        print(f"  Failed: {', '.join(failed_optimizers)}", flush=True)
+    print("=" * 70, flush=True)
 
     # Exit with error code if any failures
     if failed_optimizers and not args.continue_on_failure:
