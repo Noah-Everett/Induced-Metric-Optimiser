@@ -253,7 +253,7 @@ def train(config, seed, logger):
 
 if __name__ == "__main__":
     task_fixed_params = {
-        "batch_size": {"values": [1024]},
+        "batch_size": {"values": [args.batch_size if args.batch_size else 1024]},
         "n_epochs": {"value": 400},
     }
 

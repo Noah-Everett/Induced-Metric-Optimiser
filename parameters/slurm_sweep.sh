@@ -29,6 +29,7 @@ NUM_RUNS=50                            # Number of runs per optimizer
 ITERATION=1                            # Batch iteration number
 BACKEND="local"                        # "local" or "wandb"
 RESULTS_DIR="results"                  # Results directory
+BATCH_SIZE=""                          # Override batch size (empty = use task default)
 
 # -----------------------------------------------------------------------------
 # Environment setup
@@ -96,18 +97,20 @@ echo "Optimizer: $OPTIMIZER"
 echo "Task: $TASK"
 echo "Num runs: $NUM_RUNS"
 echo "Iteration: $ITERATION"
+echo "Batch size: ${BATCH_SIZE:-default}"
 echo "Node: $(hostname)"
 echo "GPU: $CUDA_VISIBLE_DEVICES"
 echo "=========================================="
 
 cd /Users/noah-everett/Documents/Research/Induced-Metric-Optimiser/parameters
 
-python "$TASK" \
-    --optimiser "$OPTIMIZER" \
-    --num_runs "$NUM_RUNS" \
-    --backend "$BACKEND" \
-    --iteration "$ITERATION" \
-    --results_dir "$RESULTS_DIR"
+# Build command with optional batch_size
+CMD="python $TASK --optimiser $OPTIMIZER --num_runs $NUM_RUNS --backend $BACKEND --iteration $ITERATION --results_dir $RESULTS_DIR"
+if [ -n "$BATCH_SIZE" ]; then
+    CMD="$CMD --batch_size $BATCH_SIZE"
+fi
+
+eval $CMD
 
 EXIT_CODE=$?
 

@@ -384,6 +384,10 @@ def setup_argparser(description):
         help="Iteration/batch number for organizing multiple experiment runs",
     )
     parser.add_argument(
+        "--batch_size", type=int, default=None,
+        help="Override batch size (if not set, uses task default)",
+    )
+    parser.add_argument(
         "--run_offset", type=int, default=0,
         help="Starting run index offset (for resuming partial sweeps)",
     )
