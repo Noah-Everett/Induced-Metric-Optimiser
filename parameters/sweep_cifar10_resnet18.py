@@ -178,6 +178,7 @@ def train(config, seed, logger):
     max_val_acc = 0.0
     max_acc_epoch = 0
     train_time = 0.0
+    pruned = False
 
     for epoch in range(n_epochs):
         # Shuffle and reshape training data for this epoch
@@ -226,6 +227,11 @@ def train(config, seed, logger):
                 "max_acc_epoch": max_acc_epoch,
                 "train_time_seconds": train_time,
             })
+
+            # Check for pruning (minimize negative accuracy)
+            if logger.report_and_check_prune(epoch, -test_acc):
+                pruned = True
+                break
         else:
             logger.log({"epoch": epoch, "train_loss": avg_loss})
 
@@ -235,6 +241,7 @@ def train(config, seed, logger):
             "final_max_val_acc": max_val_acc,
             "final_max_acc_epoch": max_acc_epoch,
             "sweep_metric": -max_val_acc,
+            "pruned": pruned,
             "architecture": "ResNet18",
         },
     }

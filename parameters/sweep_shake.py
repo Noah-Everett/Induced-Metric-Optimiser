@@ -199,6 +199,7 @@ def train(config, seed, logger):
     min_val_perplexity = float("inf")
     min_perp_epoch = 0
     train_time = 0.0
+    pruned = False
 
     for epoch in range(n_epochs):
         epoch_losses = []
@@ -226,6 +227,11 @@ def train(config, seed, logger):
                 "min_perp_epoch": min_perp_epoch,
                 "train_time_seconds": train_time,
             })
+
+            # Check for pruning (minimize perplexity)
+            if logger.report_and_check_prune(epoch, val_perplexity):
+                pruned = True
+                break
         else:
             logger.log({"epoch": epoch, "train_loss": avg_train_loss})
 
@@ -235,6 +241,7 @@ def train(config, seed, logger):
             "final_min_val_perplexity": min_val_perplexity,
             "final_min_perp_epoch": min_perp_epoch,
             "sweep_metric": min_val_perplexity,
+            "pruned": pruned,
             "architecture": "MiniGPT",
         },
     }

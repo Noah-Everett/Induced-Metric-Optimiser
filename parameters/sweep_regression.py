@@ -147,6 +147,7 @@ def train(config, seed, logger):
     min_val_loss = float("inf")
     min_loss_epoch = 0
     train_time = 0.0
+    pruned = False
 
     for epoch in range(n_epochs):
         epoch_losses = []
@@ -175,6 +176,11 @@ def train(config, seed, logger):
                 "min_loss_epoch": min_loss_epoch,
                 "train_time_seconds": train_time,
             })
+
+            # Check for pruning (minimize test MSE)
+            if logger.report_and_check_prune(epoch, test_mse):
+                pruned = True
+                break
         else:
             logger.log({"epoch": epoch, "train_loss": avg_loss})
 
@@ -184,6 +190,7 @@ def train(config, seed, logger):
             "final_min_val_loss": min_val_loss,
             "final_min_loss_epoch": min_loss_epoch,
             "sweep_metric": min_val_loss,
+            "pruned": pruned,
             "architecture": "MLP",
         },
     }
