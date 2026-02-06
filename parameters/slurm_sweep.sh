@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=imo-sweep
+#SBATCH --account=schwartz_lab
 #SBATCH --array=0-25
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
