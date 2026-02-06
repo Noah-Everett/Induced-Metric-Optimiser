@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=imo-sweep
 #SBATCH --array=0-25
-#SBATCH --partition=gpu
+#SBATCH --partition=gpu_test
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=8G
-#SBATCH --time=4:00:00
+#SBATCH --time=0-00:63
 #SBATCH --output=slurm_logs/%A_%a.out
 #SBATCH --error=slurm_logs/%A_%a.err
 
@@ -24,11 +24,11 @@
 # -----------------------------------------------------------------------------
 # Configuration (edit these as needed)
 # -----------------------------------------------------------------------------
-TASK="sweep_mnist_mlp.py"        # Sweep script to run
-NUM_RUNS=50                      # Number of runs per optimizer
-ITERATION=0                      # Batch iteration number
-BACKEND="local"                  # "local" or "wandb"
-RESULTS_DIR="results"            # Results directory
+TASK="parameters/sweep_mnist_mlp.py"   # Sweep script to run
+NUM_RUNS=50                            # Number of runs per optimizer
+ITERATION=1                            # Batch iteration number
+BACKEND="local"                        # "local" or "wandb"
+RESULTS_DIR="results"                  # Results directory
 
 # -----------------------------------------------------------------------------
 # Environment setup
