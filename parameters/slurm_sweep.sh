@@ -7,8 +7,10 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=0-12:00:00
-#SBATCH --output=$HOME/slurm_logs/%A_%a.out
-#SBATCH --error=$HOME/slurm_logs/%A_%a.err
+#SBATCH --output=slurm_logs/%A_%a.out
+#SBATCH --error=slurm_logs/%A_%a.err
+#SBATCH --mail-user=neverett@g.harvard.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
 
 # =============================================================================
 # SLURM Batch Script for Optimizer Sweeps
