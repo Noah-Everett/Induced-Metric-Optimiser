@@ -32,15 +32,19 @@ class SweepLogger:
         logger.init_run(config)
         for epoch in range(n_epochs):
             logger.log({"epoch": epoch, "train_loss": loss})
+            # Optional: report for pruning (local backend with Optuna)
+            if logger.should_prune(epoch, train_loss):
+                break
         logger.finish({"final_metric": value})
     """
 
-    def __init__(self, backend="wandb", project=None, tags=None, local_dir=None, run_index=None):
+    def __init__(self, backend="wandb", project=None, tags=None, local_dir=None, run_index=None, trial=None):
         self.backend = backend
         self.project = project
         self.tags = tags or []
         self.local_dir = local_dir
         self.run_index = run_index
+        self.trial = trial  # Optuna trial for pruning support
         self._history = []
         self._config = {}
         self._run_dir = None
@@ -69,6 +73,31 @@ class SweepLogger:
             wandb.log(metrics)
         else:
             self._history.append(metrics)
+
+    def report_and_check_prune(self, step, value):
+        """Report intermediate value and check if trial should be pruned.
+        
+        Parameters
+        ----------
+        step : int
+            Current step/iteration/epoch number.
+        value : float
+            Intermediate objective value to report.
+            
+        Returns
+        -------
+        bool
+            True if the trial should be pruned, False otherwise.
+            
+        Raises
+        ------
+        optuna.TrialPruned
+            If trial should be pruned (only if raise_on_prune=True).
+        """
+        if self.backend == "local" and self.trial is not None:
+            self.trial.report(value, step)
+            return self.trial.should_prune()
+        return False
 
     def finish(self, summary=None):
         if self.backend == "wandb":
@@ -215,9 +244,47 @@ class SweepRunner:
             f"itr_{iteration}"
         )
 
+        # Select sampler based on --search argument (matches WandB backend behavior)
+        search_method = getattr(self.args, 'search', 'random')
+        seed = getattr(self.args, 'seed', 42)
+        
+        if search_method == "bayes":
+            # TPE (Tree-structured Parzen Estimator) - Optuna's Bayesian optimization
+            sampler = optuna.samplers.TPESampler(seed=seed, multivariate=True)
+        elif search_method == "grid":
+            # Grid search requires predefined search space - fall back to QMC for better coverage
+            sampler = optuna.samplers.QMCSampler(seed=seed)
+        else:  # "random" or default
+            sampler = optuna.samplers.RandomSampler(seed=seed)
+
+        # Select pruner based on --pruner argument
+        pruner_type = getattr(self.args, 'pruner', 'none')
+        if pruner_type == "hyperband":
+            # Hyperband - aggressive early stopping, good for many trials
+            pruner = optuna.pruners.HyperbandPruner(
+                min_resource=getattr(self.args, 'min_resource', 10),
+                reduction_factor=3,
+            )
+        elif pruner_type == "median":
+            # Median pruner - prune if worse than median of previous trials
+            pruner = optuna.pruners.MedianPruner(
+                n_startup_trials=5,
+                n_warmup_steps=getattr(self.args, 'min_resource', 10),
+            )
+        elif pruner_type == "percentile":
+            # Percentile pruner - more aggressive than median
+            pruner = optuna.pruners.PercentilePruner(
+                percentile=25.0,
+                n_startup_trials=5,
+                n_warmup_steps=getattr(self.args, 'min_resource', 10),
+            )
+        else:  # "none" or default
+            pruner = optuna.pruners.NopPruner()
+
         study = optuna.create_study(
             direction="minimize",
-            sampler=optuna.samplers.RandomSampler(seed=42),
+            sampler=sampler,
+            pruner=pruner,
             study_name=f"{self.task_tag}_{self.optimizer_name}",
         )
 
@@ -233,11 +300,16 @@ class SweepRunner:
 
             # Use trial.number + offset for unique, predictable filenames
             run_offset = getattr(self.args, 'run_offset', 0)
-            logger = SweepLogger("local", local_dir=local_dir, run_index=run_offset + trial.number)
+            logger = SweepLogger("local", local_dir=local_dir, run_index=run_offset + trial.number, trial=trial)
             logger.init_run(config)
             seed = np.random.randint(1, 1_000_000)
             start = time.time()
-            results = train_fn(config, seed, logger)
+            try:
+                results = train_fn(config, seed, logger)
+            except optuna.TrialPruned:
+                # Trial was pruned - still save partial results
+                logger.finish({"pruned": True, "seed": seed})
+                raise
             elapsed = time.time() - start
             summary = {
                 "total_training_time_sec": elapsed,
@@ -281,14 +353,27 @@ def setup_argparser(description):
         help="Frequency of validation computation (every N epochs)",
     )
     parser.add_argument(
-        "--search", type=str, default="bayes",
+        "--search", type=str, default="random",
         choices=["bayes", "grid", "random"],
-        help="Search method for hyperparameter tuning (WandB backend only)",
+        help="Search method: 'random' (default), 'bayes' (TPE), 'grid' (QMC for local)",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42,
+        help="Random seed for sampler reproducibility (local backend)",
     )
     parser.add_argument(
         "--backend", type=str, default="wandb",
         choices=["wandb", "local"],
         help="Sweep backend: 'wandb' for W&B sweeps, 'local' for Optuna + JSON",
+    )
+    parser.add_argument(
+        "--pruner", type=str, default="none",
+        choices=["none", "hyperband", "median", "percentile"],
+        help="Pruner for early stopping (local backend): 'none', 'hyperband', 'median', 'percentile'",
+    )
+    parser.add_argument(
+        "--min_resource", type=int, default=10,
+        help="Minimum steps before pruning can occur (local backend)",
     )
     parser.add_argument(
         "--results_dir", type=str, default="results",

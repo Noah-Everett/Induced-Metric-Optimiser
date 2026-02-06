@@ -182,6 +182,7 @@ def train(config, seed, logger, optimizer_name, function_name):
     use_loss = needs_loss(optimizer_name)
 
     converged = False
+    pruned = False
     iterations = 0
     runtime = 0.0
 
@@ -212,6 +213,11 @@ def train(config, seed, logger, optimizer_name, function_name):
             converged = True
             break
 
+        # Check for pruning (early stopping of unpromising trials)
+        if logger.report_and_check_prune(i, current_value):
+            pruned = True
+            break
+
     final_value = float(func(params))
 
     summary = {
@@ -219,8 +225,9 @@ def train(config, seed, logger, optimizer_name, function_name):
         "final_value": final_value,
         "iterations": iterations,
         "converged": converged,
+        "pruned": pruned,
         "runtime_seconds": runtime,
-        "sweep_metric": final_value + (0.0 if converged else 100.0) + 0.01 * iterations,
+        "sweep_metric": final_value + (0.0 if converged else 100.0) + (50.0 if pruned else 0.0) + 0.01 * iterations,
     }
 
     return {"objective": summary["sweep_metric"], "summary": summary}
