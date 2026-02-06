@@ -14,6 +14,10 @@ Usage::
         plot_training_curves,
         plot_speedrun_results,
         plot_time_to_best,
+        plot_convergence_heatmap,
+        plot_efficiency_scatter,
+        plot_ranking_bar,
+        plot_performance_summary,
         print_speedrun_table,
         print_best_hyperparameters,
         save_best_hyperparameters,
@@ -938,6 +942,354 @@ def print_speedrun_table(optimizer_data, targets, metric_key, direction,
         print(row)
 
 
+def plot_convergence_heatmap(
+    optimizer_data,
+    targets,
+    metric_key,
+    direction,
+    optimizers=None,
+    ax=None,
+    figsize=(8, 6),
+    cmap="RdYlGn",
+    title="Convergence Rate Heatmap",
+):
+    """
+    Plot a heatmap showing which optimizers reached each target threshold.
+
+    Parameters
+    ----------
+    optimizer_data : dict
+        Result from extract_history()
+    targets : list
+        List of target values (e.g., [0.9, 0.95, 0.99] for accuracy)
+    metric_key : str
+        Metric to compare against targets
+    direction : str
+        "above" (metric >= target) or "below" (metric <= target)
+    optimizers : list, optional
+        Subset of optimizers to plot (defaults to all in optimizer_data)
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, creates new figure.
+    figsize : tuple
+        Figure size (used only if ax is None)
+    cmap : str
+        Colormap for heatmap
+    title : str
+        Plot title
+
+    Returns
+    -------
+    Figure or None
+        Matplotlib figure (None if ax was provided)
+    """
+    if optimizers is None:
+        optimizers = [opt for opt in optimizer_data.keys()]
+
+    # Build convergence matrix
+    convergence_matrix = []
+    valid_optimizers = []
+    for opt in optimizers:
+        if opt not in optimizer_data:
+            continue
+        valid_optimizers.append(opt)
+        row = []
+        data = optimizer_data[opt]
+        metric_vals = data.get(metric_key, [])
+
+        for target in targets:
+            if direction == "above":
+                reached = any(v >= target for v in metric_vals)
+            else:
+                reached = any(v <= target for v in metric_vals)
+            row.append(1.0 if reached else 0.0)
+        convergence_matrix.append(row)
+
+    if not convergence_matrix:
+        return None
+
+    conv_df = pd.DataFrame(
+        convergence_matrix,
+        index=valid_optimizers,
+        columns=[f"{t:.0%}" if t < 1 else f"{t}" for t in targets]
+    )
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
+    im = ax.imshow(conv_df.values, cmap=cmap, aspect='auto', vmin=0, vmax=1)
+    ax.set_xticks(range(len(conv_df.columns)))
+    ax.set_xticklabels(conv_df.columns, rotation=45, ha='right')
+    ax.set_yticks(range(len(conv_df.index)))
+    ax.set_yticklabels(conv_df.index, fontsize=8)
+    ax.set_xlabel('Target Threshold')
+    ax.set_ylabel('Optimizer')
+    ax.set_title(title)
+    plt.colorbar(im, ax=ax, label='Reached')
+
+    for i in range(len(conv_df.index)):
+        for j in range(len(conv_df.columns)):
+            val = conv_df.iloc[i, j]
+            ax.text(j, i, '✓' if val == 1.0 else '✗',
+                    ha='center', va='center', fontsize=10,
+                    color='white' if val == 1.0 else 'black')
+
+    return fig
+
+
+def plot_efficiency_scatter(
+    best_runs,
+    optimizer_data,
+    epoch_key,
+    time_key="wall_times",
+    optimizers=None,
+    colors=None,
+    ax=None,
+    figsize=(8, 6),
+    log_scale=True,
+    title="Efficiency: Epochs vs Wall Time",
+):
+    """
+    Plot a scatter of epochs-to-best vs wall-time-to-best for each optimizer.
+
+    Parameters
+    ----------
+    best_runs : dict
+        Result from load_best_runs()
+    optimizer_data : dict
+        Result from extract_history() with wall_times added
+    epoch_key : str
+        Summary key for the epoch of best metric (e.g., "final_max_acc_epoch")
+    time_key : str
+        Key in optimizer_data for time values
+    optimizers : list, optional
+        Subset of optimizers to plot
+    colors : dict, optional
+        Mapping from optimizer name to color
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, creates new figure.
+    figsize : tuple
+        Figure size (used only if ax is None)
+    log_scale : bool
+        Use log-log scale
+    title : str
+        Plot title
+
+    Returns
+    -------
+    Figure or None
+        Matplotlib figure (None if ax was provided)
+    """
+    if optimizers is None:
+        optimizers = [o for o in best_runs if o in optimizer_data]
+
+    if colors is None:
+        colors = get_optimizer_colors(optimizers)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
+    for opt in optimizers:
+        if opt not in best_runs or opt not in optimizer_data:
+            continue
+
+        summary = best_runs[opt].get("summary", {})
+        epochs_to_best = summary.get(epoch_key, 0)
+
+        data = optimizer_data[opt]
+        wall_times = data.get(time_key, [])
+        n_times = len(wall_times)
+        best_idx = min(epochs_to_best, n_times - 1) if n_times > 0 else 0
+        time_to_best = wall_times[best_idx] if n_times > 0 and best_idx < n_times else 0
+
+        if epochs_to_best > 0 and time_to_best > 0:
+            ax.scatter(epochs_to_best, time_to_best,
+                       label=opt, color=colors.get(opt, 'gray'), s=100, alpha=0.8)
+
+    ax.set_xlabel('Epochs to Best')
+    ax.set_ylabel('Wall Time to Best (s)')
+    ax.set_title(title)
+    if log_scale:
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+    ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=7)
+    ax.grid(True, alpha=0.3)
+
+    return fig
+
+
+def plot_ranking_bar(
+    best_runs=None,
+    metric_key=None,
+    optimizers=None,
+    colors=None,
+    ax=None,
+    figsize=(8, 6),
+    ascending=False,
+    title="Optimizer Rankings",
+    xlabel=None,
+    rankings=None,
+    value_format=".3f",
+):
+    """
+    Plot a horizontal bar chart ranking optimizers by a metric.
+
+    Parameters
+    ----------
+    best_runs : dict, optional
+        Result from load_best_runs(). Either provide this with metric_key,
+        or provide rankings directly.
+    metric_key : str, optional
+        Summary key to rank by (e.g., "final_max_val_acc")
+    optimizers : list, optional
+        Subset of optimizers to include
+    colors : dict, optional
+        Mapping from optimizer name to color
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, creates new figure.
+    figsize : tuple
+        Figure size (used only if ax is None)
+    ascending : bool
+        If True, lower values are better (sorted ascending)
+    title : str
+        Plot title
+    xlabel : str, optional
+        X-axis label (defaults to metric_key)
+    rankings : list of tuples, optional
+        Pre-computed rankings as [(optimizer, value), ...]. If provided,
+        best_runs and metric_key are ignored.
+    value_format : str
+        Format string for value labels (default: ".3f")
+
+    Returns
+    -------
+    Figure or None
+        Matplotlib figure (None if ax was provided)
+    """
+    # Build rankings from best_runs if not provided directly
+    if rankings is None:
+        if best_runs is None:
+            return None
+
+        if optimizers is None:
+            optimizers = list(best_runs.keys())
+
+        rankings = []
+        for opt in optimizers:
+            if opt not in best_runs:
+                continue
+            summary = best_runs[opt].get("summary", {})
+            val = summary.get(metric_key)
+            if val is not None:
+                rankings.append((opt, val))
+
+    if not rankings:
+        return None
+
+    rankings = sorted(rankings, key=lambda x: x[1], reverse=not ascending)
+    opts = [r[0] for r in rankings]
+    vals = [r[1] for r in rankings]
+
+    if colors is None:
+        colors = get_optimizer_colors(opts)
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+
+    bars = ax.barh(range(len(opts)), vals, color=[colors.get(o, 'gray') for o in opts])
+    ax.set_yticks(range(len(opts)))
+    ax.set_yticklabels(opts, fontsize=8)
+    ax.set_xlabel(xlabel or metric_key or "Value")
+    ax.set_title(title)
+
+    # Adjust x-limits for better visibility
+    val_range = max(vals) - min(vals) if len(vals) > 1 else max(vals) * 0.1
+    margin = val_range * 0.1 if val_range > 0 else 0.01
+    ax.set_xlim(min(vals) - margin, max(vals) + margin * 2)
+    ax.grid(True, alpha=0.3, axis='x')
+
+    # Add value labels
+    fmt = f"{{:{value_format}}}"
+    for i, (opt, val) in enumerate(zip(opts, vals)):
+        ax.text(val + margin * 0.5, i, fmt.format(val), va='center', fontsize=8)
+
+    return fig
+
+
+def plot_performance_summary(
+    best_runs,
+    optimizer_data,
+    targets,
+    metric_key,
+    direction,
+    epoch_key,
+    ranking_metric_key,
+    optimizers=None,
+    colors=None,
+    figsize=(20, 6),
+):
+    """
+    Create a 3-panel performance summary: heatmap, efficiency scatter, and rankings.
+
+    Parameters
+    ----------
+    best_runs : dict
+        Result from load_best_runs()
+    optimizer_data : dict
+        Result from extract_history() with wall_times added
+    targets : list
+        Target thresholds for heatmap
+    metric_key : str
+        Metric for convergence checking (e.g., "test_acc")
+    direction : str
+        "above" or "below" for convergence checking
+    epoch_key : str
+        Summary key for epoch of best metric
+    ranking_metric_key : str
+        Summary key for ranking bar chart
+    optimizers : list, optional
+        Subset of optimizers
+    colors : dict, optional
+        Color mapping
+    figsize : tuple
+        Figure size
+
+    Returns
+    -------
+    Figure
+        Matplotlib figure with 3 subplots
+    """
+    if optimizers is None:
+        optimizers = [o for o in best_runs if o in optimizer_data]
+
+    if colors is None:
+        colors = get_optimizer_colors(optimizers)
+
+    fig, axes = plt.subplots(1, 3, figsize=figsize)
+
+    plot_convergence_heatmap(
+        optimizer_data, targets, metric_key, direction,
+        optimizers=optimizers, ax=axes[0]
+    )
+
+    plot_efficiency_scatter(
+        best_runs, optimizer_data, epoch_key,
+        optimizers=optimizers, colors=colors, ax=axes[1]
+    )
+
+    plot_ranking_bar(
+        best_runs, ranking_metric_key,
+        optimizers=optimizers, colors=colors, ax=axes[2],
+        title="Optimizer Rankings by Final Accuracy",
+        xlabel="Best Test Accuracy"
+    )
+
+    plt.tight_layout()
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Results export utilities
 # ---------------------------------------------------------------------------
@@ -1016,6 +1368,10 @@ __all__ = [
     "plot_training_curves",
     "plot_speedrun_results",
     "plot_time_to_best",
+    "plot_convergence_heatmap",
+    "plot_efficiency_scatter",
+    "plot_ranking_bar",
+    "plot_performance_summary",
     "compute_speedrun_results",
     "print_speedrun_table",
     "print_best_hyperparameters",
