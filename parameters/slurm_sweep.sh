@@ -1,19 +1,19 @@
 #!/bin/bash
 #SBATCH --job-name=imo-sweep
 #SBATCH --array=0-25
-#SBATCH --partition=gpu_test
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
-#SBATCH --time=0-00:63
-#SBATCH --output=slurm_logs/%A_%a.out
-#SBATCH --error=slurm_logs/%A_%a.err
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=32G
+#SBATCH --time=0-12:00:00
+#SBATCH --output=$HOME/slurm_logs/%A_%a.out
+#SBATCH --error=$HOME/slurm_logs/%A_%a.err
 
 # =============================================================================
 # SLURM Batch Script for Optimizer Sweeps
 # =============================================================================
 # Usage:
-#   sbatch slurm_sweep.sh                    # Run all 27 optimizers
+#   sbatch slurm_sweep.sh                    # Run all 26 optimizers
 #   sbatch --array=0-3 slurm_sweep.sh        # Run first 4 optimizers only
 #   sbatch --array=0,5,10 slurm_sweep.sh     # Run specific optimizers
 #
@@ -24,12 +24,22 @@
 # -----------------------------------------------------------------------------
 # Configuration (edit these as needed)
 # -----------------------------------------------------------------------------
+
+# Task settings
 TASK="parameters/sweep_mnist_mlp.py"   # Sweep script to run
-NUM_RUNS=50                            # Number of runs per optimizer
-ITERATION=1                            # Batch iteration number
-BACKEND="local"                        # "local" or "wandb"
 RESULTS_DIR="results"                  # Results directory
-BATCH_SIZE=""                          # Override batch size (empty = use task default)
+ITERATION=2                            # Batch iteration number
+
+# Sweep settings
+NUM_RUNS=1000                          # Number of runs per optimizer
+BACKEND="local"                        # "local" or "wandb"
+SEARCH="random"                        # Search method: "random", "bayes" (TPE), "grid" (QMC)
+PRUNER="none"                          # Pruner: "none", "hyperband", "median", "percentile"
+SEED=42                                # Random seed for reproducibility
+
+# Training settings (empty = use task default)
+BATCH_SIZE=""                          # Override batch size
+VAL_FREQ=1                             # Validation frequency (epochs)
 
 # -----------------------------------------------------------------------------
 # Environment setup
@@ -90,26 +100,41 @@ mkdir -p slurm_logs
 # -----------------------------------------------------------------------------
 # Run the sweep
 # -----------------------------------------------------------------------------
-echo "=========================================="
+echo "==========================================="
 echo "Job ID: $SLURM_JOB_ID"
 echo "Array Task ID: $SLURM_ARRAY_TASK_ID"
 echo "Optimizer: $OPTIMIZER"
 echo "Task: $TASK"
 echo "Num runs: $NUM_RUNS"
 echo "Iteration: $ITERATION"
+echo "Search: $SEARCH"
+echo "Pruner: $PRUNER"
+echo "Seed: $SEED"
 echo "Batch size: ${BATCH_SIZE:-default}"
+echo "Val freq: $VAL_FREQ"
 echo "Node: $(hostname)"
 echo "GPU: $CUDA_VISIBLE_DEVICES"
-echo "=========================================="
+echo "==========================================="
 
 cd /Users/noah-everett/Documents/Research/Induced-Metric-Optimiser/parameters
 
-# Build command with optional batch_size
-CMD="python $TASK --optimiser $OPTIMIZER --num_runs $NUM_RUNS --backend $BACKEND --iteration $ITERATION --results_dir $RESULTS_DIR"
+# Build command with all options
+CMD="python $TASK"
+CMD="$CMD --optimiser $OPTIMIZER"
+CMD="$CMD --num_runs $NUM_RUNS"
+CMD="$CMD --backend $BACKEND"
+CMD="$CMD --iteration $ITERATION"
+CMD="$CMD --results_dir $RESULTS_DIR"
+CMD="$CMD --search $SEARCH"
+CMD="$CMD --pruner $PRUNER"
+CMD="$CMD --seed $SEED"
+CMD="$CMD --val_freq $VAL_FREQ"
+
 if [ -n "$BATCH_SIZE" ]; then
     CMD="$CMD --batch_size $BATCH_SIZE"
 fi
 
+echo "Running: $CMD"
 eval $CMD
 
 EXIT_CODE=$?
