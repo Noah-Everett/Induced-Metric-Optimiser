@@ -943,172 +943,277 @@ def print_speedrun_table(optimizer_data, targets, metric_key, direction,
 
 
 def plot_convergence_heatmap(
-    optimizer_data,
-    targets,
-    metric_key,
-    direction,
+    matrix=None,
+    row_labels=None,
+    col_labels=None,
+    optimizer_data=None,
+    targets=None,
+    metric_key=None,
+    direction=None,
     optimizers=None,
     ax=None,
     figsize=(8, 6),
     cmap="RdYlGn",
     title="Convergence Rate Heatmap",
+    xlabel=None,
+    ylabel="Optimizer",
+    show_colorbar=True,
+    annotation_fmt="percent",
+    vmin=0,
+    vmax=1,
 ):
     """
-    Plot a heatmap showing which optimizers reached each target threshold.
+    Plot a heatmap showing convergence rates or threshold achievement.
+
+    Can be called in two modes:
+    1. Direct mode: Provide `matrix`, `row_labels`, `col_labels`
+    2. Compute mode: Provide `optimizer_data`, `targets`, `metric_key`, `direction`
 
     Parameters
     ----------
-    optimizer_data : dict
-        Result from extract_history()
-    targets : list
-        List of target values (e.g., [0.9, 0.95, 0.99] for accuracy)
-    metric_key : str
-        Metric to compare against targets
-    direction : str
-        "above" (metric >= target) or "below" (metric <= target)
+    matrix : array-like or DataFrame, optional
+        Pre-computed matrix of values (rows=optimizers, cols=targets/functions)
+    row_labels : list, optional
+        Labels for rows (optimizers)
+    col_labels : list, optional
+        Labels for columns (targets/functions)
+    optimizer_data : dict, optional
+        Result from extract_history() - used in compute mode
+    targets : list, optional
+        Target thresholds - used in compute mode
+    metric_key : str, optional
+        Metric to check against targets - used in compute mode
+    direction : str, optional
+        "above" or "below" - used in compute mode
     optimizers : list, optional
-        Subset of optimizers to plot (defaults to all in optimizer_data)
+        Subset of optimizers
     ax : matplotlib.axes.Axes, optional
-        Axes to plot on. If None, creates new figure.
+        Axes to plot on
     figsize : tuple
-        Figure size (used only if ax is None)
+        Figure size
     cmap : str
-        Colormap for heatmap
+        Colormap
     title : str
         Plot title
+    xlabel : str, optional
+        X-axis label
+    ylabel : str
+        Y-axis label
+    show_colorbar : bool
+        Whether to show colorbar
+    annotation_fmt : str
+        "percent" for percentage, "check" for ✓/✗, or format string
+    vmin, vmax : float
+        Value range for colormap
 
     Returns
     -------
     Figure or None
-        Matplotlib figure (None if ax was provided)
     """
-    if optimizers is None:
-        optimizers = [opt for opt in optimizer_data.keys()]
+    # Compute mode: build matrix from optimizer_data
+    if matrix is None and optimizer_data is not None:
+        if optimizers is None:
+            optimizers = list(optimizer_data.keys())
 
-    # Build convergence matrix
-    convergence_matrix = []
-    valid_optimizers = []
-    for opt in optimizers:
-        if opt not in optimizer_data:
-            continue
-        valid_optimizers.append(opt)
-        row = []
-        data = optimizer_data[opt]
-        metric_vals = data.get(metric_key, [])
+        convergence_matrix = []
+        valid_optimizers = []
+        for opt in optimizers:
+            if opt not in optimizer_data:
+                continue
+            valid_optimizers.append(opt)
+            row = []
+            data = optimizer_data[opt]
+            metric_vals = data.get(metric_key, [])
 
-        for target in targets:
-            if direction == "above":
-                reached = any(v >= target for v in metric_vals)
-            else:
-                reached = any(v <= target for v in metric_vals)
-            row.append(1.0 if reached else 0.0)
-        convergence_matrix.append(row)
+            for target in targets:
+                if direction == "above":
+                    reached = any(v >= target for v in metric_vals)
+                else:
+                    reached = any(v <= target for v in metric_vals)
+                row.append(1.0 if reached else 0.0)
+            convergence_matrix.append(row)
 
-    if not convergence_matrix:
+        if not convergence_matrix:
+            return None
+
+        matrix = np.array(convergence_matrix)
+        row_labels = valid_optimizers
+        col_labels = [f"{t:.0%}" if t < 1 else f"{t}" for t in targets]
+        if xlabel is None:
+            xlabel = "Target Threshold"
+
+    # Convert DataFrame to array if needed
+    if hasattr(matrix, 'values'):
+        if row_labels is None:
+            row_labels = list(matrix.index)
+        if col_labels is None:
+            col_labels = list(matrix.columns)
+        matrix = matrix.values
+
+    if matrix is None or len(matrix) == 0:
         return None
-
-    conv_df = pd.DataFrame(
-        convergence_matrix,
-        index=valid_optimizers,
-        columns=[f"{t:.0%}" if t < 1 else f"{t}" for t in targets]
-    )
 
     fig = None
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    im = ax.imshow(conv_df.values, cmap=cmap, aspect='auto', vmin=0, vmax=1)
-    ax.set_xticks(range(len(conv_df.columns)))
-    ax.set_xticklabels(conv_df.columns, rotation=45, ha='right')
-    ax.set_yticks(range(len(conv_df.index)))
-    ax.set_yticklabels(conv_df.index, fontsize=8)
-    ax.set_xlabel('Target Threshold')
-    ax.set_ylabel('Optimizer')
+    im = ax.imshow(matrix, cmap=cmap, aspect='auto', vmin=vmin, vmax=vmax)
+    ax.set_xticks(range(len(col_labels)))
+    ax.set_xticklabels(col_labels, rotation=45, ha='right')
+    ax.set_yticks(range(len(row_labels)))
+    ax.set_yticklabels(row_labels, fontsize=7)
+    if xlabel:
+        ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     ax.set_title(title)
-    plt.colorbar(im, ax=ax, label='Reached')
 
-    for i in range(len(conv_df.index)):
-        for j in range(len(conv_df.columns)):
-            val = conv_df.iloc[i, j]
-            ax.text(j, i, '✓' if val == 1.0 else '✗',
-                    ha='center', va='center', fontsize=10,
-                    color='white' if val == 1.0 else 'black')
+    if show_colorbar:
+        plt.colorbar(im, ax=ax)
+
+    # Add annotations
+    for i in range(len(row_labels)):
+        for j in range(len(col_labels)):
+            val = matrix[i, j]
+            if annotation_fmt == "percent":
+                text = f"{val:.0%}"
+                fontsize = 7
+            elif annotation_fmt == "check":
+                text = '✓' if val == 1.0 else '✗'
+                fontsize = 10
+            else:
+                text = f"{val:{annotation_fmt}}"
+                fontsize = 7
+            color = 'white' if val > 0.5 else 'black'
+            ax.text(j, i, text, ha='center', va='center',
+                    fontsize=fontsize, color=color)
 
     return fig
 
 
 def plot_efficiency_scatter(
-    best_runs,
-    optimizer_data,
-    epoch_key,
+    data=None,
+    x_col=None,
+    y_col=None,
+    group_col=None,
+    best_runs=None,
+    optimizer_data=None,
+    epoch_key=None,
     time_key="wall_times",
     optimizers=None,
     colors=None,
     ax=None,
     figsize=(8, 6),
     log_scale=True,
-    title="Efficiency: Epochs vs Wall Time",
+    title="Efficiency: Iterations vs Runtime",
+    xlabel=None,
+    ylabel=None,
+    marker_size=80,
+    alpha=0.7,
 ):
     """
-    Plot a scatter of epochs-to-best vs wall-time-to-best for each optimizer.
+    Plot a scatter showing efficiency (iterations/epochs vs runtime).
+
+    Can be called in two modes:
+    1. DataFrame mode: Provide `data`, `x_col`, `y_col`, `group_col`
+    2. Best runs mode: Provide `best_runs`, `optimizer_data`, `epoch_key`
 
     Parameters
     ----------
-    best_runs : dict
+    data : DataFrame, optional
+        DataFrame with scatter data
+    x_col : str, optional
+        Column name for x-axis
+    y_col : str, optional
+        Column name for y-axis
+    group_col : str, optional
+        Column name for grouping (optimizer)
+    best_runs : dict, optional
         Result from load_best_runs()
-    optimizer_data : dict
-        Result from extract_history() with wall_times added
-    epoch_key : str
-        Summary key for the epoch of best metric (e.g., "final_max_acc_epoch")
+    optimizer_data : dict, optional
+        Result from extract_history()
+    epoch_key : str, optional
+        Summary key for epoch of best metric
     time_key : str
-        Key in optimizer_data for time values
+        Key for time values
     optimizers : list, optional
-        Subset of optimizers to plot
+        Subset of optimizers
     colors : dict, optional
-        Mapping from optimizer name to color
+        Color mapping
     ax : matplotlib.axes.Axes, optional
-        Axes to plot on. If None, creates new figure.
+        Axes to plot on
     figsize : tuple
-        Figure size (used only if ax is None)
+        Figure size
     log_scale : bool
         Use log-log scale
     title : str
         Plot title
+    xlabel, ylabel : str, optional
+        Axis labels
+    marker_size : int
+        Scatter marker size
+    alpha : float
+        Marker transparency
 
     Returns
     -------
     Figure or None
-        Matplotlib figure (None if ax was provided)
     """
-    if optimizers is None:
-        optimizers = [o for o in best_runs if o in optimizer_data]
-
-    if colors is None:
-        colors = get_optimizer_colors(optimizers)
-
     fig = None
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)
 
-    for opt in optimizers:
-        if opt not in best_runs or opt not in optimizer_data:
-            continue
+    # DataFrame mode
+    if data is not None:
+        if group_col:
+            groups = data[group_col].unique()
+            if colors is None:
+                colors = get_optimizer_colors(list(groups))
+            for grp in groups:
+                grp_data = data[data[group_col] == grp]
+                ax.scatter(grp_data[x_col], grp_data[y_col],
+                           label=grp, color=colors.get(grp, 'gray'),
+                           s=marker_size, alpha=alpha)
+        else:
+            ax.scatter(data[x_col], data[y_col], s=marker_size, alpha=alpha)
 
-        summary = best_runs[opt].get("summary", {})
-        epochs_to_best = summary.get(epoch_key, 0)
+        if xlabel is None:
+            xlabel = x_col
+        if ylabel is None:
+            ylabel = y_col
 
-        data = optimizer_data[opt]
-        wall_times = data.get(time_key, [])
-        n_times = len(wall_times)
-        best_idx = min(epochs_to_best, n_times - 1) if n_times > 0 else 0
-        time_to_best = wall_times[best_idx] if n_times > 0 and best_idx < n_times else 0
+    # Best runs mode
+    elif best_runs is not None and optimizer_data is not None:
+        if optimizers is None:
+            optimizers = [o for o in best_runs if o in optimizer_data]
 
-        if epochs_to_best > 0 and time_to_best > 0:
-            ax.scatter(epochs_to_best, time_to_best,
-                       label=opt, color=colors.get(opt, 'gray'), s=100, alpha=0.8)
+        if colors is None:
+            colors = get_optimizer_colors(optimizers)
 
-    ax.set_xlabel('Epochs to Best')
-    ax.set_ylabel('Wall Time to Best (s)')
+        for opt in optimizers:
+            if opt not in best_runs or opt not in optimizer_data:
+                continue
+
+            summary = best_runs[opt].get("summary", {})
+            epochs_to_best = summary.get(epoch_key, 0)
+
+            opt_data = optimizer_data[opt]
+            wall_times = opt_data.get(time_key, [])
+            n_times = len(wall_times)
+            best_idx = min(epochs_to_best, n_times - 1) if n_times > 0 else 0
+            time_to_best = wall_times[best_idx] if n_times > 0 and best_idx < n_times else 0
+
+            if epochs_to_best > 0 and time_to_best > 0:
+                ax.scatter(epochs_to_best, time_to_best,
+                           label=opt, color=colors.get(opt, 'gray'),
+                           s=marker_size + 20, alpha=alpha + 0.1)
+
+        if xlabel is None:
+            xlabel = 'Epochs to Best'
+        if ylabel is None:
+            ylabel = 'Wall Time to Best (s)'
+
+    ax.set_xlabel(xlabel or 'X')
+    ax.set_ylabel(ylabel or 'Y')
     ax.set_title(title)
     if log_scale:
         ax.set_xscale('log')
@@ -1270,20 +1375,32 @@ def plot_performance_summary(
     fig, axes = plt.subplots(1, 3, figsize=figsize)
 
     plot_convergence_heatmap(
-        optimizer_data, targets, metric_key, direction,
-        optimizers=optimizers, ax=axes[0]
+        optimizer_data=optimizer_data,
+        targets=targets,
+        metric_key=metric_key,
+        direction=direction,
+        optimizers=optimizers,
+        ax=axes[0],
+        annotation_fmt="check",
     )
 
     plot_efficiency_scatter(
-        best_runs, optimizer_data, epoch_key,
-        optimizers=optimizers, colors=colors, ax=axes[1]
+        best_runs=best_runs,
+        optimizer_data=optimizer_data,
+        epoch_key=epoch_key,
+        optimizers=optimizers,
+        colors=colors,
+        ax=axes[1],
     )
 
     plot_ranking_bar(
-        best_runs, ranking_metric_key,
-        optimizers=optimizers, colors=colors, ax=axes[2],
+        best_runs=best_runs,
+        metric_key=ranking_metric_key,
+        optimizers=optimizers,
+        colors=colors,
+        ax=axes[2],
         title="Optimizer Rankings by Final Accuracy",
-        xlabel="Best Test Accuracy"
+        xlabel="Best Test Accuracy",
     )
 
     plt.tight_layout()
