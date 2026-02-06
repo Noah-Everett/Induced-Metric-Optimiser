@@ -105,6 +105,61 @@ MAX_ITERATIONS = 1000
 
 
 # ---------------------------------------------------------------------------
+# Task-specific parameter overrides
+# ---------------------------------------------------------------------------
+# These match the original small_examples.ipynb analysis notebook.
+# Key differences from the unified defaults:
+# - beta=0 for fixed metric optimizers (no stochasticity to smooth)
+# - eps searched for Adam/Muon/RMS (more sensitive for 2D functions)
+# - weight_decay allows 0 for offdiag (irrelevant for 2D functions)
+# - xi range extended for offdiag (1e-4 to 1e1)
+
+def get_param_overrides(optimizer_name):
+    """Return task-specific parameter overrides for small examples."""
+    
+    # Common: eps searched instead of fixed (for Adam-like optimizers)
+    eps_searched = {"min": 1e-10, "max": 1e-6, "log": True}
+    
+    # beta=0 for fixed metric optimizers (deterministic gradients, no smoothing needed)
+    beta_zero = {"value": 0.0}
+    
+    # weight_decay allowing zero (uniform, not log) - irrelevant for 2D functions
+    weight_decay_uniform = {"min": 0.0, "max": 1e-2, "log": False}
+    
+    # Extended xi range for offdiag
+    xi_extended = {"min": 1e-4, "max": 1e1, "log": True}
+    
+    if optimizer_name == "adam":
+        return {"eps": eps_searched}
+    
+    if optimizer_name == "adamw":
+        return {"eps": eps_searched}
+    
+    if optimizer_name == "muon":
+        return {"eps": eps_searched}
+    
+    if optimizer_name in ("sgd_metric", "sgd_log_metric"):
+        return {"beta": beta_zero}
+    
+    if optimizer_name == "sgd_rms":
+        return {"beta": beta_zero, "eps": eps_searched}
+    
+    if optimizer_name in ("sgd_learn_scalar", "sgd_learn_scalar_log",
+                          "sgd_learn_diag", "sgd_learn_diag_log"):
+        # Learnable variants still search beta (they learn the metric)
+        return {}
+    
+    if optimizer_name.startswith("sgd_offdiag_"):
+        return {
+            "xi": xi_extended,
+            "weight_decay": weight_decay_uniform,
+        }
+    
+    # sgd and others: use defaults
+    return {}
+
+
+# ---------------------------------------------------------------------------
 # Training function
 # ---------------------------------------------------------------------------
 
@@ -197,6 +252,9 @@ def main():
             "max_iterations": {"value": MAX_ITERATIONS},
         }
 
+        # Get task-specific parameter overrides
+        param_overrides = get_param_overrides(args.optimiser)
+
         def make_train_fn(fn_name):
             def _train(config, seed, logger):
                 return train(config, seed, logger, args.optimiser, fn_name)
@@ -210,6 +268,7 @@ def main():
             args=args,
             task_fixed_params=task_fixed_params,
             results_dir=args.results_dir,
+            param_overrides=param_overrides,
         )
         runner.run(make_train_fn(function_name))
 

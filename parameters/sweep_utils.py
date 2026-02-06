@@ -129,10 +129,14 @@ class SweepRunner:
         Fixed parameters added to every sweep config (e.g. batch_size, n_epochs).
     results_dir : str
         Base directory for local results.
+    param_overrides : dict, optional
+        Task-specific parameter overrides. Keys are parameter names, values are
+        dicts with ``{"value": x}`` for fixed, ``{"values": [x, y]}`` for
+        categorical, or ``{"min": lo, "max": hi, "log": bool}`` for ranges.
     """
 
     def __init__(self, backend, project, task_tag, optimizer_name, args,
-                 task_fixed_params=None, results_dir="results"):
+                 task_fixed_params=None, results_dir="results", param_overrides=None):
         self.backend = backend
         self.project = project
         self.task_tag = task_tag
@@ -140,6 +144,7 @@ class SweepRunner:
         self.args = args
         self.task_fixed_params = task_fixed_params or {}
         self.results_dir = results_dir
+        self.param_overrides = param_overrides or {}
 
     def run(self, train_fn):
         """Execute the sweep.
@@ -160,7 +165,7 @@ class SweepRunner:
     def _run_wandb(self, train_fn):
         import wandb
 
-        sweep_params = get_sweep_parameters(self.optimizer_name)
+        sweep_params = get_sweep_parameters(self.optimizer_name, overrides=self.param_overrides)
         sweep_params.update(self.task_fixed_params)
 
         sweep_config = {
@@ -217,7 +222,7 @@ class SweepRunner:
         )
 
         def objective(trial):
-            config = suggest_optuna_parameters(self.optimizer_name, trial)
+            config = suggest_optuna_parameters(self.optimizer_name, trial, overrides=self.param_overrides)
             for k, v in self.task_fixed_params.items():
                 if isinstance(v, dict) and "value" in v:
                     config[k] = v["value"]
