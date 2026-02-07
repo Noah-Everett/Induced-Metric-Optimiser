@@ -31,7 +31,7 @@
 # Task settings
 TASK="parameters/sweep_mnist_mlp.py"   # Sweep script to run
 RESULTS_DIR="results"                  # Results directory
-ITERATION=3                            # Batch iteration number
+ITERATION=4                            # Batch iteration number
 
 # Sweep settings
 NUM_RUNS=1000                          # Number of runs per optimizer
