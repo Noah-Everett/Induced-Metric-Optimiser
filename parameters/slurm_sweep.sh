@@ -29,7 +29,7 @@
 # -----------------------------------------------------------------------------
 
 # Task settings
-TASK="parameters/sweep_mnist_mlp.py"   # Sweep script to run
+TASK="sweep_mnist_mlp.py"   # Sweep script to run
 RESULTS_DIR="results"                  # Results directory
 ITERATION=2                            # Batch iteration number
 
