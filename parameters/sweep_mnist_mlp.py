@@ -137,6 +137,7 @@ def train(config, seed, logger):
     max_val_acc = 0.0
     max_acc_epoch = 0
     train_time = 0.0
+    val_time = 0.0
     pruned = False
 
     for epoch in range(n_epochs):
@@ -152,8 +153,10 @@ def train(config, seed, logger):
             print(f"First epoch (scan, {n_train_batches} batches): {epoch_time:.3f}s", flush=True)
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
+            val_start = time.time()
             train_acc = float(count_correct(params, x_train, y_train, model) / len(y_train))
             test_acc = float(count_correct(params, x_test, y_test, model) / len(y_test))
+            val_time += time.time() - val_start
 
             if test_acc > max_val_acc:
                 max_val_acc = test_acc
@@ -184,6 +187,7 @@ def train(config, seed, logger):
             "sweep_metric": -max_val_acc,
             "pruned": pruned,
             "architecture": "MLP",
+            "val_time_seconds": val_time,
         },
     }
 
