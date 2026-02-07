@@ -13,7 +13,10 @@ import time
 
 # Disable XLA autotuning to avoid compilation hangs on MIG partitions
 # Autotuning tries 100+ kernel configs which can hang/timeout on MIG GPUs
-os.environ['XLA_FLAGS'] = '--xla_gpu_autotune_level=0'
+_xla_flag = '--xla_gpu_autotune_level=0'
+_existing = os.environ.get('XLA_FLAGS', '')
+if _xla_flag not in _existing:
+    os.environ['XLA_FLAGS'] = f'{_existing} {_xla_flag}'.strip()
 
 # Configure JAX for optimal performance on both GPU and CPU
 # These settings work on M1 Pro (Metal/CPU), CUDA GPUs, and CPU-only systems

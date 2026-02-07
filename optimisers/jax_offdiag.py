@@ -119,9 +119,12 @@ def _apply_inverse_rank2(r_tree, l_tree, a_tree, b_tree, gamma, xi):
     rhs0 = _tree_dot(l_tree, z_tree)
     rhs1 = _tree_dot(bl_tree, z_tree)
 
-    # Cramer's rule for the 2×2 system
+    # Cramer's rule for the 2×2 system.
+    # When det ≈ 0 the metric is near-singular; fall back to identity
+    # scaling (w0 = w1 = 0  ⟹  y = z = r/γ) to avoid inf/NaN.
     det = M00 * M11 - M01 * M10
-    inv_det = 1.0 / det
+    safe = jnp.abs(det) > 1e-8
+    inv_det = jnp.where(safe, 1.0 / jnp.where(safe, det, 1.0), 0.0)
     w0 = inv_det * (M11 * rhs0 - M01 * rhs1)
     w1 = inv_det * (M00 * rhs1 - M10 * rhs0)
 
@@ -155,7 +158,9 @@ def _apply_inverse_rank1_a_zero(r_tree, l_tree, b_tree, gamma, xi):
     bl_dot_z = _tree_dot(bl_tree, z_tree)
     bl_dot_l = _tree_dot(bl_tree, l_tree)
 
-    scale = alpha * bl_dot_z / (1.0 + alpha * bl_dot_l)
+    denom = 1.0 + alpha * bl_dot_l
+    safe = jnp.abs(denom) > 1e-8
+    scale = jnp.where(safe, alpha * bl_dot_z / jnp.where(safe, denom, 1.0), 0.0)
 
     y_tree = jax.tree.map(lambda z, l: z - scale * l, z_tree, l_tree)
     return y_tree
@@ -181,7 +186,9 @@ def _apply_inverse_rank1_b_zero(r_tree, l_tree, a_tree, gamma, xi):
     l_dot_z = _tree_dot(l_tree, z_tree)
     l_dot_al = _tree_dot(l_tree, al_tree)
 
-    scale = alpha * l_dot_z / (1.0 + alpha * l_dot_al)
+    denom = 1.0 + alpha * l_dot_al
+    safe = jnp.abs(denom) > 1e-8
+    scale = jnp.where(safe, alpha * l_dot_z / jnp.where(safe, denom, 1.0), 0.0)
 
     y_tree = jax.tree.map(lambda z, al: z - scale * al, z_tree, al_tree)
     return y_tree

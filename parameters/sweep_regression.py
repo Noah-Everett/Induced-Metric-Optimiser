@@ -60,7 +60,7 @@ degree = 6
 
 poly_coeffs, power_combinations = random_polynomial(func_key, order, degree)
 
-x = jax.random.normal(point_key, (13312, 4))
+x = jax.random.normal(point_key, (13312, order))
 y = evaluate_polynomial(poly_coeffs, power_combinations, x)
 y_mean = jnp.mean(y)
 y_std = jnp.std(y)
@@ -125,7 +125,7 @@ def train(config, seed, logger):
     )
 
     key = jax.random.PRNGKey(seed)
-    params = model.init(key, jnp.ones((1, 4)))
+    params = model.init(key, jnp.ones((1, order)))
 
     optimizer = create_optimizer(args.optimiser, config)
     opt_state = optimizer.init(params)

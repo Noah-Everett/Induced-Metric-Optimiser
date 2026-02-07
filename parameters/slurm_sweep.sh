@@ -119,7 +119,9 @@ echo "Node: $(hostname)"
 echo "GPU: $CUDA_VISIBLE_DEVICES"
 echo "==========================================="
 
-cd /Users/noah-everett/Documents/Research/Induced-Metric-Optimiser/parameters
+# Use script location for portability across systems
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Build command with all options
 CMD="python $TASK"

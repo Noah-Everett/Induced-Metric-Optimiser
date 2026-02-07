@@ -123,15 +123,20 @@ class SweepLogger:
 
 
 def _json_default(obj):
-    """JSON serialiser for numpy types."""
+    """JSON serialiser for numpy, JAX, and other scalar/array types."""
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
     if isinstance(obj, (np.integer,)):
         return int(obj)
     if isinstance(obj, (np.floating,)):
         return float(obj)
     if isinstance(obj, np.ndarray):
         return obj.tolist()
-    if isinstance(obj, bool):
-        return bool(obj)
+    # JAX arrays and other objects with .item() (scalars) or .tolist() (arrays)
+    if hasattr(obj, "item") and callable(obj.item):
+        return obj.item()
+    if hasattr(obj, "tolist") and callable(obj.tolist):
+        return obj.tolist()
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
