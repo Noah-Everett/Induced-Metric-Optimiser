@@ -29,7 +29,7 @@
 # -----------------------------------------------------------------------------
 
 # Task settings
-TASK="sweep_mnist_mlp.py"   # Sweep script to run
+TASK="parameters/sweep_mnist_mlp.py"   # Sweep script to run
 RESULTS_DIR="results"                  # Results directory
 ITERATION=2                            # Batch iteration number
 
@@ -119,9 +119,8 @@ echo "Node: $(hostname)"
 echo "GPU: $CUDA_VISIBLE_DEVICES"
 echo "==========================================="
 
-# Use script location for portability across systems
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+# Change to submission directory (where sbatch was invoked)
+cd "$SLURM_SUBMIT_DIR"
 
 # Build command with all options
 CMD="python $TASK"
