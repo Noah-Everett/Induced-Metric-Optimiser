@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=0-6:00:00
+#SBATCH --time=0-0:60:00
 #SBATCH --output=slurm_logs/%A_%a.out
 #SBATCH --error=slurm_logs/%A_%a.err
 #SBATCH --mail-user=neverett@g.harvard.edu
@@ -47,7 +47,7 @@ FUNCTIONS=(
 )
 
 # Sweep settings
-NUM_RUNS=5000                              # Number of runs per optimizer
+NUM_RUNS=500                               # Number of runs per optimizer
 BACKEND="local"                            # "local" or "wandb"
 SEARCH="random"                            # Search method: "random", "bayes" (TPE), "grid" (QMC)
 PRUNER="none"                              # Pruner: "none", "hyperband", "median", "percentile"
