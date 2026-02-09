@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=imo-sweep
 #SBATCH --account=schwartz_lab
-#SBATCH --array=0-25
+#SBATCH --array=0-129
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
@@ -15,10 +15,14 @@
 # =============================================================================
 # SLURM Batch Script for Optimizer Sweeps
 # =============================================================================
+# Array size = num_optimizers * max(num_functions, 1)
+#   small_examples (5 functions): --array=0-129  (26 * 5)
+#   single-task sweeps:           --array=0-25   (26 * 1)
+#
 # Usage:
-#   sbatch slurm_sweep.sh                    # Run all 26 optimizers
-#   sbatch --array=0-3 slurm_sweep.sh        # Run first 4 optimizers only
-#   sbatch --array=0,5,10 slurm_sweep.sh     # Run specific optimizers
+#   sbatch slurm_sweep.sh                    # Run all jobs
+#   sbatch --array=0-4 slurm_sweep.sh        # Run first optimizer only (5 functions)
+#   sbatch --array=0,5,10 slurm_sweep.sh     # Run specific jobs
 #
 # To see optimizer index mapping, run:
 #   grep -n "OPTIMIZERS\[" slurm_sweep.sh
@@ -32,6 +36,15 @@
 TASK="parameters/sweep_small_examples.py"  # Sweep script to run
 RESULTS_DIR="results"                      # Results directory
 ITERATION=0                                # Batch iteration number
+
+# Functions to sweep (leave empty for single-task sweeps like mnist_mlp)
+FUNCTIONS=(
+    "beale"
+    "rosenbrock"
+    "himmelblau"
+    "ackley"
+    "rastrigin"
+)
 
 # Sweep settings
 NUM_RUNS=5000                              # Number of runs per optimizer
@@ -56,7 +69,7 @@ export XLA_PYTHON_CLIENT_PREALLOCATE='true'
 export XLA_PYTHON_CLIENT_ALLOCATOR='platform'
 
 # -----------------------------------------------------------------------------
-# Optimizer array (indexed 0-26)
+# Optimizer array (indexed 0-25)
 # -----------------------------------------------------------------------------
 OPTIMIZERS=(
     "adam"                      # 0
@@ -87,11 +100,25 @@ OPTIMIZERS=(
     "sgd_offdiag_theta_theta"   # 25
 )
 
-# Get optimizer for this array task
-OPTIMIZER="${OPTIMIZERS[$SLURM_ARRAY_TASK_ID]}"
+# -----------------------------------------------------------------------------
+# 2D array indexing: (optimizer, function)
+# -----------------------------------------------------------------------------
+NUM_FUNCTIONS=${#FUNCTIONS[@]}
+if [ "$NUM_FUNCTIONS" -eq 0 ]; then
+    NUM_FUNCTIONS=1
+fi
+
+OPTIMIZER_IDX=$((SLURM_ARRAY_TASK_ID / NUM_FUNCTIONS))
+FUNCTION_IDX=$((SLURM_ARRAY_TASK_ID % NUM_FUNCTIONS))
+
+OPTIMIZER="${OPTIMIZERS[$OPTIMIZER_IDX]}"
+
+if [ ${#FUNCTIONS[@]} -gt 0 ]; then
+    FUNCTION="${FUNCTIONS[$FUNCTION_IDX]}"
+fi
 
 if [ -z "$OPTIMIZER" ]; then
-    echo "Error: Invalid array task ID $SLURM_ARRAY_TASK_ID"
+    echo "Error: Invalid array task ID $SLURM_ARRAY_TASK_ID (optimizer index $OPTIMIZER_IDX out of range)"
     exit 1
 fi
 
@@ -106,7 +133,8 @@ mkdir -p slurm_logs
 echo "==========================================="
 echo "Job ID: $SLURM_JOB_ID"
 echo "Array Task ID: $SLURM_ARRAY_TASK_ID"
-echo "Optimizer: $OPTIMIZER"
+echo "Optimizer [$OPTIMIZER_IDX]: $OPTIMIZER"
+echo "Function [$FUNCTION_IDX]: ${FUNCTION:-N/A}"
 echo "Task: $TASK"
 echo "Num runs: $NUM_RUNS"
 echo "Iteration: $ITERATION"
@@ -133,7 +161,10 @@ CMD="$CMD --search $SEARCH"
 CMD="$CMD --pruner $PRUNER"
 CMD="$CMD --seed $SEED"
 CMD="$CMD --val_freq $VAL_FREQ"
-CMD="$CMD --all_functions"
+
+if [ -n "$FUNCTION" ]; then
+    CMD="$CMD --function $FUNCTION"
+fi
 
 if [ -n "$BATCH_SIZE" ]; then
     CMD="$CMD --batch_size $BATCH_SIZE"
