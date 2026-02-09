@@ -35,7 +35,7 @@
 # Task settings
 TASK="parameters/sweep_small_examples.py"  # Sweep script to run
 RESULTS_DIR="results"                      # Results directory
-ITERATION=0                                # Batch iteration number
+ITERATION=1                                # Batch iteration number
 
 # Functions to sweep (leave empty for single-task sweeps like mnist_mlp)
 FUNCTIONS=(
