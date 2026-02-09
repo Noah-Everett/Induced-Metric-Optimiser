@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=0-12:00:00
+#SBATCH --time=0-6:00:00
 #SBATCH --output=slurm_logs/%A_%a.out
 #SBATCH --error=slurm_logs/%A_%a.err
 #SBATCH --mail-user=neverett@g.harvard.edu
@@ -29,20 +29,20 @@
 # -----------------------------------------------------------------------------
 
 # Task settings
-TASK="parameters/sweep_mnist_mlp.py"   # Sweep script to run
-RESULTS_DIR="results"                  # Results directory
-ITERATION=4                            # Batch iteration number
+TASK="parameters/sweep_small_examples.py"  # Sweep script to run
+RESULTS_DIR="results"                      # Results directory
+ITERATION=0                                # Batch iteration number
 
 # Sweep settings
-NUM_RUNS=1000                          # Number of runs per optimizer
-BACKEND="local"                        # "local" or "wandb"
-SEARCH="random"                        # Search method: "random", "bayes" (TPE), "grid" (QMC)
-PRUNER="none"                          # Pruner: "none", "hyperband", "median", "percentile"
-SEED=42                                # Random seed for reproducibility
+NUM_RUNS=5000                              # Number of runs per optimizer
+BACKEND="local"                            # "local" or "wandb"
+SEARCH="random"                            # Search method: "random", "bayes" (TPE), "grid" (QMC)
+PRUNER="none"                              # Pruner: "none", "hyperband", "median", "percentile"
+SEED=42                                    # Random seed for reproducibility
 
 # Training settings (empty = use task default)
-BATCH_SIZE=""                          # Override batch size
-VAL_FREQ=1                             # Validation frequency (epochs)
+BATCH_SIZE=""                              # Override batch size
+VAL_FREQ=1                                 # Validation frequency (epochs)
 
 # -----------------------------------------------------------------------------
 # Environment setup
@@ -133,6 +133,7 @@ CMD="$CMD --search $SEARCH"
 CMD="$CMD --pruner $PRUNER"
 CMD="$CMD --seed $SEED"
 CMD="$CMD --val_freq $VAL_FREQ"
+CMD="$CMD --all_functions"
 
 if [ -n "$BATCH_SIZE" ]; then
     CMD="$CMD --batch_size $BATCH_SIZE"
