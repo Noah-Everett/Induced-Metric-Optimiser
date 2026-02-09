@@ -66,88 +66,138 @@ import optax
 
 
 class OffDiagSGDState(NamedTuple):
-    """Optimizer state for custom_sgd_offdiag."""
-    step: jnp.ndarray
-    momentum: Any  # PyTree with same structure as params
+    """Optimizer state for custom_sgd_offdiag.
 
-
-def _tree_to_flat(tree):
-    """Flatten a PyTree of arrays to a single 1D jnp.ndarray."""
-    leaves, _ = jax.tree_util.tree_flatten(tree)
-    if not leaves:
-        return jnp.array([], dtype=jnp.float32)
-    flat_leaves = [jnp.ravel(x) for x in leaves]
-    return jnp.concatenate(flat_leaves)
-
-
-def _flat_to_tree(vec, template_tree):
-    """Unflatten a 1D vector back into a PyTree with the shapes of template_tree."""
-    leaves, treedef = jax.tree_util.tree_flatten(template_tree)
-    if not leaves:
-        return template_tree
-    sizes = [x.size for x in leaves]
-    splits = jnp.split(vec, jnp.cumsum(jnp.array(sizes[:-1])))
-    new_leaves = [v.reshape(x.shape) for v, x in zip(splits, leaves)]
-    return jax.tree_util.tree_unflatten(treedef, new_leaves)
-
-
-def _apply_inverse_metric_offdiag(
-    r_flat: jnp.ndarray,
-    l_flat: jnp.ndarray,
-    a_flat: jnp.ndarray,
-    b_flat: jnp.ndarray,
-    gamma: float,
-    xi: float,
-) -> jnp.ndarray:
-    """Apply (gamma I + xi (a l^T + l b^T + l l^T))^{-1} to vector r (flat).
-
-    Using a rank-2 Woodbury update:
-
-        g_pb = gamma I + xi U V^T
-        U = [a, l], V = [l, b + l]
-
-    Then:
-        g_pb^{-1} = (1/gamma) (I + (xi/gamma) U V^T)^{-1}
-
-    and we implement (I + B V^T)^{-1} via:
-
-        B = (xi/gamma) U
-        y = (I + B V^T)^{-1} ( (1/gamma) r )
-
-    which only requires O(d) work plus a 2×2 solve.
+    Hyperparameters are stored as JAX scalars so that the ``update``
+    function's traced computation graph is independent of their values.
+    This guarantees stable JIT caching across Optuna trials.
     """
-    if r_flat.size == 0:
-        return r_flat
+    step: jnp.ndarray
+    momentum: Any          # Momentum buffer (PyTree, same structure as params)
+    zero_buffer: Any       # Pre-allocated zero PyTree (same structure as params)
+    neg_lr: jnp.ndarray    # -learning_rate
+    mom_coeff: jnp.ndarray # momentum coefficient
+    one_minus_mom: jnp.ndarray  # 1 - momentum
+    xi: jnp.ndarray
+    gamma: jnp.ndarray
+    wd_lr: jnp.ndarray    # learning_rate * weight_decay
 
+
+# -----------------------------------------------
+# PyTree-native math helpers
+# -----------------------------------------------
+
+def _tree_dot(tree_a, tree_b):
+    """Dot product across two PyTrees: sum of all element-wise products."""
+    products = jax.tree.map(lambda a, b: jnp.sum(a * b), tree_a, tree_b)
+    return jax.tree.reduce(
+        lambda acc, x: acc + x, products,
+        initializer=jnp.float32(0.0),
+    )
+
+
+def _apply_inverse_rank2(r_tree, l_tree, a_tree, b_tree, gamma, xi):
+    r"""Apply :math:`(\\gamma I + \\xi (a l^T + l b^T + l l^T))^{-1} r`
+    entirely in PyTree space (rank-2 Woodbury with Cramer's rule).
+
+    Decomposes the metric as :math:`\\gamma I + \\xi U V^T` with
+    ``U = [a, l]``, ``V = [l, b+l]`` and solves the resulting 2×2
+    system via Cramer's rule — no flattening, no ``linalg.solve``.
+    """
     inv_gamma = 1.0 / gamma
+    alpha = xi * inv_gamma
 
-    # U and V: (d, 2)
-    U = jnp.stack([a_flat, l_flat], axis=1)
-    V = jnp.stack([l_flat, b_flat + l_flat], axis=1)
+    z_tree = jax.tree.map(lambda r: inv_gamma * r, r_tree)
+    bl_tree = jax.tree.map(lambda b, l: b + l, b_tree, l_tree)
 
-    alpha = xi * inv_gamma  # xi/gamma
-    B = alpha * U           # (d, 2)
+    # 2×2 matrix M = I + alpha * V^T U
+    M00 = 1.0 + alpha * _tree_dot(l_tree, a_tree)
+    M01 = alpha * _tree_dot(l_tree, l_tree)
+    M10 = alpha * _tree_dot(bl_tree, a_tree)
+    M11 = 1.0 + alpha * _tree_dot(bl_tree, l_tree)
 
-    z = inv_gamma * r_flat  # (d,)
+    rhs0 = _tree_dot(l_tree, z_tree)
+    rhs1 = _tree_dot(bl_tree, z_tree)
 
-    # 2x2 matrix M = I_2 + V^T B
-    M = jnp.eye(2, dtype=r_flat.dtype) + V.T @ B   # (2, 2)
+    # Cramer's rule for the 2×2 system.
+    # When det ≈ 0 the metric is near-singular; fall back to identity
+    # scaling (w0 = w1 = 0  ⟹  y = z = r/γ) to avoid inf/NaN.
+    det = M00 * M11 - M01 * M10
+    safe = jnp.abs(det) > 1e-8
+    inv_det = jnp.where(safe, 1.0 / jnp.where(safe, det, 1.0), 0.0)
+    w0 = inv_det * (M11 * rhs0 - M01 * rhs1)
+    w1 = inv_det * (M00 * rhs1 - M10 * rhs0)
 
-    # Right-hand side: V^T z (2,)
-    rhs = V.T @ z
-
-    # Solve M w = rhs
-    w = jnp.linalg.solve(M, rhs)  # (2,)
-
-    # Final result: y = z - B @ w
-    y = z - B @ w                 # (d,)
-
-    return y
+    # y = z - alpha * (a * w0 + l * w1)
+    y_tree = jax.tree.map(
+        lambda z, a, l: z - alpha * (a * w0 + l * w1),
+        z_tree, a_tree, l_tree,
+    )
+    return y_tree
 
 
-# -----------------------------
+def _apply_inverse_rank1_a_zero(r_tree, l_tree, b_tree, gamma, xi):
+    r"""Sherman-Morrison for ``a = 0``.
+
+    :math:`g_{pb} = \\gamma I + \\xi\\, l\\,(b+l)^T`  (rank-1).
+
+    Inverse via Sherman-Morrison:
+
+    .. math::
+        g_{pb}^{-1} r = z - \\alpha\\, l \\;
+        \\frac{\\langle b+l,\\, z\\rangle}{1 + \\alpha\\,\\langle b+l,\\, l\\rangle}
+
+    where :math:`z = r/\\gamma`, :math:`\\alpha = \\xi/\\gamma`.
+    """
+    inv_gamma = 1.0 / gamma
+    alpha = xi * inv_gamma
+
+    z_tree = jax.tree.map(lambda r: inv_gamma * r, r_tree)
+    bl_tree = jax.tree.map(lambda b, l: b + l, b_tree, l_tree)
+
+    bl_dot_z = _tree_dot(bl_tree, z_tree)
+    bl_dot_l = _tree_dot(bl_tree, l_tree)
+
+    denom = 1.0 + alpha * bl_dot_l
+    safe = jnp.abs(denom) > 1e-8
+    scale = jnp.where(safe, alpha * bl_dot_z / jnp.where(safe, denom, 1.0), 0.0)
+
+    y_tree = jax.tree.map(lambda z, l: z - scale * l, z_tree, l_tree)
+    return y_tree
+
+
+def _apply_inverse_rank1_b_zero(r_tree, l_tree, a_tree, gamma, xi):
+    r"""Sherman-Morrison for ``b = 0``.
+
+    :math:`g_{pb} = \\gamma I + \\xi\\,(a+l)\\, l^T`  (rank-1).
+
+    Inverse via Sherman-Morrison:
+
+    .. math::
+        g_{pb}^{-1} r = z - \\alpha\\,(a+l)\\;
+        \\frac{\\langle l,\\, z\\rangle}{1 + \\alpha\\,\\langle l,\\, a+l\\rangle}
+    """
+    inv_gamma = 1.0 / gamma
+    alpha = xi * inv_gamma
+
+    z_tree = jax.tree.map(lambda r: inv_gamma * r, r_tree)
+    al_tree = jax.tree.map(lambda a, l: a + l, a_tree, l_tree)
+
+    l_dot_z = _tree_dot(l_tree, z_tree)
+    l_dot_al = _tree_dot(l_tree, al_tree)
+
+    denom = 1.0 + alpha * l_dot_al
+    safe = jnp.abs(denom) > 1e-8
+    scale = jnp.where(safe, alpha * l_dot_z / jnp.where(safe, denom, 1.0), 0.0)
+
+    y_tree = jax.tree.map(lambda z, al: z - scale * al, z_tree, al_tree)
+    return y_tree
+
+
+# -----------------------------------------------
 # Mode alias normalization
-# -----------------------------
+# -----------------------------------------------
+
 def _normalize_base_mode(mode: str) -> str:
     m = (mode or "").lower()
     if m in {"grad", "g", "gr", "gradient", "l"}:
@@ -170,7 +220,8 @@ def _normalize_vec_mode(mode: str) -> str:
     if m in {"params", "param", "p", "theta"}:
         return "params"
     raise ValueError(
-        f"Unknown vector mode: {mode}. Accepted: zero (z, 0, none), grad (g, gr, gradient), momentum (mom, m), params (param, p, theta)"
+        f"Unknown vector mode: {mode}. Accepted: zero (z, 0, none), "
+        f"grad (g, gr, gradient), momentum (mom, m), params (param, p, theta)"
     )
 
 
@@ -178,7 +229,6 @@ def _normalize_b_mode(mode: str) -> str:
     m = (mode or "").lower()
     if m in {"same_as_a", "same", "a"}:
         return "same_as_a"
-    # otherwise defer to generic vector modes
     try:
         return _normalize_vec_mode(m)
     except ValueError:
@@ -186,6 +236,10 @@ def _normalize_b_mode(mode: str) -> str:
             f"Unknown b_mode: {mode}. Accepted: same_as_a (same, a) or any vector mode alias"
         )
 
+
+# -----------------------------------------------
+# Public API
+# -----------------------------------------------
 
 def custom_sgd_offdiag(
     learning_rate: float = 0.1,
@@ -238,13 +292,35 @@ def custom_sgd_offdiag(
     if gamma <= 0.0:
         raise ValueError(f"gamma must be positive, got {gamma}")
 
-    neg_lr = -learning_rate
-    one_minus_momentum = 1.0 - momentum
+    # Normalize modes once (not per-step)
+    base_mode_norm = _normalize_base_mode(base_mode)
+    a_mode_norm = _normalize_vec_mode(a_mode)
+    b_mode_norm = _normalize_b_mode(b_mode)
+
+    # Resolve "same_as_a" before we decide the metric rank
+    if b_mode_norm == "same_as_a":
+        b_mode_resolved = a_mode_norm
+    else:
+        b_mode_resolved = b_mode_norm
+
+    # Determine metric rank for choosing the optimal inverse formula.
+    # Custom a_fn / b_fn / a_static / b_static → always use rank-2.
+    has_custom_a = a_fn is not None or a_static is not None
+    has_custom_b = b_fn is not None or b_static is not None
+    a_is_zero = (not has_custom_a) and a_mode_norm == "zero"
+    b_is_zero = (not has_custom_b) and b_mode_resolved == "zero"
 
     def init(params):
         return OffDiagSGDState(
             step=jnp.zeros([], dtype=jnp.int32),
             momentum=jax.tree.map(jnp.zeros_like, params),
+            zero_buffer=jax.tree.map(jnp.zeros_like, params),
+            neg_lr=jnp.float32(-learning_rate),
+            mom_coeff=jnp.float32(momentum),
+            one_minus_mom=jnp.float32(1.0 - momentum),
+            xi=jnp.float32(xi),
+            gamma=jnp.float32(gamma),
+            wd_lr=jnp.float32(learning_rate * weight_decay),
         )
 
     def update(grads, state, params=None):
@@ -252,101 +328,96 @@ def custom_sgd_offdiag(
             raise ValueError("params must be provided to custom_sgd_offdiag.update")
 
         step = state.step + 1
+        s_neg_lr = state.neg_lr
+        s_mom = state.mom_coeff
+        s_one_minus_mom = state.one_minus_mom
+        s_xi = state.xi
+        s_gamma = state.gamma
+        s_wd_lr = state.wd_lr
 
         # Momentum update
         new_momentum = jax.tree.map(
-            lambda m, g: momentum * m + one_minus_momentum * g,
+            lambda m, g: s_mom * m + s_one_minus_mom * g,
             state.momentum,
             grads,
         )
 
         # Bias-corrected momentum
-        mom_correction = 1.0 - momentum ** step
+        mom_correction = 1.0 - s_mom ** step
         m_hat = jax.tree.map(lambda m: m / mom_correction, new_momentum)
-
-        # Normalize modes (aliases supported)
-        base_mode_norm = _normalize_base_mode(base_mode)
-        a_mode_norm = _normalize_vec_mode(a_mode)
-        b_mode_norm = _normalize_b_mode(b_mode)
 
         # Choose base vector l
         if base_mode_norm == "grad":
             l_tree = grads
-        elif base_mode_norm == "momentum":
+        else:  # "momentum"
             l_tree = m_hat
-        else:
-            raise ValueError(f"Unknown base_mode: {base_mode}")
 
         # Choose r (vector to be preconditioned)
         r_tree = m_hat if use_momentum_for_update else l_tree
 
         # ---- build a_tree ----
         if a_fn is not None:
-            # User-provided callable
             a_tree = a_fn(params, grads, m_hat, step)
         elif a_static is not None:
-            # User-provided static PyTree
             a_tree = a_static
-        else:
-            # Mode-based construction
-            if a_mode_norm == "zero":
-                a_tree = jax.tree.map(jnp.zeros_like, l_tree)
-            elif a_mode_norm == "grad":
-                a_tree = grads
-            elif a_mode_norm == "momentum":
-                a_tree = m_hat
-            elif a_mode_norm == "params":
-                a_tree = params
-            else:
-                raise ValueError(f"Unknown a_mode: {a_mode}")
+        elif a_mode_norm == "zero":
+            a_tree = state.zero_buffer
+        elif a_mode_norm == "grad":
+            a_tree = grads
+        elif a_mode_norm == "momentum":
+            a_tree = m_hat
+        else:  # "params"
+            a_tree = params
 
         # ---- build b_tree ----
         if b_fn is not None:
             b_tree = b_fn(params, grads, m_hat, step)
         elif b_static is not None:
             b_tree = b_static
+        elif b_mode_resolved == "zero":
+            b_tree = state.zero_buffer
+        elif b_mode_resolved == "grad":
+            b_tree = grads
+        elif b_mode_resolved == "momentum":
+            b_tree = m_hat
+        else:  # "params"
+            b_tree = params
+
+        # Apply inverse pullback metric (PyTree-native, no flatten/unflatten)
+        if a_is_zero:
+            # Rank-1 Sherman-Morrison: g_pb = gamma*I + xi*l*(b+l)^T
+            y_tree = _apply_inverse_rank1_a_zero(
+                r_tree, l_tree, b_tree, s_gamma, s_xi,
+            )
+        elif b_is_zero:
+            # Rank-1 Sherman-Morrison: g_pb = gamma*I + xi*(a+l)*l^T
+            y_tree = _apply_inverse_rank1_b_zero(
+                r_tree, l_tree, a_tree, s_gamma, s_xi,
+            )
         else:
-            if b_mode_norm == "same_as_a":
-                b_tree = a_tree
-            elif b_mode_norm == "zero":
-                b_tree = jax.tree.map(jnp.zeros_like, l_tree)
-            elif b_mode_norm == "grad":
-                b_tree = grads
-            elif b_mode_norm == "momentum":
-                b_tree = m_hat
-            elif b_mode_norm == "params":
-                b_tree = params
-            else:
-                raise ValueError(f"Unknown b_mode: {b_mode}")
+            # Full rank-2 Woodbury with Cramer's rule
+            y_tree = _apply_inverse_rank2(
+                r_tree, l_tree, a_tree, b_tree, s_gamma, s_xi,
+            )
 
-        # Flatten everything to global vectors
-        l_flat = _tree_to_flat(l_tree)
-        r_flat = _tree_to_flat(r_tree)
-        a_flat = _tree_to_flat(a_tree)
-        b_flat = _tree_to_flat(b_tree)
-
-        # Apply inverse pullback metric in flat space
-        y_flat = _apply_inverse_metric_offdiag(
-            r_flat=r_flat,
-            l_flat=l_flat,
-            a_flat=a_flat,
-            b_flat=b_flat,
-            gamma=gamma,
-            xi=xi,
-        )
-
-        # Unflatten y_flat to parameter-shaped PyTree
-        y_tree = _flat_to_tree(y_flat, params)
-
-        # Parameter updates:
-        #   delta_theta = -lr * y - lr * weight_decay * theta
+        # delta_theta = -lr * y - lr * weight_decay * theta
         updates = jax.tree.map(
-            lambda y, p: neg_lr * y - learning_rate * weight_decay * p,
+            lambda y, p: s_neg_lr * y - s_wd_lr * p,
             y_tree,
             params,
         )
 
-        new_state = OffDiagSGDState(step=step, momentum=new_momentum)
+        new_state = OffDiagSGDState(
+            step=step,
+            momentum=new_momentum,
+            zero_buffer=state.zero_buffer,
+            neg_lr=s_neg_lr,
+            mom_coeff=s_mom,
+            one_minus_mom=s_one_minus_mom,
+            xi=s_xi,
+            gamma=s_gamma,
+            wd_lr=s_wd_lr,
+        )
         return updates, new_state
 
     return optax.GradientTransformation(init, update)

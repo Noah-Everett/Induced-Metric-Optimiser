@@ -1,0 +1,37 @@
+name: induced-metric-optimiser
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  # Core JAX ecosystem
+  - jax
+  - jaxlib
+  - optax
+  - flax
+
+  # Scientific computing
+  - numpy
+  - pandas
+
+  # Machine learning
+  - tensorflow
+  - optuna
+
+  # Visualization
+  - matplotlib
+  - seaborn
+
+  # Utilities
+  - tqdm
+  - wandb
+
+  # Development tools
+  - jupyter
+  - ipykernel
+  - notebook
+
+  # Code quality (optional but recommended)
+  - pytest
+  - black
+  - flake8
