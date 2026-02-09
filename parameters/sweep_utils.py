@@ -2,13 +2,16 @@
 Shared sweep infrastructure with WandB-optional backend.
 
 Provides:
-- ``SweepLogger``: abstraction over WandB vs local JSON logging.
+- ``SweepLogger``: abstraction over WandB vs local CSV/JSON logging.
 - ``SweepRunner``: abstraction over WandB sweeps vs Optuna.
 - ``setup_argparser``: shared CLI argument parser.
 """
 
 import argparse
+import csv
+import io
 import json
+import math
 import os
 import time
 import uuid
@@ -24,7 +27,7 @@ from optimizer_registry import ALL_OPTIMIZERS, get_sweep_parameters, suggest_opt
 # ---------------------------------------------------------------------------
 
 class SweepLogger:
-    """Thin abstraction over WandB vs local JSON logging.
+    """Thin abstraction over WandB vs local CSV logging.
 
     Usage::
 
@@ -61,11 +64,11 @@ class SweepLogger:
 
             # Use run index instead of UUID for predictable filenames
             if self.run_index is not None:
-                self._run_file = self._run_dir / f"run_{self.run_index}.json"
+                self._run_file = self._run_dir / f"run_{self.run_index}.csv"
             else:
                 # Fallback to UUID if no run_index provided (backward compatibility)
                 run_id = uuid.uuid4().hex[:8]
-                self._run_file = self._run_dir / f"{run_id}.json"
+                self._run_file = self._run_dir / f"{run_id}.csv"
 
     def log(self, metrics):
         if self.backend == "wandb":
@@ -106,13 +109,25 @@ class SweepLogger:
                 wandb.log(summary)
             wandb.finish()
         else:
-            data = {
+            metadata = {
                 "config": self._config,
-                "history": self._history,
                 "summary": summary or {},
             }
-            with open(self._run_file, "w") as f:
-                json.dump(data, f, indent=2, default=_json_default)
+            # Collect all column names preserving insertion order
+            columns = []
+            for row in self._history:
+                for key in row:
+                    if key not in columns:
+                        columns.append(key)
+
+            with open(self._run_file, "w", newline="") as f:
+                # Line 1: metadata as JSON comment
+                f.write("# " + json.dumps(metadata, default=_json_default) + "\n")
+                # CSV body
+                writer = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore")
+                writer.writeheader()
+                for row in self._history:
+                    writer.writerow({k: _format_value(row.get(k)) for k in columns})
 
     @property
     def config(self):
@@ -138,6 +153,34 @@ def _json_default(obj):
     if hasattr(obj, "tolist") and callable(obj.tolist):
         return obj.tolist()
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+
+def _round_float(x, sig_figs=6):
+    """Round a float to *sig_figs* significant figures."""
+    if x == 0.0 or not math.isfinite(x):
+        return x
+    return round(x, sig_figs - 1 - int(math.floor(math.log10(abs(x)))))
+
+
+def _format_value(v, sig_figs=6):
+    """Format a single value for CSV output (round floats, pass through others)."""
+    if v is None:
+        return ""
+    if isinstance(v, float):
+        return _round_float(v, sig_figs)
+    # Handle numpy/JAX scalars
+    if isinstance(v, (np.floating,)):
+        return _round_float(float(v), sig_figs)
+    if isinstance(v, (np.integer,)):
+        return int(v)
+    if isinstance(v, (np.bool_,)):
+        return bool(v)
+    if hasattr(v, "item") and callable(v.item):
+        val = v.item()
+        if isinstance(val, float):
+            return _round_float(val, sig_figs)
+        return val
+    return v
 
 
 # ---------------------------------------------------------------------------
@@ -369,7 +412,7 @@ def setup_argparser(description):
     parser.add_argument(
         "--backend", type=str, default="wandb",
         choices=["wandb", "local"],
-        help="Sweep backend: 'wandb' for W&B sweeps, 'local' for Optuna + JSON",
+        help="Sweep backend: 'wandb' for W&B sweeps, 'local' for Optuna + CSV",
     )
     parser.add_argument(
         "--pruner", type=str, default="none",

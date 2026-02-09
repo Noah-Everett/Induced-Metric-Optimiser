@@ -172,8 +172,6 @@ def train(config, seed, logger):
                 "train_loss": avg_loss,
                 "train_mse": train_mse,
                 "test_mse": test_mse,
-                "min_val_loss": min_val_loss,
-                "min_loss_epoch": min_loss_epoch,
                 "train_time_seconds": train_time,
             })
 

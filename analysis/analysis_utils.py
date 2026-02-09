@@ -1,7 +1,7 @@
 """
 Shared utilities for analysis notebooks.
 
-Supports both WandB and local JSON backends for loading sweep results.
+Supports both WandB and local CSV/JSON backends for loading sweep results.
 
 Usage::
 
@@ -26,6 +26,7 @@ Usage::
     )
 """
 
+import csv
 import json
 import os
 import sys
@@ -151,8 +152,63 @@ def _extract_history_wandb(best_runs, metric_keys):
 # Data loading - Local backend
 # ---------------------------------------------------------------------------
 
+def _load_csv_run(filepath):
+    """Load a single run from a CSV file with JSON metadata comment header.
+
+    The first line is ``# {JSON}`` containing ``config`` and ``summary``.
+    The remaining lines are standard CSV with the training history.
+    """
+    with open(filepath) as f:
+        first_line = f.readline().strip()
+        if first_line.startswith("# "):
+            metadata = json.loads(first_line[2:])
+        else:
+            metadata = {"config": {}, "summary": {}}
+            f.seek(0)  # no comment header — re-read from start
+
+        reader = csv.DictReader(f)
+        history = {}
+        for row in reader:
+            for key, val in row.items():
+                if key not in history:
+                    history[key] = []
+                if val == "":
+                    history[key].append(None)
+                else:
+                    try:
+                        history[key].append(float(val))
+                    except ValueError:
+                        history[key].append(val)
+
+    return {
+        "config": metadata.get("config", {}),
+        "history": history,
+        "summary": metadata.get("summary", {}),
+    }
+
+
+def _load_json_run(filepath):
+    """Load a single run from a legacy JSON file and normalise history."""
+    with open(filepath) as f:
+        data = json.load(f)
+
+    # Convert list-of-dicts history to dict-of-lists
+    history_list = data.get("history", [])
+    if isinstance(history_list, list):
+        history = {}
+        for i, row in enumerate(history_list):
+            all_keys = set(history.keys()) | set(row.keys())
+            for key in all_keys:
+                if key not in history:
+                    history[key] = [None] * i
+                history[key].append(row.get(key, None))
+        data["history"] = history
+
+    return data
+
+
 def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
-    """Load all runs for an optimizer from local JSON files.
+    """Load all runs for an optimizer from local CSV/JSON files.
 
     Args:
         results_dir: Base results directory
@@ -169,11 +225,15 @@ def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
         return []
 
     runs = []
-    for result_file in sorted(itr_dir.glob("run_*.json")):
-        with open(result_file) as f:
-            data = json.load(f)
-            data["_file"] = str(result_file)
-            runs.append(data)
+    # Load CSV files (new format) and JSON files (legacy)
+    result_files = sorted(itr_dir.glob("run_*.csv")) + sorted(itr_dir.glob("run_*.json"))
+    for result_file in result_files:
+        if result_file.suffix == ".csv":
+            data = _load_csv_run(result_file)
+        else:
+            data = _load_json_run(result_file)
+        data["_file"] = str(result_file)
+        runs.append(data)
 
     return runs
 
@@ -265,21 +325,23 @@ def _extract_history_local(best_runs, metric_keys):
     for optimizer, run_info in best_runs.items():
         print(f"Processing {optimizer}...")
 
-        history = run_info.get("history", [])
+        history = run_info.get("history", {})
 
-        data = {key: [] for key in metric_keys}
-        data["epoch"] = []
+        # history is dict-of-lists (normalised on load for both CSV and JSON)
+        epochs = history.get("epoch", history.get("iteration", []))
 
-        for row in history:
-            # Support both "epoch" (training sweeps) and "iteration" (small_examples)
-            epoch_val = row.get("epoch", row.get("iteration", None))
-            if epoch_val is not None:
-                data["epoch"].append(epoch_val)
-                for key in metric_keys:
-                    data[key].append(row.get(key, np.nan))
+        data = {"epoch": np.array(
+            [v if v is not None else np.nan for v in epochs], dtype=float
+        )}
 
-        for key in data:
-            data[key] = np.array(data[key], dtype=float)
+        for key in metric_keys:
+            col = history.get(key, [])
+            if len(col) == len(epochs):
+                data[key] = np.array(
+                    [v if v is not None else np.nan for v in col], dtype=float
+                )
+            else:
+                data[key] = np.full(len(epochs), np.nan)
 
         optimizer_data[optimizer] = data
 

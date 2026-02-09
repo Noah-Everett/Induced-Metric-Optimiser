@@ -223,8 +223,6 @@ def train(config, seed, logger):
                 "epoch": epoch,
                 "train_loss": avg_train_loss,
                 "val_perplexity": val_perplexity,
-                "min_val_perplexity": min_val_perplexity,
-                "min_perp_epoch": min_perp_epoch,
                 "train_time_seconds": train_time,
             })
 

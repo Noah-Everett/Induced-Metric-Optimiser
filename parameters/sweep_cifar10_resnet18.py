@@ -226,8 +226,6 @@ def train(config, seed, logger):
                 "train_loss": avg_loss,
                 "train_acc": train_acc,
                 "test_acc": test_acc,
-                "max_val_acc": max_val_acc,
-                "max_acc_epoch": max_acc_epoch,
                 "train_time_seconds": train_time,
             })
 
