@@ -181,6 +181,23 @@ def train(config, seed, logger, optimizer_name, function_name):
     params = func_info["initial"].copy()
     use_loss = needs_loss(optimizer_name)
 
+    # JIT-compile the training step (gradient + optimizer update + param update)
+    if use_loss:
+        @jax.jit
+        def train_step(params, opt_state):
+            grads = grad_func(params)
+            current_loss = func(params)
+            updates, new_opt_state = optimizer.update(grads, opt_state, current_loss, params)
+            new_params = optax.apply_updates(params, updates)
+            return new_params, new_opt_state
+    else:
+        @jax.jit
+        def train_step(params, opt_state):
+            grads = grad_func(params)
+            updates, new_opt_state = optimizer.update(grads, opt_state, params)
+            new_params = optax.apply_updates(params, updates)
+            return new_params, new_opt_state
+
     converged = False
     pruned = False
     iterations = 0
@@ -189,15 +206,7 @@ def train(config, seed, logger, optimizer_name, function_name):
     for i in range(MAX_ITERATIONS):
         start = time.time()
 
-        grads = grad_func(params)
-
-        if use_loss:
-            current_loss = func(params)
-            updates, opt_state = optimizer.update(grads, opt_state, current_loss, params)
-        else:
-            updates, opt_state = optimizer.update(grads, opt_state, params)
-
-        params = optax.apply_updates(params, updates)
+        params, opt_state = train_step(params, opt_state)
         runtime += max(time.time() - start, 0.0)
 
         current_value = float(func(params))
