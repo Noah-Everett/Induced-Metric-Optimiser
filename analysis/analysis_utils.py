@@ -768,6 +768,196 @@ def plot_training_curves(
     return fig
 
 
+def plot_convergence_curves(
+    optimizer_data,
+    y_keys,
+    x_keys=None,
+    best_runs=None,
+    mark_best=True,
+    best_epoch_key=None,
+    converged_key=None,
+    colors=None,
+    log_y="auto",
+    title=None,
+    y_labels=None,
+    x_labels=None,
+    x_scales=None,
+    figsize=None,
+    linewidth=2,
+    alpha=0.8,
+):
+    """
+    Plot convergence / training curves with optional semilogy scale and
+    best-point markers.
+
+    Creates a grid of subplots with one row per *y_key* and one column per
+    *x_key*.  Automatically uses semilogy for loss-like metrics.
+
+    Parameters
+    ----------
+    optimizer_data : dict
+        Result from ``extract_history()``, with optional ``wall_times``
+        added via ``add_wall_times()``.
+    y_keys : list of str
+        Metric keys for y-axes (e.g., ``["train_loss", "test_acc"]``).
+    x_keys : list of str, optional
+        Metric keys for x-axes (default: ``["epoch", "wall_times"]``).
+    best_runs : dict, optional
+        Result from ``load_best_runs()``.  When provided and *mark_best*
+        is True, the best / convergence point is marked with a star.
+    mark_best : bool
+        Whether to draw star markers at the best point (requires
+        *best_runs* and *best_epoch_key*).
+    best_epoch_key : str, optional
+        Summary key for the epoch / iteration of the best metric (e.g.,
+        ``"iterations"`` for small-examples, ``"final_max_acc_epoch"``
+        for training tasks).
+    converged_key : str, optional
+        Summary key for a boolean convergence flag.  When set, markers are
+        only drawn for runs where the flag is True, and the legend shows a
+        checkmark / cross indicator.
+    colors : dict, optional
+        Mapping from optimizer name to matplotlib colour.
+    log_y : str, bool, or dict
+        ``"auto"`` (default) enables semilogy for y_keys whose names
+        contain ``loss``, ``value``, ``mse``, ``perplexity``, or
+        ``error``.  A bool applies uniformly.  A dict maps individual
+        y_keys to bools.
+    title : str, optional
+        Figure suptitle.
+    y_labels : dict, optional
+        Custom y-axis labels mapping y_key to display string.
+    x_labels : dict, optional
+        Custom x-axis labels mapping x_key to display string.
+    x_scales : dict, optional
+        Scaling factors for x-axes (maps x_key to float multiplier).
+        E.g., ``{"wall_times": 1000}`` converts seconds to milliseconds.
+    figsize : tuple, optional
+        Figure size (auto-calculated if *None*).
+    linewidth : float
+        Curve line width.
+    alpha : float
+        Curve transparency.
+
+    Returns
+    -------
+    Figure
+        Matplotlib figure.
+    """
+    if x_keys is None:
+        x_keys = ["epoch", "wall_times"]
+    if colors is None:
+        colors = get_optimizer_colors(list(optimizer_data.keys()))
+    if y_labels is None:
+        y_labels = {}
+    if x_labels is None:
+        x_labels = {}
+    if x_scales is None:
+        x_scales = {}
+
+    def _should_log(y_key):
+        if isinstance(log_y, dict):
+            return log_y.get(y_key, False)
+        if isinstance(log_y, bool):
+            return log_y
+        # auto mode
+        return any(s in y_key.lower()
+                   for s in ("loss", "value", "mse", "perplexity", "error"))
+
+    nrows = len(y_keys)
+    ncols = len(x_keys)
+    if figsize is None:
+        figsize = (9 * ncols, 6 * nrows)
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+    if nrows == 1 and ncols == 1:
+        axes = np.array([[axes]])
+    elif nrows == 1:
+        axes = axes[np.newaxis, :]
+    elif ncols == 1:
+        axes = axes[:, np.newaxis]
+
+    if title:
+        fig.suptitle(title, fontsize=14)
+
+    for row, y_key in enumerate(y_keys):
+        use_log = _should_log(y_key)
+        for col, x_key in enumerate(x_keys):
+            ax = axes[row, col]
+            plot_fn = ax.semilogy if use_log else ax.plot
+
+            for opt, data in optimizer_data.items():
+                y = np.asarray(data.get(y_key, []), dtype=float)
+                x = np.asarray(
+                    data.get(x_key, data.get("epoch", np.arange(len(y)))),
+                    dtype=float,
+                )
+
+                if len(y) == 0:
+                    continue
+
+                min_len = min(len(x), len(y))
+                x_plot = x[:min_len]
+                y_plot = y[:min_len]
+
+                scale = x_scales.get(x_key, 1.0)
+                if scale != 1.0:
+                    x_plot = x_plot * scale
+
+                # Build legend label
+                label = opt
+                if best_runs and opt in best_runs:
+                    summary = best_runs[opt].get("summary", {})
+                    if converged_key is not None:
+                        conv = summary.get(converged_key, False)
+                        n_iter = int(summary.get(best_epoch_key, len(y)))
+                        sym = "\u2713" if conv else "\u2717"
+                        label = f"{opt} ({sym}, {n_iter} iter)"
+                    elif best_epoch_key:
+                        best_ep = summary.get(best_epoch_key)
+                        if best_ep is not None:
+                            label = f"{opt} (best @ {int(best_ep)})"
+
+                plot_fn(x_plot, y_plot, label=label,
+                        color=colors.get(opt), linewidth=linewidth, alpha=alpha)
+
+                # Mark best / convergence point
+                if mark_best and best_runs and opt in best_runs and best_epoch_key:
+                    summary = best_runs[opt].get("summary", {})
+                    should_mark = True
+                    if converged_key is not None:
+                        should_mark = summary.get(converged_key, False)
+
+                    if should_mark:
+                        best_ep = summary.get(best_epoch_key)
+                        if best_ep is not None:
+                            epochs = np.asarray(
+                                data.get("epoch", np.arange(len(y))), dtype=float
+                            )
+                            ep_indices = np.where(epochs == float(best_ep))[0]
+                            if len(ep_indices) > 0:
+                                idx = int(ep_indices[0])
+                            else:
+                                idx = min(int(best_ep), min_len - 1)
+                            if 0 <= idx < min_len:
+                                ax.scatter(
+                                    x_plot[idx], y_plot[idx],
+                                    color=colors.get(opt), s=100, marker='*',
+                                    edgecolor='black', zorder=10,
+                                )
+
+            x_lbl = x_labels.get(x_key, x_key)
+            y_lbl = y_labels.get(y_key, y_key)
+            ax.set_xlabel(x_lbl)
+            ax.set_ylabel(y_lbl)
+            ax.set_title(f"{y_lbl} vs {x_lbl}")
+            ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=7)
+            ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    return fig
+
+
 def plot_time_to_best(
     best_runs,
     optimizer_data,
@@ -1469,6 +1659,267 @@ def plot_performance_summary(
     return fig
 
 
+def plot_grouped_bars(
+    df,
+    x_col,
+    y_col,
+    group_col,
+    ax=None,
+    log_y=False,
+    title=None,
+    ylabel=None,
+    colormap="tab20",
+    legend_kwargs=None,
+    epsilon=1e-6,
+):
+    """
+    Plot a grouped bar chart from a DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Data to plot.
+    x_col : str
+        Column for x-axis categories.
+    y_col : str
+        Column for bar heights.
+    group_col : str
+        Column for bar groups (e.g., optimizer).
+    ax : Axes, optional
+        Matplotlib axes.  Creates a new figure if *None*.
+    log_y : bool
+        Use log scale on y-axis.
+    title : str, optional
+        Plot title.
+    ylabel : str, optional
+        Y-axis label (defaults to *y_col*).
+    colormap : str or Colormap
+        Matplotlib colormap.
+    legend_kwargs : dict, optional
+        Keyword arguments for ``ax.legend()``.
+    epsilon : float
+        Small value to clip data before log scale.
+
+    Returns
+    -------
+    Figure or None
+    """
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    if len(df) == 0:
+        ax.set_title(title or "")
+        return fig
+
+    pivot = df.pivot(index=x_col, columns=group_col, values=y_col)
+    if log_y:
+        pivot = pivot.clip(lower=epsilon)
+    pivot.plot(kind='bar', ax=ax, rot=45, colormap=colormap)
+    if log_y:
+        ax.set_yscale('log')
+
+    ax.set_title(title or f"{y_col} by {x_col}")
+    ax.set_ylabel(ylabel or y_col)
+    if legend_kwargs is None:
+        legend_kwargs = dict(bbox_to_anchor=(1.02, 1), loc='upper left', fontsize=8)
+    ax.legend(**legend_kwargs)
+
+    return fig
+
+
+def build_summary_dataframe(all_best_runs, optimizers=None):
+    """
+    Build a summary DataFrame from multi-function best runs.
+
+    Designed for convergence-based benchmarks (e.g., small-examples) where
+    the summary contains ``converged``, ``iterations``, ``final_value``, and
+    ``runtime_seconds``.
+
+    Parameters
+    ----------
+    all_best_runs : dict
+        Mapping from function name to best_runs dict (result of
+        ``load_best_runs()``).
+    optimizers : list, optional
+        Ordered list of optimizers for categorical sorting.
+
+    Returns
+    -------
+    DataFrame
+        Columns: function, optimizer, converged, iterations, final_value,
+        runtime_seconds, runtime_ms.
+    """
+    rows = []
+    for func_name, best_runs in all_best_runs.items():
+        for opt, run_info in best_runs.items():
+            s = run_info.get("summary", {})
+            rows.append({
+                'function': func_name,
+                'optimizer': opt,
+                'converged': s.get('converged', False),
+                'iterations': s.get('iterations', 0),
+                'final_value': s.get('final_value', float('inf')),
+                'runtime_seconds': s.get('runtime_seconds', 0),
+                'runtime_ms': s.get('runtime_seconds', 0) * 1000,
+            })
+
+    if not rows:
+        return pd.DataFrame(columns=['function', 'optimizer', 'converged',
+                                      'iterations', 'final_value',
+                                      'runtime_seconds', 'runtime_ms'])
+
+    df = pd.DataFrame(rows)
+    if optimizers:
+        df['optimizer'] = pd.Categorical(
+            df['optimizer'], categories=optimizers, ordered=True
+        )
+    df = df.sort_values(['function', 'optimizer']).reset_index(drop=True)
+    return df
+
+
+def plot_multi_function_performance(
+    summary_df,
+    optimizers=None,
+    figsize=(32, 12),
+    suptitle="Optimizer Performance Comparison",
+):
+    """
+    Create a 6-panel performance comparison across multiple test functions.
+
+    Panels:
+      1. Iterations to convergence (bar chart, log scale)
+      2. Runtime to convergence (bar chart, log scale)
+      3. Final function values (bar chart, log scale)
+      4. Convergence rate heatmap
+      5. Efficiency scatter (iterations vs runtime)
+      6. Rankings by average iterations
+
+    Parameters
+    ----------
+    summary_df : DataFrame
+        Must have columns: function, optimizer, converged, iterations,
+        final_value, runtime_seconds, runtime_ms.  See
+        ``build_summary_dataframe()``.
+    optimizers : list, optional
+        Ordered list of optimizer names.
+    figsize : tuple
+        Figure size.
+    suptitle : str
+        Figure title.
+
+    Returns
+    -------
+    Figure
+        Matplotlib figure with 6 subplots.
+    """
+    if len(summary_df) == 0:
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No results to plot.", ha='center', va='center',
+                transform=ax.transAxes)
+        return fig
+
+    converged_df = summary_df[summary_df['converged'] == True]
+    cmap = plt.cm.tab20
+
+    fig, axes = plt.subplots(2, 3, figsize=figsize)
+    fig.suptitle(suptitle, fontsize=16)
+
+    # 1. Iterations to convergence
+    if len(converged_df) > 0:
+        plot_grouped_bars(
+            converged_df, x_col='function', y_col='iterations',
+            group_col='optimizer', ax=axes[0, 0], log_y=True,
+            title='Iterations to Convergence', ylabel='Iterations',
+            colormap=cmap,
+        )
+
+    # 2. Runtime to convergence
+    if len(converged_df) > 0:
+        plot_grouped_bars(
+            converged_df, x_col='function', y_col='runtime_ms',
+            group_col='optimizer', ax=axes[0, 1], log_y=True,
+            title='Runtime to Convergence', ylabel='Runtime (ms)',
+            colormap=cmap,
+        )
+
+    # 3. Final values
+    plot_grouped_bars(
+        summary_df, x_col='function', y_col='final_value',
+        group_col='optimizer', ax=axes[0, 2], log_y=True,
+        title='Final Function Values (Log Scale)', ylabel='Function Value',
+        colormap=cmap,
+    )
+
+    # 4. Convergence heatmap
+    conv_matrix = summary_df.groupby(
+        ['optimizer', 'function']
+    )['converged'].mean().unstack()
+    plot_convergence_heatmap(
+        matrix=conv_matrix, ax=axes[1, 0],
+        title='Convergence Rate Heatmap', xlabel='Function',
+        annotation_fmt="percent",
+    )
+
+    # 5. Efficiency scatter
+    if len(converged_df) > 0:
+        plot_efficiency_scatter(
+            data=converged_df, x_col='iterations', y_col='runtime_ms',
+            group_col='optimizer', ax=axes[1, 1],
+            title='Efficiency: Iterations vs Runtime',
+            xlabel='Iterations', ylabel='Runtime (ms)',
+        )
+
+    # 6. Rankings
+    if len(converged_df) > 0:
+        avg_iter = converged_df.groupby('optimizer')['iterations'].mean().sort_values()
+        rankings = [(opt, val) for opt, val in avg_iter.items()]
+        plot_ranking_bar(
+            rankings=rankings, ax=axes[1, 2], ascending=True,
+            title='Average Iterations to Convergence',
+            xlabel='Average Iterations', value_format=".1f",
+        )
+
+    plt.tight_layout()
+    return fig
+
+
+def print_convergence_summary(best_runs, func_name=None, optimizers=None):
+    """
+    Print a text summary of convergence results.
+
+    Parameters
+    ----------
+    best_runs : dict
+        Result from ``load_best_runs()``.  Each entry's summary should
+        contain ``converged``, ``iterations``, ``runtime_seconds``, and
+        ``final_value``.
+    func_name : str, optional
+        Name of the function / task for the header.
+    optimizers : list, optional
+        Ordered list of optimizers to print (defaults to all in
+        *best_runs*).
+    """
+    if func_name:
+        print(f"\n{func_name.title()} Function Summary:")
+    print("-" * 60)
+
+    if optimizers is None:
+        optimizers = list(best_runs.keys())
+
+    for opt in optimizers:
+        if opt not in best_runs:
+            continue
+        s = best_runs[opt].get("summary", {})
+        status = "Converged" if s.get("converged", False) else "Failed"
+        print(
+            f"  {opt:25s}: {status:10s} | "
+            f"{s.get('iterations', 0):4d} iter | "
+            f"{s.get('runtime_seconds', 0) * 1000:6.1f} ms | "
+            f"Final: {s.get('final_value', float('inf')):.2e}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Results export utilities
 # ---------------------------------------------------------------------------
@@ -1545,14 +1996,19 @@ __all__ = [
     "add_wall_times",
     "plot_2d_histograms",
     "plot_training_curves",
+    "plot_convergence_curves",
     "plot_speedrun_results",
     "plot_time_to_best",
     "plot_convergence_heatmap",
     "plot_efficiency_scatter",
     "plot_ranking_bar",
     "plot_performance_summary",
+    "plot_grouped_bars",
+    "plot_multi_function_performance",
+    "build_summary_dataframe",
     "compute_speedrun_results",
     "print_speedrun_table",
+    "print_convergence_summary",
     "print_best_hyperparameters",
     "save_best_hyperparameters",
     "get_optimizer_colors",
