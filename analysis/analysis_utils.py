@@ -775,6 +775,7 @@ def plot_convergence_curves(
     best_runs=None,
     mark_best=True,
     best_epoch_key=None,
+    best_metric_key=None,
     converged_key=None,
     colors=None,
     log_y="auto",
@@ -812,6 +813,11 @@ def plot_convergence_curves(
         Summary key for the epoch / iteration of the best metric (e.g.,
         ``"iterations"`` for small-examples, ``"final_max_acc_epoch"``
         for training tasks).
+    best_metric_key : str, optional
+        When set, star markers are only drawn on rows where *y_key*
+        matches this value.  For example, set to ``"test_acc"`` so the
+        marker only appears on the accuracy subplot and not on the loss
+        subplot.  When *None* (default), markers appear on all rows.
     converged_key : str, optional
         Summary key for a boolean convergence flag.  When set, markers are
         only drawn for runs where the flag is True, and the legend shows a
@@ -922,7 +928,10 @@ def plot_convergence_curves(
                         color=colors.get(opt), linewidth=linewidth, alpha=alpha)
 
                 # Mark best / convergence point
-                if mark_best and best_runs and opt in best_runs and best_epoch_key:
+                if (mark_best and best_runs and opt in best_runs
+                        and best_epoch_key
+                        and (best_metric_key is None
+                             or y_key == best_metric_key)):
                     summary = best_runs[opt].get("summary", {})
                     should_mark = True
                     if converged_key is not None:
@@ -932,13 +941,12 @@ def plot_convergence_curves(
                         best_ep = summary.get(best_epoch_key)
                         if best_ep is not None:
                             epochs = np.asarray(
-                                data.get("epoch", np.arange(len(y))), dtype=float
-                            )
-                            ep_indices = np.where(epochs == float(best_ep))[0]
-                            if len(ep_indices) > 0:
-                                idx = int(ep_indices[0])
-                            else:
-                                idx = min(int(best_ep), min_len - 1)
+                                data.get("epoch", np.arange(len(y))),
+                                dtype=float,
+                            )[:min_len]
+                            idx = int(np.argmin(
+                                np.abs(epochs - float(best_ep))
+                            ))
                             if 0 <= idx < min_len:
                                 ax.scatter(
                                     x_plot[idx], y_plot[idx],
