@@ -2,14 +2,17 @@
 #
 # Fast parallel compression with tar + pigz on FASRC
 #
-#SBATCH -J pigz
-#SBATCH -p sapphire              # or 'intermediate' if you need 14-day limit
+#SBATCH --job-name pigz
+#SBATCH --partition sapphire                # or 'intermediate' if you need 14-day limit
+#SBATCH --account=schwartz_lab
 #SBATCH -N 1
-#SBATCH --cpus-per-task=32       # number of threads for pigz
-#SBATCH --mem=64G                # use all RAM on the node; or set e.g. 64G
-#SBATCH -t 1-00:00:00            # 1 day; adjust as needed
-#SBATCH -o pigz_%j.out
-#SBATCH -e pigz_%j.err
+#SBATCH --cpus-per-task=112                 # number of threads for pigz
+#SBATCH --mem=64G                           # use all RAM on the node; or set e.g. 64G
+#SBATCH --time 1-00:00:00                   # 1 day; adjust as needed
+#SBATCH --output pigz_%j.out
+#SBATCH --error pigz_%j.err
+#SBATCH --mail-user=neverett@g.harvard.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
 
 set -euo pipefail
 
