@@ -8,6 +8,7 @@
 \usepackage[most]{tcolorbox}
 \usepackage{bbm}
 \usepackage{hyperref}
+\usepackage{booktabs}
 
 \newcommand{\loss}{\mathcal{L}}
 \newcommand{\Id}{\mathbbm{1}}
@@ -82,6 +83,15 @@ So to summarize, (1) we start with an ambient metric $h$ which induces a metric 
 (2) we compute the inverse $g^{ij}$, and
 (3) we use $g^{ij}$ to compute the parameter updates $\delta \theta^i$.
 
+\subsection*{Implementation}
+\begin{itemize}
+    \item JAX/Optax: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_fixed.py}{\texttt{optimisers/jax\_fixed.py}}
+    \item PyTorch: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_fixed.py}{\texttt{optimisers/torch\_fixed.py}}
+    \item Equivalence check: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/compare_fixed.py}{\texttt{optimisers/compare\_fixed.py}}
+\end{itemize}
+Exposed optimisers: \texttt{custom\_sgd} (plain embedding), \texttt{custom\_sgd\_log} (log-loss embedding), \texttt{custom\_sgd\_rms} (RMS-normalised gradients).
+The sweep name is \texttt{sgd\_metric} / \texttt{sgd\_log\_metric} / \texttt{sgd\_rms}.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -154,6 +164,25 @@ The learnable scalar variant introduces three new hyperparameters beyond those o
     \item $\lambda$ (\texttt{metric\_reg}): L2 regularisation strength on $s$, controlling how far the metric drifts from identity.
     \item $s_{\max}$ (\texttt{metric\_clip}): clipping bound on $s$, bounding $\alpha\in[e^{-s_{\max}}, e^{s_{\max}}]$.
 \end{itemize}
+
+\subsection*{Implementation}
+\begin{itemize}
+    \item JAX/Optax: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_scalar.py}{\texttt{optimisers/jax\_learnable\_scalar.py}}
+    \item PyTorch: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_scalar.py}{\texttt{optimisers/torch\_learnable\_scalar.py}}
+    \item Equivalence check: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/compare_learnable_scalar.py}{\texttt{optimisers/compare\_learnable\_scalar.py}}
+\end{itemize}
+\begin{sloppypar}
+The plain variant is \texttt{custom\_sgd\_learnable\_scalar} (sweep: \texttt{sgd\_learn\_scalar}).
+The log-loss variant is \texttt{custom\_sgd\_log\_learnable\_scalar} (sweep: \texttt{sgd\_learn\_scalar\_log}).
+\end{sloppypar}
+
+The scalar metric state is a single float $s$ stored per parameter group.
+At each step, $s$ is updated \emph{after} computing the parameter update using the same gradients (no separate forward pass):
+\begin{enumerate}
+    \item Compute $v = \xi\,e^s\,\|\vecb{g}\|^2$.
+    \item Update $s \leftarrow s + \mu\,v - \mu\,\lambda\,s$.
+    \item Clip $s \leftarrow \operatorname{clip}(s,\,-s_{\max},\,s_{\max})$.
+\end{enumerate}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -231,6 +260,27 @@ which fixes this gauge and ensures that $\xi$ remains the single scalar controll
     to the fixed diagonal (scalar $\gamma=1$) variant.
     The learnable diagonal metric therefore strictly generalises the fixed and scalar cases.
 \end{tcolorbox}
+
+\subsection*{Implementation}
+\begin{itemize}
+    \item JAX/Optax: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_diag.py}{\texttt{optimisers/jax\_learnable\_diag.py}}
+    \item PyTorch: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_diag.py}{\texttt{optimisers/torch\_learnable\_diag.py}}
+    \item Equivalence check: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/compare_learnable_diag.py}{\texttt{optimisers/compare\_learnable\_diag.py}}
+\end{itemize}
+\begin{sloppypar}
+The plain variant is \texttt{custom\_sgd\_learnable\_diag} (sweep: \texttt{sgd\_learn\_diag}).
+The log-loss variant is \texttt{custom\_sgd\_log\_learnable\_diag} (sweep: \texttt{sgd\_learn\_diag\_log}).
+\end{sloppypar}
+
+The diagonal metric state is a tensor $\vecb{s}$ with the same shape as the parameters, initialised to zero.
+At each step:
+\begin{enumerate}
+    \item Compute $v = \xi\sum_k e^{s_k}\,g_k^2$ (scalar denominator trace).
+    \item Update $s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,g_i^2 - \mu\,\lambda\,s_i$ for each $i$.
+    \item Mean-centre per leaf: $s_i \leftarrow s_i - \bar{s}$.
+    \item Clip $\vecb{s} \leftarrow \operatorname{clip}(\vecb{s},\,-s_{\max},\,s_{\max})$.
+\end{enumerate}
+As with the scalar case, both the metric update and the parameter update use the same gradients within a single step.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -318,152 +368,77 @@ For $\vec{a}=\vec{b}=\vec{l}$ the update simplifies to $$
     \delta\theta^i = -\eta \frac{l^i}{1+3 c_{ll}}
 $$ which is similar to the diagonal case but with a stronger damping factor in the denominator ($\xi=3$ instead of $\xi=1$).
 
+\subsection*{Implementation}
+\begin{itemize}
+    \item JAX/Optax: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_offdiag.py}{\texttt{optimisers/jax\_offdiag.py}}
+    \item PyTorch: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_offdiag.py}{\texttt{optimisers/torch\_offdiag.py}}
+    \item Equivalence check: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/compare_offdiag.py}{\texttt{optimisers/compare\_offdiag.py}}
+\end{itemize}
+Sweep names follow the pattern \texttt{sgd\_offdiag\_\{a\}\_\{b\}} where \texttt{\{a\}} and \texttt{\{b\}} are drawn from
+\texttt{0} (zero), \texttt{l} (gradient), \texttt{m} (momentum), \texttt{theta} (parameters).
+All pairs are registered in \texttt{parameters/optimizer\_registry.py}.
+
+\paragraph{Computational cost.}
+Taking $\gamma_{ij}=\gamma\,\delta_{ij}$ (scalar base metric) and writing $$
+    G = \gamma\,\Id_N + \xi\,U V^\top, \qquad U = (\vecb{a},\,\vecb{l}), \qquad V = (\vecb{l},\,\vecb{b}+\vecb{l}),
+$$ the Sherman-Morrison-Woodbury formula gives $$
+    G^{-1}\vecb{r} = \frac{1}{\gamma}\vecb{r} - \frac{\xi}{\gamma^2}\,U\!\left(\Id_2 + \frac{\xi}{\gamma}V^\top U\right)^{-1}\!V^\top\vecb{r}.
+$$ This costs $O(N)$: only inner products and a single $2\times 2$ matrix inversion are required, never a full $N\times N$ matrix.
+
+\paragraph{Modes for $\vecb{l}$, $\vecb{a}$, and $\vecb{b}$.}
+The vector $\vecb{l}$ encodes the direction along which the loss coordinate stretches, with two built-in choices:
+\begin{itemize}
+    \item \textbf{Gradient mode}: $\vecb{l}_i = \partial_i\loss$ — the metric is shaped by the instantaneous slope.
+    \item \textbf{Momentum mode}: $\vecb{l}_i = \vecb{m}_i$ — the metric incorporates accumulated gradient history.
+\end{itemize}
+The off-diagonal coupling vectors $\vecb{a}$ and $\vecb{b}$ each support:
+\begin{itemize}
+    \item \textbf{Zero}: $\vecb{a}_i=0$ or $\vecb{b}_i=0$ — eliminates one branch of the coupling.
+    \item \textbf{Gradient}: aligned with $\partial_i\loss$.
+    \item \textbf{Momentum}: aligned with $\vecb{m}_i$.
+    \item \textbf{Parameter}: $\vecb{a}_i=\theta^i$ or $\vecb{b}_i=\theta^i$ — couples geometry to position.
+    \item \textbf{Same-as-$a$}: $\vecb{b}_i=\vecb{a}_i$ — symmetric off-diagonal structure.
+\end{itemize}
+For full generality the implementations also accept user-provided vectors or callables.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Implementation}
+\section{Shared Implementation Details}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-All four families of optimisers (fixed diagonal, learnable scalar, learnable diagonal, off-diagonal)
-have been implemented in both JAX (via Optax) and PyTorch.
-
-\subsection*{Files}
-\begin{center}
-\small
-\begin{tabular}{lll}
-    \hline
-    \textbf{Variant} & \textbf{JAX} & \textbf{PyTorch} \\
-    \hline
-    Fixed diagonal &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_fixed.py}{\texttt{jax\_fixed.py}} &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_fixed.py}{\texttt{torch\_fixed.py}} \\
-    Learnable scalar &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_scalar.py}{\texttt{jax\_learnable\_scalar.py}} &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_scalar.py}{\texttt{torch\_learnable\_scalar.py}} \\
-    Learnable diagonal &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_diag.py}{\texttt{jax\_learnable\_diag.py}} &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_diag.py}{\texttt{torch\_learnable\_diag.py}} \\
-    Off-diagonal &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_offdiag.py}{\texttt{jax\_offdiag.py}} &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_offdiag.py}{\texttt{torch\_offdiag.py}} \\
-    \hline
-\end{tabular}
-\end{center}
-
-\subsection*{General Update Direction}
-In all implementations, the goal is to realise the update $$
+\subsection*{Update Direction vs.\ Metric Direction}
+In all implementations, the goal is to realise $$
     \delta\theta^i = -\eta\, g^{ij} r_j,
-$$ where $r_j$ is the update direction.
-In ordinary gradient descent one would simply take $r_j = \partial_j \loss$,
-but we can also test other choices such as momentum-based updates $r_j = m_j$ where $m_j$
-is an exponentially-smoothed average of past gradients (the usual ``momentum'' vector).
-This separation between the geometric direction $l_i$ appearing in the metric
-and the update direction $r_i$ allows the optimiser to use the metric
-to shape the descent direction in a more flexible way.
-Concretely, the four combinations we test are:
+$$ where $r_j$ is the update direction and $l_i$ is the direction used to construct the metric.
+These need not be the same vector.
+In ordinary gradient descent one would take $r_j = l_j = \partial_j\loss$,
+but we also test momentum-based choices.
+The four combinations are:
 \begin{itemize}
     \item $\vecb{l} = \vecb{g},\; \vecb{r} = \vecb{g}$: pure geometric gradient descent.
-    \item $\vecb{l} = \vecb{g},\; \vecb{r} = \vecb{m}$: the metric is shaped by the instantaneous gradient but the step is taken along the momentum direction.
-    \item $\vecb{l} = \vecb{m},\; \vecb{r} = \vecb{g}$: the metric incorporates accumulated history but the step is raw gradient.
-    \item $\vecb{l} = \vecb{m},\; \vecb{r} = \vecb{m}$: both the metric and the step are momentum-based.
+    \item $\vecb{l} = \vecb{g},\; \vecb{r} = \vecb{m}$: metric shaped by the instantaneous gradient, step along momentum.
+    \item $\vecb{l} = \vecb{m},\; \vecb{r} = \vecb{g}$: metric shaped by accumulated history, step along raw gradient.
+    \item $\vecb{l} = \vecb{m},\; \vecb{r} = \vecb{m}$: both metric and step are momentum-based.
 \end{itemize}
-
-\subsection*{Off-Diagonal: Computational Cost}
-The off-diagonal induced metric is $$
-    G = \gamma\Id_N + \xi\bigl(\vecb{a}\vecb{l}^\top + \vecb{l}\vecb{b}^\top + \vecb{l}\vecb{l}^\top\bigr),
-$$ where $\gamma$ is a scalar (we take the base metric to be $\gamma\Id_N$).
-We can write this as a rank-2 update, $$
-    G = \gamma\,\Id_N + \xi\,U V^\top,
-    \qquad U = (\vecb{a},\, \vecb{l}),
-    \qquad V = (\vecb{l},\, \vecb{b} + \vecb{l}),
-$$ so that by Sherman-Morrison-Woodbury, $$
-    G^{-1} \vecb{r}
-    = \frac{1}{\gamma} \vecb{r} - \frac{\xi}{\gamma^2} U \left(\Id_2 + \frac{\xi}{\gamma} V^\top U\right)^{-1} V^\top \vecb{r}.
-$$ The contraction $G^{-1} \vecb{r}$ costs $O(N)$: it requires only the inversion of a $2\times 2$
-matrix and inner products, never forming a full $N\times N$ matrix.
-
-\subsection*{Off-Diagonal: Modes for $\vecb{l}$, $\vecb{a}$, and $\vecb{b}$}
-The off-diagonal optimiser provides several built-in modes to choose the geometric vectors
-$\vecb{l}$, $\vecb{a}$, and $\vecb{b}$.
-
-\paragraph{The base direction $\vecb{l}$:}
-$\vecb{l}$ encodes the direction along which the loss coordinate of the ambient space stretches.
-Two choices are provided:
-\begin{itemize}
-    \item \textbf{Gradient mode}: $\vecb{l}_i = \partial_i \loss$.
-    This reproduces the behaviour of the original diagonal construction,
-    where the metric is shaped by the instantaneous slope of the loss.
-
-    \item \textbf{Momentum mode}: $\vecb{l}_i = \vecb{m}_i$,
-    the bias-corrected EMA of gradients.
-    In this mode the metric is influenced not only by the current gradient
-    but by the accumulated direction of travel over recent steps.
-\end{itemize}
-Either choice may be paired with $\vecb{r}=\vecb{g}$ or $\vecb{r}=\vecb{m}$ independently.
-
-\paragraph{The off-diagonal vectors $\vecb{a}$ and $\vecb{b}$:}
-Several built-in modes allow for quick experimentation:
-\begin{itemize}
-    \item \textbf{Zero mode}:
-    $\vecb{a}_i=0$ or $\vecb{b}_i=0$.
-    This eliminates one branch of the off-diagonal coupling.
-
-    \item \textbf{Gradient mode}:
-    $\vecb{a}_i$ or $\vecb{b}_i$ is aligned with $\partial_i \loss$,
-    emphasising the local slope of the loss surface.
-
-    \item \textbf{Momentum mode}:
-    $\vecb{a}_i$ or $\vecb{b}_i$ is aligned with the momentum vector $\vecb{m}_i$,
-    incorporating information from recent history.
-
-    \item \textbf{Parameter mode}:
-    $\vecb{a}_i=\theta^i$ or $\vecb{b}_i=\theta^i$,
-    coupling the geometry directly to the position in parameter space.
-
-    \item \textbf{Same-as-$a$ mode}:
-    $\vecb{b}_i=\vecb{a}_i$, producing a symmetric off-diagonal structure.
-\end{itemize}
-For full generality, the implementations also accept user-provided vectors or functions
-that construct $\vecb{a}$ and $\vecb{b}$ dynamically at each optimisation step.
-
-\subsection*{Learnable Variants: Metric State and Update}
-For the learnable scalar and diagonal variants, the metric parameters are part of the
-optimiser state and are updated at every step alongside the momentum buffer.
-
-In the \textbf{scalar case} the state holds a single scalar $s$ (initialised to zero,
-so $\alpha=e^s=1$ at the start).
-At each step:
-\begin{enumerate}
-    \item Compute $v = \xi\,e^s\,\|\vecb{g}\|^2$ using the current gradients.
-    \item Update $s \leftarrow s + \mu\,v - \mu\,\lambda\,s$ (gradient ascent + L2 regularisation).
-    \item Clip $s \leftarrow \operatorname{clip}(s,\,-s_{\max},\,s_{\max})$.
-\end{enumerate}
-The parameter update then uses the new $\alpha = e^s$ for the current step.
-
-In the \textbf{diagonal case} the state holds a tensor $\vecb{s}$ of the same shape
-as the parameters (initialised to zero).
-At each step:
-\begin{enumerate}
-    \item Compute $v = \xi\sum_k e^{s_k}\,g_k^2$ (scalar denominator trace).
-    \item Update $s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,g_i^2 - \mu\,\lambda\,s_i$ for each $i$.
-    \item Mean-centre: $s_i \leftarrow s_i - \bar{s}$.
-    \item Clip $\vecb{s} \leftarrow \operatorname{clip}(\vecb{s},\,-s_{\max},\,s_{\max})$.
-\end{enumerate}
-Both variants use the \emph{same} gradient for both the metric update and the parameter update
-within a single step (there is no separate forward pass for the meta-gradient).
 
 \subsection*{Computational Cost}
-All variants are $O(N)$ per step.
-No variant ever materialises a full $N\times N$ matrix:
-\begin{itemize}
-    \item \textbf{Fixed diagonal}: element-wise multiply by the scalar $\gamma$.
-    \item \textbf{Learnable scalar}: element-wise multiply by the scalar $\alpha=e^s$, plus an $O(1)$ scalar update for $s$.
-    \item \textbf{Learnable diagonal}: element-wise multiply by $e^{\vecb{s}}$, plus an $O(N)$ element-wise update for $\vecb{s}$.
-    \item \textbf{Off-diagonal}: inner products and a single $2\times 2$ matrix inversion.
-\end{itemize}
-The metric learning overhead for the learnable variants is therefore negligible compared to the
-forward and backward passes of the model.
+All variants are $O(N)$ per step and never materialise a full $N\times N$ matrix:
+\begin{center}
+\small
+\begin{tabular}{llc}
+    \toprule
+    \textbf{Variant} & \textbf{Dominant operation} & \textbf{Extra state} \\
+    \midrule
+    Fixed diagonal     & scalar $\times$ vector               & none \\
+    Learnable scalar   & scalar $\times$ vector               & 1 float ($s$) \\
+    Learnable diagonal & element-wise vector $\times$ vector  & $N$ floats ($\vecb{s}$) \\
+    Off-diagonal       & inner products + $2\times2$ inverse  & none \\
+    \bottomrule
+\end{tabular}
+\end{center}
+The metric-learning overhead for the learnable variants is negligible compared to the forward and backward passes.
 
 \subsection*{Shared Hyperparameters}
 The following hyperparameters are common to all variants:
@@ -485,6 +460,97 @@ The learnable variants additionally require:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Repository Structure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Directory Layout}
+\begin{center}
+\small
+\begin{tabular}{@{}lp{8cm}@{}}
+    \toprule
+    \textbf{Directory} & \textbf{Contents} \\
+    \midrule
+    \texttt{optimisers/}  & JAX and PyTorch optimiser implementations and equivalence checks \\
+    \texttt{parameters/}  & Hyperparameter sweep scripts and shared training utilities \\
+    \texttt{analysis/}    & Jupyter notebooks for loading and visualising sweep results \\
+    \texttt{documents/}   & This document and supplementary notebooks \\
+    \texttt{images/}      & Figures used in the paper and this document \\
+    \texttt{results/}     & Local sweep results (JSON, gitignored) \\
+    \texttt{data/}        & Local data files (gitignored) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Running Sweeps}
+Hyperparameter sweeps are driven by scripts in \texttt{parameters/} and support two backends:
+\textbf{local} (Optuna + JSON files, no account required) and \textbf{WandB} (cloud logging).
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+    \toprule
+    \textbf{Script} & \textbf{Task} & \textbf{Model} \\
+    \midrule
+    \texttt{sweep\_mnist\_mlp.py}       & MNIST classification        & MLP (64 hidden) \\
+    \texttt{sweep\_cifar10\_resnet18.py} & CIFAR-10 classification     & ResNet-18 \\
+    \texttt{sweep\_regression.py}        & Synthetic regression        & MLP \\
+    \texttt{sweep\_shake.py}             & Shakespeare language model  & MiniGPT \\
+    \texttt{sweep\_small\_examples.py}   & 2D test functions           & n/a \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+All scripts share a common CLI:
+\begin{itemize}
+    \item \texttt{--optimiser}: optimiser name (see below).
+    \item \texttt{--num\_runs}: number of Optuna trials (default: 50).
+    \item \texttt{--backend}: \texttt{local} or \texttt{wandb} (default: \texttt{wandb}).
+    \item \texttt{--index}: run index for organising multiple runs of the same sweep.
+\end{itemize}
+Results are written to \path{results/<task>/<optimiser>/run_<index>/<run_id>.json},
+each containing the full training history, final summary metrics, and the hyperparameter config used.
+
+\subsection*{Available Optimisers}
+\begin{center}
+\footnotesize
+\begin{tabular}{@{}lp{6cm}@{}}
+    \toprule
+    \textbf{Sweep name} & \textbf{Description} \\
+    \midrule
+    \texttt{adam}, \texttt{adamw}, \texttt{sgd}, \texttt{muon} & Baselines \\
+    \texttt{sgd\_metric}, \texttt{sgd\_log\_metric}, \texttt{sgd\_rms} & Fixed diagonal metric \\
+    \texttt{sgd\_learn\_scalar}, \texttt{sgd\_learn\_scalar\_log} & Learnable scalar metric \\
+    \texttt{sgd\_learn\_diag}, \texttt{sgd\_learn\_diag\_log} & Learnable diagonal metric \\
+    \texttt{sgd\_offdiag\_\{a\}\_\{b\}} & Off-diagonal metric (all $\{0,l,m,\theta\}^2$ pairs) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+The full optimiser registry is \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/parameters/optimizer_registry.py}{\texttt{parameters/optimizer\_registry.py}}.
+
+\subsection*{Analysis Notebooks}
+\begin{center}
+\small
+\begin{tabular}{@{}lp{6cm}@{}}
+    \toprule
+    \textbf{Notebook} & \textbf{Task} \\
+    \midrule
+    \texttt{analysis/small\_examples.ipynb}   & 2D test functions (Beale, Rosenbrock, etc.) \\
+    \texttt{analysis/mnist\_analysis.ipynb}   & MNIST MLP \\
+    \texttt{analysis/cifar\_analysis.ipynb}   & CIFAR-10 ResNet-18 \\
+    \texttt{analysis/regression\_analysis.ipynb} & Synthetic regression \\
+    \texttt{analysis/shake\_analysis.ipynb}   & Shakespeare language modelling \\
+    \bottomrule
+\end{tabular}
+\end{center}
+Each notebook supports both backends.
+Configure \texttt{BACKEND}, \texttt{TASK\_TAG}, and \texttt{OPTIMIZERS} in the second cell.
+Outputs include training curves, 2D histograms of best metric vs.\ epoch,
+time-to-best analysis, and best-hyperparameter tables (also saved as CSV to \texttt{analysis/}).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -495,7 +561,7 @@ Results are compared head-to-head in the following notebooks:
     \item \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/analysis/small_examples.ipynb}{analysis/small\_examples.ipynb} — 2D synthetic functions (Beale, Rosenbrock, Himmelblau, Ackley, Rastrigin).
 \end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \begin{minipage}{0.70\textwidth}
         \centering
