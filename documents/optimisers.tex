@@ -1,0 +1,528 @@
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage[most]{tcolorbox}
+\usepackage{bbm}
+\usepackage{hyperref}
+
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\Id}{\mathbbm{1}}
+\newcommand{\vecb}[1]{\boldsymbol{#1}}
+
+\title{Induced Metric Optimisers}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Problem Statement}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Given a model with $N$ parameters $\theta(t)=\{\theta^i(t)\}_{i=1}^N$ and a loss function
+$\loss:\mathbb{R}^N\to\mathbb{R}$,
+our goal is to find the most optimal parameter update $\delta \theta$ at each time step $t$.
+That is, in gradient descent we have $$
+    \frac{d \theta^i}{dt} = - g^{ij} \frac{\partial \loss}{\partial \theta^j}
+    \implies
+    \delta \theta^i \approx - \eta g^{ij} \frac{\partial \loss}{\partial \theta^j}
+$$ where $\eta\in\mathbb{R}_{>0}$ is the learning rate and $g^{ij}$ is the inverse of the induced metric on the parameter space.
+
+Across all variants in this document the induced metric is obtained by the same geometric construction:
+we embed parameter space into an ambient space via $$
+    \phi:\mathbb{R}^N\to\mathbb{R}^{N+1}, \qquad
+    \phi(\theta^1,\ldots,\theta^N) = (\theta^1,\ldots,\theta^N,f(\theta)),
+$$ where $f:\mathbb{R}^N\to\mathbb{R}$ is a scalar function of the parameters (taken to be the loss $\loss$, or a function thereof), and then pull back an ambient bilinear form $h\in\mathbb{R}^{(N+1)\times(N+1)}$ to the parameter space.
+The variants differ in the choice of $h$.
+
+We use the shorthand $l_i\coloneqq \partial \loss/\partial\theta^i$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Fixed Diagonal Metric}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The original ambient metric in the paper is $$
+    h = \begin{pmatrix} \gamma & \vec{0} \\ \vec{0}^\top & 1 \end{pmatrix}\in\mathbb{R}^{(N+1)\times(N+1)}
+$$ where $\gamma\in\mathbb{R}^{N\times N}$.
+The induced metric $g$ on the parameter space is given by $$
+    g_{ij}
+    = h_{\alpha\beta} \frac{\partial \phi^\alpha}{\partial \theta^i} \frac{\partial \phi^\beta}{\partial \theta^j}
+    = \gamma_{ij} + \frac{\partial \loss}{\partial \theta^i} \frac{\partial \loss}{\partial \theta^j}.
+$$ Then, to calculate the parameter updates $\delta \theta^i$ we need $g^{ij}$, the inverse of $g_{ij}$.
+We can compute this inverse using the Sherman-Morrison-Woodbury formula:
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable, title=\textbf{Sherman-Morrison-Woodbury Formula}, coltitle=black]
+    Let $A\in\mathbb{R}^{n\times n}$ be an invertible matrix, and let $U,V\in\mathbb{R}^{n\times k}$ be matrices.
+    Then, if $C = A + U V^\top$ is invertible, we have $$C^{-1} = A^{-1} - A^{-1} U (I_k + V^\top A^{-1} U)^{-1} V^\top A^{-1}.$$
+\end{tcolorbox}
+\noindent This gives us $$
+    g^{ij}
+    = \gamma^{ij} - \frac{\gamma^{ik}\gamma^{jl} \frac{\partial \loss}{\partial \theta^k} \frac{\partial \loss}{\partial \theta^l}}{1 + \gamma^{mn} \frac{\partial \loss}{\partial \theta^m} \frac{\partial \loss}{\partial \theta^n}}
+    = \gamma^{ij} - \frac{l^i l^j}{1+l_k l^k}
+$$ where $$
+    l_i \coloneqq \frac{\partial\loss}{\partial \theta^i} \implies l^i = \gamma^{ij} l_j.
+$$ Thus, the parameter updates are given by
+\begin{align*}
+    \delta \theta^i =& -\eta \left( \gamma^{ij} - \frac{l^i l^j}{1+l_k l^k} \right) l_j \\
+    =& -\eta l^i \left( 1 - \frac{l_j l^j}{1+l_k l^k} \right) \\
+    =& -\eta l^i \left( \frac{1}{1+l_k l^k} \right).
+\end{align*}
+
+So to summarize, (1) we start with an ambient metric $h$ which induces a metric $g$ on the parameter space,
+(2) we compute the inverse $g^{ij}$, and
+(3) we use $g^{ij}$ to compute the parameter updates $\delta \theta^i$.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Off-Diagonal Metric}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Now, we consider a more general ambient bilinear form of the form $$
+    h = \begin{pmatrix} \gamma & \vec{a} \\ \vec{b}^\top & 1 \end{pmatrix}\in\mathbb{R}^{(N+1)\times(N+1)}
+$$ where $\vec{a},\vec{b}\in\mathbb{R}^N$.
+Intuitively, the vectors $\vec{a}$ and $\vec{b}$ introduce off-diagonal couplings between the parameter space and the loss function dimension.
+In general, if $\vec{a}\neq \vec{b}$ this $h$ is not symmetric, so here we simply treat it as a preconditioning matrix rather than a Riemannian metric.
+The induced bilinear form on the parameter space is then given by
+\begin{align*}
+    g_{ij}
+    &= h_{\alpha\beta} \frac{\partial \phi^\alpha}{\partial \theta^i} \frac{\partial \phi^\beta}{\partial \theta^j} \\
+    &= \gamma_{ij} + a_i \frac{\partial \loss}{\partial \theta^j} + b_j \frac{\partial \loss}{\partial \theta^i} + \frac{\partial \loss}{\partial \theta^i} \frac{\partial \loss}{\partial \theta^j} \\
+    &= \gamma_{ij} + a_i l_j + b_j l_i + l_i l_j.
+\end{align*}
+To compute the inverse $g^{ij}$, we notice that $g$ can be expressed as a rank-2 update to $\gamma$,
+that is for $U=[a, l], V=[l, b + l]\in\mathbb{R}^{N\times 2}$ we have
+\begin{align*}
+    \gamma_{ij} + U_{ik} V_{jk}
+    &= \gamma_{ij} + a_i l_j + (b_j + l_j) l_i \\
+    &= \gamma_{ij} + a_i l_j + b_j l_i + l_i l_j \\
+    &= g_{ij}.
+\end{align*}
+Thus, we can apply the Sherman-Morrison-Woodbury formula again to get
+\begin{align*}
+    g^{ij}
+    &= \gamma^{ij} - \gamma^{ik} U_{k\alpha} \Big(\delta_{\alpha\beta} + V_{m\alpha} \gamma^{mn} U_{n\beta}\Big)^{-1} V_{l\beta} \gamma^{lj} \\
+    &= \gamma^{ij} - \gamma^{ik} (a_k, l_k) \begin{pmatrix}
+            1 + l_n a^n & l_n l^n \\
+            (b_m\!+\!l_m) \gamma^{mn} a_n & 1 + (b_m\!+\!l_m) \gamma^{mn} l_n
+       \end{pmatrix}^{-1} \begin{pmatrix} l_n \\ b_n + l_n \end{pmatrix} \gamma^{nj}.
+\end{align*}
+For convenience we define the following scalar contractions: $$
+    c_{al} \coloneqq a_n l^n,\quad
+    c_{ll} \coloneqq l_n l^n,\quad
+    c_{ba} \coloneqq b_n a^n,\quad
+    c_{bl} \coloneqq b_n l^n.
+$$ Thus, we have
+\begin{align*}
+    g^{ij}
+    &= \gamma^{ij} - \frac{\gamma^{ik}}{D} \Big[
+            a_k \big( (1 + c_{bl}) l_n - c_{ll} b_n \big) \\
+    &\hspace{6em}
+          + l_k \big( -(c_{ba} + c_{al}) l_n + (1 + c_{al}) (b_n + l_n) \big)
+       \Big] \gamma^{nj}
+\end{align*}
+where
+\begin{align*}
+    D
+    &= (1 + c_{al})(1 + c_{bl} + c_{ll}) - c_{ll} (c_{ba} + c_{al}) \\
+    &= 1 + c_{al} + c_{bl} + c_{al} c_{bl} + c_{ll} - c_{ll} c_{ba}.
+\end{align*}
+A numerical check of this has been performed in
+\href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/documents/off-diag-check.ipynb}{documents/off-diag-check.ipynb}.
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable, title=\textbf{Quick Sanity Check}, coltitle=black]
+    If we set $\vec{a}=\vec{0}$ and $\vec{b}=\vec{0}$, we should recover the diagonal metric case.
+    In this case, $c_{al} = 0,\ c_{ba} = 0,\ c_{bl} = 0$, and hence $D = 1 + c_{ll}$.
+    Then
+    \begin{align*}
+        g^{ij}
+        &= \gamma^{ij} - \gamma^{ik} \frac{1}{1+c_{ll}} l_k l_n \gamma^{nj}
+        = \gamma^{ij} - \frac{l^i l^j}{1 + l_k l^k},
+    \end{align*}
+    which matches our previous result.
+\end{tcolorbox}
+\noindent The parameter updates are given by
+\begin{align*}
+    \delta\theta^i
+    &= -\eta\, g^{ij} l_j
+    = -\eta\left[ \frac{1 + c_{al}}{D}\,l^i - \frac{c_{ll}}{D}\,a^i \right].
+\end{align*}
+The update direction now has two components: one along $l^i$ (the gradient direction)
+and one along $a^i$ (the off-diagonal coupling direction).
+Depending on the choices of $\vec{a}$ and $\vec{b}$, this can lead to a variety of different optimization behaviors:
+\begin{itemize}
+    \item If $\vec{a}=\vec{0}$ or $\vec{a}\propto \vec{l}$, we have plain gradient decent with an adaptive learning rate.
+    \item If $\vec{a}=\text{momentum}$, we have a momentum-like update with an adaptive learning rate.
+    \item If $\vec{a}=\vec{\theta}$ (the parameter vector), we have an update that combines gradient descent with a form of weight decay or growth depending on the sign of $c_{ll}/D$.
+\end{itemize}
+For $\vec{a}=\vec{b}=\vec{l}$ the update simplifies to $$
+    \delta\theta^i = -\eta \frac{l^i}{1+3 c_{ll}}
+$$ which is similar to the diagonal case but with a stronger damping factor in the denominator ($\xi=3$ instead of $\xi=1$).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Learnable Scalar Metric}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Construction}
+In both the fixed diagonal and off-diagonal variants, the base metric $\gamma$ is a fixed hyperparameter.
+Here we instead allow $\gamma$ to be \emph{learned online} during optimisation, starting with the simplest possible form: a single scalar.
+We parameterise the inverse metric as $$
+    \gamma^{ij}_\phi = \alpha\,\delta^{ij}, \qquad \alpha = e^s,
+$$ where $s\in\mathbb{R}$ is a single learnable scalar.
+Initialising $s=0$ gives $\gamma^{-1}=\Id_N$, so the optimiser starts as the unscaled fixed diagonal variant.
+
+The ambient metric remains block-diagonal, $$
+    h = \begin{pmatrix} e^{-s}\,\Id_N & \vec{0} \\ \vec{0}^\top & 1 \end{pmatrix},
+$$ and the induced metric on parameter space is $$
+    g_{ij} = e^{-s}\,\delta_{ij} + l_i l_j.
+$$
+Applying the Sherman-Morrison-Woodbury formula with $A_{ij}=e^{-s}\delta_{ij}$, $u=v=\vecb{l}$, we get $$
+    g^{ij} = e^s\,\delta^{ij} - \frac{e^{2s}\,l_i l_j}{1 + e^s\|\vecb{l}\|^2}.
+$$
+The parameter update is therefore
+\begin{align*}
+    \delta\theta^i
+    &= -\eta\,g^{ij}l_j
+    = -\eta\,e^s l_i\left(1 - \frac{e^s\|\vecb{l}\|^2}{1+e^s\|\vecb{l}\|^2}\right)
+    = -\frac{\eta\,e^s\,l_i}{1 + e^s\|\vecb{l}\|^2}.
+\end{align*}
+Adding the hyperparameter $\xi$ to control the overall strength of the metric correction,
+and using an exponential moving average (EMA) of the denominator quantity for stability
+(as in Algorithms 1 and 2 of the paper), the practical update is
+\begin{equation}\label{eq:scalar-update}
+    \delta\theta^i = -\eta\,r_t\,(\alpha\,m^i), \qquad
+    r_t = \frac{1}{1 + |\hat{v}_t|}, \qquad
+    v_t = \xi\,\alpha\,\|\vecb{g}_t\|^2,
+\end{equation}
+where $\vecb{m}$ is the bias-corrected momentum vector and $\hat{v}_t$ is the bias-corrected EMA of $v_t$.
+For the log-loss embedding (Algorithm 2) the damping factor becomes
+$r_t = \loss_t / (\loss_t^2 + |\hat{v}_t|)$.
+
+\subsection*{Metric Learning}
+We want to learn $s$ so that $\alpha = e^s$ is calibrated to the local geometry of the loss.
+The trace quantity $v = \xi\alpha\|\vecb{g}\|^2$ already captures how strongly the loss surface
+varies along the gradient direction under the current metric.
+We treat $v$ as a surrogate objective and perform a \emph{gradient ascent} step on $s$:
+$$
+    \frac{\partial v}{\partial s} = \xi\,e^s\,\|\vecb{g}\|^2 = v.
+$$
+Thus the online metric update is
+\begin{equation}\label{eq:scalar-meta}
+    s \;\leftarrow\; s + \mu\,v - \mu\,\lambda\,s
+\end{equation}
+where $\mu>0$ is the metric learning rate and $\lambda>0$ is an L2 regularisation coefficient.
+The regularisation term $-\mu\lambda s$ penalises large deviations of $s$ from zero
+(i.e.\ it pulls the inverse metric back towards the identity) and ensures stability.
+Finally $s$ is clipped to the interval $[-s_{\max}, s_{\max}]$.
+
+Intuitively: if the gradient is large, $v$ is large, so $s$ increases and $\alpha$ grows.
+A larger $\alpha$ amplifies the preconditioned direction $\alpha\vecb{m}$ in the numerator,
+but also increases $v$ (and hence $\hat{v}$) which shrinks $r_t$ in the denominator.
+The net effect is that the metric adapts the scale of updates dynamically,
+with the regulariser providing a restoring force towards the identity.
+
+\subsection*{Hyperparameters}
+The learnable scalar variant introduces three new hyperparameters beyond those of the fixed diagonal variant:
+\begin{itemize}
+    \item $\mu$ (\texttt{metric\_lr}): step size for the online metric update in \eqref{eq:scalar-meta}.
+    \item $\lambda$ (\texttt{metric\_reg}): L2 regularisation strength on $s$, controlling how far the metric drifts from identity.
+    \item $s_{\max}$ (\texttt{metric\_clip}): clipping bound on $s$, bounding $\alpha\in[e^{-s_{\max}}, e^{s_{\max}}]$.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Learnable Diagonal Metric}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection*{Construction}
+The learnable scalar metric uses a single degree of freedom and therefore cannot differentiate between parameters.
+We now promote $s$ to a full vector $\vecb{s}\in\mathbb{R}^N$ with one entry per parameter,
+giving the per-parameter inverse metric $$
+    \gamma^{ij}_\phi = e^{s_i}\,\delta^{ij}.
+$$
+The ambient metric is $$
+    h = \begin{pmatrix} \operatorname{diag}(e^{-\vecb{s}}) & \vec{0} \\ \vec{0}^\top & 1 \end{pmatrix},
+$$ and the induced metric on parameter space is $$
+    g_{ij} = e^{-s_i}\,\delta_{ij} + l_i l_j.
+$$
+This is again a rank-1 update to a diagonal matrix.
+Applying Sherman-Morrison-Woodbury with $A_{ij} = e^{-s_i}\delta_{ij}$ and $u=v=\vecb{l}$,
+$$
+    g^{ij} = e^{s_i}\,\delta^{ij} - \frac{e^{s_i} l_i\; e^{s_j} l_j}{1 + \sum_k e^{s_k} l_k^2}.
+$$
+The update is
+\begin{align*}
+    \delta\theta^i
+    &= -\eta\,g^{ij}l_j
+    = -\eta\left(e^{s_i}l_i - \frac{e^{s_i}l_i\sum_k e^{s_k}l_k^2}{1+\sum_k e^{s_k}l_k^2}\right)
+    = -\frac{\eta\,e^{s_i}\,l_i}{1+\sum_k e^{s_k}l_k^2}.
+\end{align*}
+With $\xi$, momentum $\vecb{m}$, and the EMA damping, the practical update is
+\begin{equation}\label{eq:diag-update}
+    \delta\theta^i = -\eta\,r_t\,(e^{s_i}\,m^i), \qquad
+    r_t = \frac{1}{1 + |\hat{v}_t|}, \qquad
+    v_t = \xi\sum_k e^{s_k}\,g_k^2,
+\end{equation}
+with the same log-loss variant as before.
+Compared to the scalar case, each parameter $\theta^i$ now has an individual scale $e^{s_i}$,
+allowing the metric to adapt separately to different regions of parameter space.
+
+\subsection*{Metric Learning}
+The per-parameter metric update treats each $s_i$ independently.
+The surrogate objective is $$
+    J(\vecb{s}) = \xi\sum_k e^{s_k}\,g_k^2,
+$$ and its gradient with respect to $s_i$ is $$
+    \frac{\partial J}{\partial s_i} = \xi\,e^{s_i}\,g_i^2.
+$$
+The online update is therefore
+\begin{equation}\label{eq:diag-meta}
+    s_i \;\leftarrow\; s_i + \mu\,\xi\,e^{s_i}\,g_i^2 - \mu\,\lambda\,s_i
+\end{equation}
+followed by mean-centering and clipping (discussed below).
+
+\subsection*{Mean-Centering}
+After the gradient step \eqref{eq:diag-meta}, we apply a per-leaf mean-centering operation: $$
+    s_i \;\leftarrow\; s_i - \bar{s}, \qquad \bar{s} = \frac{1}{N}\sum_k s_k.
+$$
+This is not an ad-hoc trick but a principled normalisation.
+The trace $v = \xi\sum_k e^{s_k}g_k^2$ has a global scale degeneracy:
+shifting all $s_k$ by a constant $c$ is equivalent to scaling $\xi$ by $e^c$ and leaving $\vecb{s}$ unchanged.
+Concretely, writing $s_k = \bar{s} + \delta_k$ (so $\sum_k \delta_k = 0$),
+$$
+    v = \xi\,e^{\bar{s}}\sum_k e^{\delta_k}g_k^2.
+$$
+The global mean $\bar{s}$ is exactly degenerate with $\xi$.
+Mean-centering enforces $\bar{s}=0$ after every step,
+which fixes this gauge and ensures that $\xi$ remains the single scalar controlling the overall metric magnitude while $\vecb{s}$ captures only the \emph{relative} per-parameter geometry.
+
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable, title=\textbf{Scalar as a Special Case}, coltitle=black]
+    If all $s_i$ are initialised to the same value and the gradients have the same magnitude
+    for all parameters at every step, then $\vecb{s}$ stays uniform and mean-centering keeps
+    it at zero.
+    In that case $e^{s_i}=1$ for all $i$ and $v = \xi\|\vecb{g}\|^2$, which reduces exactly
+    to the fixed diagonal (scalar $\gamma=1$) variant.
+    The learnable diagonal metric therefore strictly generalises the fixed and scalar cases.
+\end{tcolorbox}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+All four families of optimisers (fixed diagonal, off-diagonal, learnable scalar, learnable diagonal)
+have been implemented in both JAX (via Optax) and PyTorch.
+
+\subsection*{Files}
+\begin{center}
+\small
+\begin{tabular}{lll}
+    \hline
+    \textbf{Variant} & \textbf{JAX} & \textbf{PyTorch} \\
+    \hline
+    Fixed diagonal &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_fixed.py}{\texttt{jax\_fixed.py}} &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_fixed.py}{\texttt{torch\_fixed.py}} \\
+    Off-diagonal &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_offdiag.py}{\texttt{jax\_offdiag.py}} &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_offdiag.py}{\texttt{torch\_offdiag.py}} \\
+    Learnable scalar &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_scalar.py}{\texttt{jax\_learnable\_scalar.py}} &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_scalar.py}{\texttt{torch\_learnable\_scalar.py}} \\
+    Learnable diagonal &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_diag.py}{\texttt{jax\_learnable\_diag.py}} &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_diag.py}{\texttt{torch\_learnable\_diag.py}} \\
+    \hline
+\end{tabular}
+\end{center}
+
+\subsection*{General Update Direction}
+In all implementations, the goal is to realise the update $$
+    \delta\theta^i = -\eta\, g^{ij} r_j,
+$$ where $r_j$ is the update direction.
+In ordinary gradient descent one would simply take $r_j = \partial_j \loss$,
+but we can also test other choices such as momentum-based updates $r_j = m_j$ where $m_j$
+is an exponentially-smoothed average of past gradients (the usual ``momentum'' vector).
+This separation between the geometric direction $l_i$ appearing in the metric
+and the update direction $r_i$ allows the optimiser to use the metric
+to shape the descent direction in a more flexible way.
+Concretely, the four combinations we test are:
+\begin{itemize}
+    \item $\vecb{l} = \vecb{g},\; \vecb{r} = \vecb{g}$: pure geometric gradient descent.
+    \item $\vecb{l} = \vecb{g},\; \vecb{r} = \vecb{m}$: the metric is shaped by the instantaneous gradient but the step is taken along the momentum direction.
+    \item $\vecb{l} = \vecb{m},\; \vecb{r} = \vecb{g}$: the metric incorporates accumulated history but the step is raw gradient.
+    \item $\vecb{l} = \vecb{m},\; \vecb{r} = \vecb{m}$: both the metric and the step are momentum-based.
+\end{itemize}
+
+\subsection*{Off-Diagonal: Computational Cost}
+The off-diagonal induced metric is $$
+    G = \gamma\Id_N + \xi\bigl(\vecb{a}\vecb{l}^\top + \vecb{l}\vecb{b}^\top + \vecb{l}\vecb{l}^\top\bigr),
+$$ where $\gamma$ is a scalar (we take the base metric to be $\gamma\Id_N$).
+We can write this as a rank-2 update, $$
+    G = \gamma\,\Id_N + \xi\,U V^\top,
+    \qquad U = (\vecb{a},\, \vecb{l}),
+    \qquad V = (\vecb{l},\, \vecb{b} + \vecb{l}),
+$$ so that by Sherman-Morrison-Woodbury, $$
+    G^{-1} \vecb{r}
+    = \frac{1}{\gamma} \vecb{r} - \frac{\xi}{\gamma^2} U \left(\Id_2 + \frac{\xi}{\gamma} V^\top U\right)^{-1} V^\top \vecb{r}.
+$$ The contraction $G^{-1} \vecb{r}$ costs $O(N)$: it requires only the inversion of a $2\times 2$
+matrix and inner products, never forming a full $N\times N$ matrix.
+
+\subsection*{Off-Diagonal: Modes for $\vecb{l}$, $\vecb{a}$, and $\vecb{b}$}
+The off-diagonal optimiser provides several built-in modes to choose the geometric vectors
+$\vecb{l}$, $\vecb{a}$, and $\vecb{b}$.
+
+\paragraph{The base direction $\vecb{l}$:}
+$\vecb{l}$ encodes the direction along which the loss coordinate of the ambient space stretches.
+Two choices are provided:
+\begin{itemize}
+    \item \textbf{Gradient mode}: $\vecb{l}_i = \partial_i \loss$.
+    This reproduces the behaviour of the original diagonal construction,
+    where the metric is shaped by the instantaneous slope of the loss.
+
+    \item \textbf{Momentum mode}: $\vecb{l}_i = \vecb{m}_i$,
+    the bias-corrected EMA of gradients.
+    In this mode the metric is influenced not only by the current gradient
+    but by the accumulated direction of travel over recent steps.
+\end{itemize}
+Either choice may be paired with $\vecb{r}=\vecb{g}$ or $\vecb{r}=\vecb{m}$ independently.
+
+\paragraph{The off-diagonal vectors $\vecb{a}$ and $\vecb{b}$:}
+Several built-in modes allow for quick experimentation:
+\begin{itemize}
+    \item \textbf{Zero mode}:
+    $\vecb{a}_i=0$ or $\vecb{b}_i=0$.
+    This eliminates one branch of the off-diagonal coupling.
+
+    \item \textbf{Gradient mode}:
+    $\vecb{a}_i$ or $\vecb{b}_i$ is aligned with $\partial_i \loss$,
+    emphasising the local slope of the loss surface.
+
+    \item \textbf{Momentum mode}:
+    $\vecb{a}_i$ or $\vecb{b}_i$ is aligned with the momentum vector $\vecb{m}_i$,
+    incorporating information from recent history.
+
+    \item \textbf{Parameter mode}:
+    $\vecb{a}_i=\theta^i$ or $\vecb{b}_i=\theta^i$,
+    coupling the geometry directly to the position in parameter space.
+
+    \item \textbf{Same-as-$a$ mode}:
+    $\vecb{b}_i=\vecb{a}_i$, producing a symmetric off-diagonal structure.
+\end{itemize}
+For full generality, the implementations also accept user-provided vectors or functions
+that construct $\vecb{a}$ and $\vecb{b}$ dynamically at each optimisation step.
+
+\subsection*{Learnable Variants: Metric State and Update}
+For the learnable scalar and diagonal variants, the metric parameters are part of the
+optimiser state and are updated at every step alongside the momentum buffer.
+
+In the \textbf{scalar case} the state holds a single scalar $s$ (initialised to zero,
+so $\alpha=e^s=1$ at the start).
+At each step:
+\begin{enumerate}
+    \item Compute $v = \xi\,e^s\,\|\vecb{g}\|^2$ using the current gradients.
+    \item Update $s \leftarrow s + \mu\,v - \mu\,\lambda\,s$ (gradient ascent + L2 regularisation).
+    \item Clip $s \leftarrow \operatorname{clip}(s,\,-s_{\max},\,s_{\max})$.
+\end{enumerate}
+The parameter update then uses the new $\alpha = e^s$ for the current step.
+
+In the \textbf{diagonal case} the state holds a tensor $\vecb{s}$ of the same shape
+as the parameters (initialised to zero).
+At each step:
+\begin{enumerate}
+    \item Compute $v = \xi\sum_k e^{s_k}\,g_k^2$ (scalar denominator trace).
+    \item Update $s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,g_i^2 - \mu\,\lambda\,s_i$ for each $i$.
+    \item Mean-centre: $s_i \leftarrow s_i - \bar{s}$.
+    \item Clip $\vecb{s} \leftarrow \operatorname{clip}(\vecb{s},\,-s_{\max},\,s_{\max})$.
+\end{enumerate}
+Both variants use the \emph{same} gradient for both the metric update and the parameter update
+within a single step (there is no separate forward pass for the meta-gradient).
+
+\subsection*{Computational Cost}
+All variants are $O(N)$ per step.
+No variant ever materialises a full $N\times N$ matrix:
+\begin{itemize}
+    \item \textbf{Fixed diagonal}: element-wise multiply by the scalar $\gamma$.
+    \item \textbf{Off-diagonal}: inner products and a single $2\times 2$ matrix inversion.
+    \item \textbf{Learnable scalar}: element-wise multiply by the scalar $\alpha=e^s$, plus an $O(1)$ scalar update for $s$.
+    \item \textbf{Learnable diagonal}: element-wise multiply by $e^{\vecb{s}}$, plus an $O(N)$ element-wise update for $\vecb{s}$.
+\end{itemize}
+The metric learning overhead for the learnable variants is therefore negligible compared to the
+forward and backward passes of the model.
+
+\subsection*{Shared Hyperparameters}
+The following hyperparameters are common to all variants:
+\begin{itemize}
+    \item $\eta$ (\texttt{lr}): base learning rate.
+    \item $\beta_m$ (\texttt{momentum}): EMA decay for the momentum buffer.
+    \item $\xi$ (\texttt{xi}): strength of the induced metric correction.
+    \item $\beta$ (\texttt{beta}): EMA decay for the denominator estimate $\hat{v}$.
+    \item $\lambda_\theta$ (\texttt{weight\_decay}): decoupled weight decay (AdamW style).
+\end{itemize}
+The learnable variants additionally require:
+\begin{itemize}
+    \item $\mu$ (\texttt{metric\_lr}): step size for the online metric update.
+    \item $\lambda$ (\texttt{metric\_reg}): L2 regularisation on $s$ or $\vecb{s}$.
+    \item $s_{\max}$ (\texttt{metric\_clip}): log-domain clipping bound on $s$,
+    constraining $\alpha = e^s \in [e^{-s_{\max}},\,e^{s_{\max}}]$.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+All optimisers are evaluated together on the same suite of benchmark tasks.
+Results are compared head-to-head in the following notebooks:
+\begin{itemize}
+    \item \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/analysis/small_examples.ipynb}{analysis/small\_examples.ipynb} — 2D synthetic functions (Beale, Rosenbrock, Himmelblau, Ackley, Rastrigin).
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}{0.70\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/Beale_116da11.png}
+    \end{minipage}
+    \begin{minipage}{0.70\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/Rosenbrock_116da11.png}
+    \end{minipage}
+    \begin{minipage}{0.70\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/Himmelblau_116da11.png}
+    \end{minipage}
+    \begin{minipage}{0.70\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/Ackley_116da11.png}
+    \end{minipage}
+    \begin{minipage}{0.70\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/Rastrigin_116da11.png}
+    \end{minipage}
+    \caption{
+        Small-example benchmark results for all optimiser variants.
+        Each plot shows the best hyperparameter configuration found by the sweep.
+        \textit{(Results for the learnable scalar and diagonal variants to be added.)}
+    }
+\end{figure}
+
+
+\end{document}
