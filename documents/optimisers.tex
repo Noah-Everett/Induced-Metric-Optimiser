@@ -85,98 +85,12 @@ So to summarize, (1) we start with an ambient metric $h$ which induces a metric 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Off-Diagonal Metric}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Now, we consider a more general ambient bilinear form of the form $$
-    h = \begin{pmatrix} \gamma & \vec{a} \\ \vec{b}^\top & 1 \end{pmatrix}\in\mathbb{R}^{(N+1)\times(N+1)}
-$$ where $\vec{a},\vec{b}\in\mathbb{R}^N$.
-Intuitively, the vectors $\vec{a}$ and $\vec{b}$ introduce off-diagonal couplings between the parameter space and the loss function dimension.
-In general, if $\vec{a}\neq \vec{b}$ this $h$ is not symmetric, so here we simply treat it as a preconditioning matrix rather than a Riemannian metric.
-The induced bilinear form on the parameter space is then given by
-\begin{align*}
-    g_{ij}
-    &= h_{\alpha\beta} \frac{\partial \phi^\alpha}{\partial \theta^i} \frac{\partial \phi^\beta}{\partial \theta^j} \\
-    &= \gamma_{ij} + a_i \frac{\partial \loss}{\partial \theta^j} + b_j \frac{\partial \loss}{\partial \theta^i} + \frac{\partial \loss}{\partial \theta^i} \frac{\partial \loss}{\partial \theta^j} \\
-    &= \gamma_{ij} + a_i l_j + b_j l_i + l_i l_j.
-\end{align*}
-To compute the inverse $g^{ij}$, we notice that $g$ can be expressed as a rank-2 update to $\gamma$,
-that is for $U=[a, l], V=[l, b + l]\in\mathbb{R}^{N\times 2}$ we have
-\begin{align*}
-    \gamma_{ij} + U_{ik} V_{jk}
-    &= \gamma_{ij} + a_i l_j + (b_j + l_j) l_i \\
-    &= \gamma_{ij} + a_i l_j + b_j l_i + l_i l_j \\
-    &= g_{ij}.
-\end{align*}
-Thus, we can apply the Sherman-Morrison-Woodbury formula again to get
-\begin{align*}
-    g^{ij}
-    &= \gamma^{ij} - \gamma^{ik} U_{k\alpha} \Big(\delta_{\alpha\beta} + V_{m\alpha} \gamma^{mn} U_{n\beta}\Big)^{-1} V_{l\beta} \gamma^{lj} \\
-    &= \gamma^{ij} - \gamma^{ik} (a_k, l_k) \begin{pmatrix}
-            1 + l_n a^n & l_n l^n \\
-            (b_m\!+\!l_m) \gamma^{mn} a_n & 1 + (b_m\!+\!l_m) \gamma^{mn} l_n
-       \end{pmatrix}^{-1} \begin{pmatrix} l_n \\ b_n + l_n \end{pmatrix} \gamma^{nj}.
-\end{align*}
-For convenience we define the following scalar contractions: $$
-    c_{al} \coloneqq a_n l^n,\quad
-    c_{ll} \coloneqq l_n l^n,\quad
-    c_{ba} \coloneqq b_n a^n,\quad
-    c_{bl} \coloneqq b_n l^n.
-$$ Thus, we have
-\begin{align*}
-    g^{ij}
-    &= \gamma^{ij} - \frac{\gamma^{ik}}{D} \Big[
-            a_k \big( (1 + c_{bl}) l_n - c_{ll} b_n \big) \\
-    &\hspace{6em}
-          + l_k \big( -(c_{ba} + c_{al}) l_n + (1 + c_{al}) (b_n + l_n) \big)
-       \Big] \gamma^{nj}
-\end{align*}
-where
-\begin{align*}
-    D
-    &= (1 + c_{al})(1 + c_{bl} + c_{ll}) - c_{ll} (c_{ba} + c_{al}) \\
-    &= 1 + c_{al} + c_{bl} + c_{al} c_{bl} + c_{ll} - c_{ll} c_{ba}.
-\end{align*}
-A numerical check of this has been performed in
-\href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/documents/off-diag-check.ipynb}{documents/off-diag-check.ipynb}.
-\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable, title=\textbf{Quick Sanity Check}, coltitle=black]
-    If we set $\vec{a}=\vec{0}$ and $\vec{b}=\vec{0}$, we should recover the diagonal metric case.
-    In this case, $c_{al} = 0,\ c_{ba} = 0,\ c_{bl} = 0$, and hence $D = 1 + c_{ll}$.
-    Then
-    \begin{align*}
-        g^{ij}
-        &= \gamma^{ij} - \gamma^{ik} \frac{1}{1+c_{ll}} l_k l_n \gamma^{nj}
-        = \gamma^{ij} - \frac{l^i l^j}{1 + l_k l^k},
-    \end{align*}
-    which matches our previous result.
-\end{tcolorbox}
-\noindent The parameter updates are given by
-\begin{align*}
-    \delta\theta^i
-    &= -\eta\, g^{ij} l_j
-    = -\eta\left[ \frac{1 + c_{al}}{D}\,l^i - \frac{c_{ll}}{D}\,a^i \right].
-\end{align*}
-The update direction now has two components: one along $l^i$ (the gradient direction)
-and one along $a^i$ (the off-diagonal coupling direction).
-Depending on the choices of $\vec{a}$ and $\vec{b}$, this can lead to a variety of different optimization behaviors:
-\begin{itemize}
-    \item If $\vec{a}=\vec{0}$ or $\vec{a}\propto \vec{l}$, we have plain gradient decent with an adaptive learning rate.
-    \item If $\vec{a}=\text{momentum}$, we have a momentum-like update with an adaptive learning rate.
-    \item If $\vec{a}=\vec{\theta}$ (the parameter vector), we have an update that combines gradient descent with a form of weight decay or growth depending on the sign of $c_{ll}/D$.
-\end{itemize}
-For $\vec{a}=\vec{b}=\vec{l}$ the update simplifies to $$
-    \delta\theta^i = -\eta \frac{l^i}{1+3 c_{ll}}
-$$ which is similar to the diagonal case but with a stronger damping factor in the denominator ($\xi=3$ instead of $\xi=1$).
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Learnable Scalar Metric}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection*{Construction}
-In both the fixed diagonal and off-diagonal variants, the base metric $\gamma$ is a fixed hyperparameter.
+In the fixed diagonal variant, the base metric $\gamma$ is a fixed hyperparameter.
 Here we instead allow $\gamma$ to be \emph{learned online} during optimisation, starting with the simplest possible form: a single scalar.
 We parameterise the inverse metric as $$
     \gamma^{ij}_\phi = \alpha\,\delta^{ij}, \qquad \alpha = e^s,
@@ -321,11 +235,97 @@ which fixes this gauge and ensures that $\xi$ remains the single scalar controll
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Off-Diagonal Metric}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Now, we consider a more general ambient bilinear form of the form $$
+    h = \begin{pmatrix} \gamma & \vec{a} \\ \vec{b}^\top & 1 \end{pmatrix}\in\mathbb{R}^{(N+1)\times(N+1)}
+$$ where $\vec{a},\vec{b}\in\mathbb{R}^N$.
+Intuitively, the vectors $\vec{a}$ and $\vec{b}$ introduce off-diagonal couplings between the parameter space and the loss function dimension.
+In general, if $\vec{a}\neq \vec{b}$ this $h$ is not symmetric, so here we simply treat it as a preconditioning matrix rather than a Riemannian metric.
+The induced bilinear form on the parameter space is then given by
+\begin{align*}
+    g_{ij}
+    &= h_{\alpha\beta} \frac{\partial \phi^\alpha}{\partial \theta^i} \frac{\partial \phi^\beta}{\partial \theta^j} \\
+    &= \gamma_{ij} + a_i \frac{\partial \loss}{\partial \theta^j} + b_j \frac{\partial \loss}{\partial \theta^i} + \frac{\partial \loss}{\partial \theta^i} \frac{\partial \loss}{\partial \theta^j} \\
+    &= \gamma_{ij} + a_i l_j + b_j l_i + l_i l_j.
+\end{align*}
+To compute the inverse $g^{ij}$, we notice that $g$ can be expressed as a rank-2 update to $\gamma$,
+that is for $U=[a, l], V=[l, b + l]\in\mathbb{R}^{N\times 2}$ we have
+\begin{align*}
+    \gamma_{ij} + U_{ik} V_{jk}
+    &= \gamma_{ij} + a_i l_j + (b_j + l_j) l_i \\
+    &= \gamma_{ij} + a_i l_j + b_j l_i + l_i l_j \\
+    &= g_{ij}.
+\end{align*}
+Thus, we can apply the Sherman-Morrison-Woodbury formula again to get
+\begin{align*}
+    g^{ij}
+    &= \gamma^{ij} - \gamma^{ik} U_{k\alpha} \Big(\delta_{\alpha\beta} + V_{m\alpha} \gamma^{mn} U_{n\beta}\Big)^{-1} V_{l\beta} \gamma^{lj} \\
+    &= \gamma^{ij} - \gamma^{ik} (a_k, l_k) \begin{pmatrix}
+            1 + l_n a^n & l_n l^n \\
+            (b_m\!+\!l_m) \gamma^{mn} a_n & 1 + (b_m\!+\!l_m) \gamma^{mn} l_n
+       \end{pmatrix}^{-1} \begin{pmatrix} l_n \\ b_n + l_n \end{pmatrix} \gamma^{nj}.
+\end{align*}
+For convenience we define the following scalar contractions: $$
+    c_{al} \coloneqq a_n l^n,\quad
+    c_{ll} \coloneqq l_n l^n,\quad
+    c_{ba} \coloneqq b_n a^n,\quad
+    c_{bl} \coloneqq b_n l^n.
+$$ Thus, we have
+\begin{align*}
+    g^{ij}
+    &= \gamma^{ij} - \frac{\gamma^{ik}}{D} \Big[
+            a_k \big( (1 + c_{bl}) l_n - c_{ll} b_n \big) \\
+    &\hspace{6em}
+          + l_k \big( -(c_{ba} + c_{al}) l_n + (1 + c_{al}) (b_n + l_n) \big)
+       \Big] \gamma^{nj}
+\end{align*}
+where
+\begin{align*}
+    D
+    &= (1 + c_{al})(1 + c_{bl} + c_{ll}) - c_{ll} (c_{ba} + c_{al}) \\
+    &= 1 + c_{al} + c_{bl} + c_{al} c_{bl} + c_{ll} - c_{ll} c_{ba}.
+\end{align*}
+A numerical check of this has been performed in
+\href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/documents/off-diag-check.ipynb}{documents/off-diag-check.ipynb}.
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable, title=\textbf{Quick Sanity Check}, coltitle=black]
+    If we set $\vec{a}=\vec{0}$ and $\vec{b}=\vec{0}$, we should recover the diagonal metric case.
+    In this case, $c_{al} = 0,\ c_{ba} = 0,\ c_{bl} = 0$, and hence $D = 1 + c_{ll}$.
+    Then
+    \begin{align*}
+        g^{ij}
+        &= \gamma^{ij} - \gamma^{ik} \frac{1}{1+c_{ll}} l_k l_n \gamma^{nj}
+        = \gamma^{ij} - \frac{l^i l^j}{1 + l_k l^k},
+    \end{align*}
+    which matches our previous result.
+\end{tcolorbox}
+\noindent The parameter updates are given by
+\begin{align*}
+    \delta\theta^i
+    &= -\eta\, g^{ij} l_j
+    = -\eta\left[ \frac{1 + c_{al}}{D}\,l^i - \frac{c_{ll}}{D}\,a^i \right].
+\end{align*}
+The update direction now has two components: one along $l^i$ (the gradient direction)
+and one along $a^i$ (the off-diagonal coupling direction).
+Depending on the choices of $\vec{a}$ and $\vec{b}$, this can lead to a variety of different optimization behaviors:
+\begin{itemize}
+    \item If $\vec{a}=\vec{0}$ or $\vec{a}\propto \vec{l}$, we have plain gradient decent with an adaptive learning rate.
+    \item If $\vec{a}=\text{momentum}$, we have a momentum-like update with an adaptive learning rate.
+    \item If $\vec{a}=\vec{\theta}$ (the parameter vector), we have an update that combines gradient descent with a form of weight decay or growth depending on the sign of $c_{ll}/D$.
+\end{itemize}
+For $\vec{a}=\vec{b}=\vec{l}$ the update simplifies to $$
+    \delta\theta^i = -\eta \frac{l^i}{1+3 c_{ll}}
+$$ which is similar to the diagonal case but with a stronger damping factor in the denominator ($\xi=3$ instead of $\xi=1$).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-All four families of optimisers (fixed diagonal, off-diagonal, learnable scalar, learnable diagonal)
+All four families of optimisers (fixed diagonal, learnable scalar, learnable diagonal, off-diagonal)
 have been implemented in both JAX (via Optax) and PyTorch.
 
 \subsection*{Files}
@@ -338,15 +338,15 @@ have been implemented in both JAX (via Optax) and PyTorch.
     Fixed diagonal &
         \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_fixed.py}{\texttt{jax\_fixed.py}} &
         \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_fixed.py}{\texttt{torch\_fixed.py}} \\
-    Off-diagonal &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_offdiag.py}{\texttt{jax\_offdiag.py}} &
-        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_offdiag.py}{\texttt{torch\_offdiag.py}} \\
     Learnable scalar &
         \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_scalar.py}{\texttt{jax\_learnable\_scalar.py}} &
         \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_scalar.py}{\texttt{torch\_learnable\_scalar.py}} \\
     Learnable diagonal &
         \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_learnable_diag.py}{\texttt{jax\_learnable\_diag.py}} &
         \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_learnable_diag.py}{\texttt{torch\_learnable\_diag.py}} \\
+    Off-diagonal &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/jax_offdiag.py}{\texttt{jax\_offdiag.py}} &
+        \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_offdiag.py}{\texttt{torch\_offdiag.py}} \\
     \hline
 \end{tabular}
 \end{center}
@@ -458,9 +458,9 @@ All variants are $O(N)$ per step.
 No variant ever materialises a full $N\times N$ matrix:
 \begin{itemize}
     \item \textbf{Fixed diagonal}: element-wise multiply by the scalar $\gamma$.
-    \item \textbf{Off-diagonal}: inner products and a single $2\times 2$ matrix inversion.
     \item \textbf{Learnable scalar}: element-wise multiply by the scalar $\alpha=e^s$, plus an $O(1)$ scalar update for $s$.
     \item \textbf{Learnable diagonal}: element-wise multiply by $e^{\vecb{s}}$, plus an $O(N)$ element-wise update for $\vecb{s}$.
+    \item \textbf{Off-diagonal}: inner products and a single $2\times 2$ matrix inversion.
 \end{itemize}
 The metric learning overhead for the learnable variants is therefore negligible compared to the
 forward and backward passes of the model.
