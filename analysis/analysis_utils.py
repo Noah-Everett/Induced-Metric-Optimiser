@@ -2004,7 +2004,7 @@ def plot_hp_sensitivity(
     exclude_params=None,
     figsize=None,
     title=None,
-    conv_color=None,
+    conv_color="#1f77b4",
     div_color="#d62728",
     alpha_conv=0.4,
     alpha_div=0.25,
@@ -2047,8 +2047,9 @@ def plot_hp_sensitivity(
         Figure size; defaults to ``(3*N, 3*N)`` where N is the number of HPs.
     title : str or None
         Figure title; defaults to ``"{optimizer_name} — HP Sensitivity"``.
-    conv_color : str or None
-        Colour for converged runs; defaults to the optimizer's registry colour.
+    conv_color : str
+        Colour for converged runs (default ``"#1f77b4"`` — matplotlib blue).
+        Fixed across all optimizers so plots are directly comparable.
     div_color : str
         Colour for diverged runs.
     alpha_conv, alpha_div : float
@@ -2136,9 +2137,6 @@ def plot_hp_sensitivity(
     # ------------------------------------------------------------------
     # 4. Figure setup
     # ------------------------------------------------------------------
-    if conv_color is None:
-        conv_color = get_optimizer_color(optimizer_name)
-
     figsize = figsize or (max(3 * N, 6), max(3 * N, 6))
     fig, axes = plt.subplots(N, N, figsize=figsize, squeeze=False)
     fig.subplots_adjust(hspace=0.05, wspace=0.05)
