@@ -8,6 +8,7 @@ Usage::
     from analysis_utils import (
         load_best_runs,
         load_top_n_runs,
+        load_all_runs,
         extract_history,
         compute_wall_times,
         plot_2d_histograms,
@@ -18,6 +19,7 @@ Usage::
         plot_efficiency_scatter,
         plot_ranking_bar,
         plot_performance_summary,
+        plot_hp_sensitivity,
         print_speedrun_table,
         print_best_hyperparameters,
         save_best_hyperparameters,
@@ -40,7 +42,21 @@ import seaborn as sns
 # Add parent directory to path for optimizer_registry import
 sys.path.insert(0, str(Path(__file__).parent.parent / "parameters"))
 
-from optimizer_registry import get_optimizer_colors, ALL_OPTIMIZERS
+from optimizer_registry import get_optimizer_color, get_optimizer_colors, ALL_OPTIMIZERS
+
+
+# ---------------------------------------------------------------------------
+# HP sensitivity — module-level constants
+# ---------------------------------------------------------------------------
+
+# HPs that should use log scale on axes (mirrors _PARAM_BOUNDS log_scale field)
+_HP_LOG_SCALE = frozenset({
+    "learning_rate", "weight_decay", "eps", "xi",
+    "metric_lr", "metric_reg", "gamma",
+})
+
+# Params that are infrastructure / task config, not true optimiser HPs
+_NON_HP_PARAMS = frozenset({"batch_size", "n_epochs", "seed"})
 
 
 # ---------------------------------------------------------------------------
@@ -479,6 +495,50 @@ def load_top_n_runs(
             results_dir, task_tag, optimizers, n, metric_key, direction,
             iteration=iteration
         )
+
+
+def load_all_runs(
+    backend,
+    optimizers,
+    task_tag=None,
+    results_dir="results",
+    iteration=0,
+):
+    """Load every run for each optimizer (no top-N filtering).
+
+    Only supports the local backend.  Use this instead of
+    ``load_top_n_runs`` when you need the full distribution of runs,
+    e.g. for HP sensitivity analysis.
+
+    Parameters
+    ----------
+    backend : str
+        Must be ``"local"``.
+    optimizers : list[str]
+        Optimizer names to load.
+    task_tag : str
+        Task identifier (e.g. ``"mnist_mlp"``).
+    results_dir : str
+        Base directory for local results.
+    iteration : int
+        Iteration/batch number (default 0).
+
+    Returns
+    -------
+    dict[str, list[dict]]
+        Maps optimizer name → list of all run dicts.
+    """
+    if backend != "local":
+        raise NotImplementedError("load_all_runs only supports the local backend")
+
+    all_runs = {}
+    for optimizer in optimizers:
+        print(f"Loading all runs for {optimizer}...")
+        runs = _load_local_runs(results_dir, task_tag, optimizer, iteration=iteration)
+        all_runs[optimizer] = runs
+        print(f"  {optimizer}: {len(runs)} runs")
+
+    return all_runs
 
 
 def extract_history(backend, best_runs, metric_keys):
@@ -1929,6 +1989,255 @@ def print_convergence_summary(best_runs, func_name=None, optimizers=None):
 
 
 # ---------------------------------------------------------------------------
+# HP sensitivity analysis
+# ---------------------------------------------------------------------------
+
+def plot_hp_sensitivity(
+    runs,
+    optimizer_name,
+    *,
+    convergence_percentile=50,
+    convergence_threshold=None,
+    convergence_key=None,
+    metric_key="sweep_metric",
+    direction="minimize",
+    exclude_params=None,
+    figsize=None,
+    title=None,
+    conv_color=None,
+    div_color="#d62728",
+    alpha_conv=0.4,
+    alpha_div=0.25,
+    point_size=12,
+):
+    """Grid of pairwise HP scatter plots coloured by convergence.
+
+    Each off-diagonal panel shows a 2-D scatter of two hyperparameters:
+    converged runs as filled circles (○) and diverged runs as crosses (×).
+    Diagonal panels show overlapping histograms for each HP.  Axes use log
+    scale for log-uniform parameters (learning rate, eps, xi, etc.).
+
+    Parameters
+    ----------
+    runs : list[dict]
+        Run dicts from ``load_all_runs``, each containing ``"config"``
+        and ``"summary"`` sub-dicts.
+    optimizer_name : str
+        Used for the plot title and default colour.
+    convergence_percentile : float
+        Percentile split when no hard threshold is given.  Runs in the
+        better ``convergence_percentile`` percent are labelled converged.
+        E.g. 50 → median split; 25 → only top quarter are converged.
+    convergence_threshold : float or None
+        Hard metric threshold.  Overrides ``convergence_percentile``.
+        With ``direction="minimize"`` a run is converged if its metric
+        is *below* this value.
+    convergence_key : str or None
+        If set, read convergence directly from ``run["summary"][convergence_key]``
+        as a boolean.  Overrides both ``convergence_threshold`` and
+        ``convergence_percentile``.  Useful when the summary already contains
+        a ``"converged"`` flag (e.g. small-examples tasks).
+    metric_key : str
+        Summary key used to determine convergence (default ``"sweep_metric"``).
+    direction : {"minimize", "maximize"}
+        Whether lower or higher metric values mean better performance.
+    exclude_params : collection[str] or None
+        HP names to drop from the plot.
+    figsize : tuple or None
+        Figure size; defaults to ``(3*N, 3*N)`` where N is the number of HPs.
+    title : str or None
+        Figure title; defaults to ``"{optimizer_name} — HP Sensitivity"``.
+    conv_color : str or None
+        Colour for converged runs; defaults to the optimizer's registry colour.
+    div_color : str
+        Colour for diverged runs.
+    alpha_conv, alpha_div : float
+        Transparency for scatter points.
+    point_size : float
+        Marker size in scatter plots.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+    axes : ndarray of matplotlib.axes.Axes, shape (N, N)
+    """
+    from matplotlib.lines import Line2D
+
+    # ------------------------------------------------------------------
+    # 1. Build DataFrame
+    # ------------------------------------------------------------------
+    records = []
+    for run in runs:
+        cfg = run.get("config")
+        summ = run.get("summary")
+        if not cfg or not summ:
+            continue
+        row = dict(cfg)
+        row["_metric"] = summ.get(metric_key, np.nan)
+        row["_pruned"] = bool(summ.get("pruned", False))
+        if convergence_key is not None:
+            row["_conv_key"] = bool(summ.get(convergence_key, False))
+        records.append(row)
+
+    if not records:
+        raise ValueError(f"No valid runs found for {optimizer_name!r}")
+
+    df = pd.DataFrame(records)
+
+    # ------------------------------------------------------------------
+    # 2. Determine convergence
+    # ------------------------------------------------------------------
+    metrics = df["_metric"].to_numpy(dtype=float)
+    valid = np.isfinite(metrics)
+
+    if convergence_key is not None:
+        converged_mask = df["_conv_key"].to_numpy(dtype=bool)
+    elif convergence_threshold is not None:
+        if direction == "minimize":
+            converged_mask = metrics < convergence_threshold
+        else:
+            converged_mask = metrics > convergence_threshold
+    else:
+        if direction == "minimize":
+            q = np.nanpercentile(metrics, convergence_percentile)
+            converged_mask = metrics <= q
+        else:
+            q = np.nanpercentile(metrics, 100 - convergence_percentile)
+            converged_mask = metrics >= q
+
+    # Pruned runs are never converged
+    converged_mask = converged_mask & ~df["_pruned"].to_numpy(dtype=bool)
+    df["_converged"] = converged_mask
+
+    # ------------------------------------------------------------------
+    # 3. Select HP columns (numeric, variable, not excluded)
+    # ------------------------------------------------------------------
+    _exclude = _NON_HP_PARAMS | set(exclude_params or [])
+    hp_cols = [
+        c for c in df.columns
+        if not c.startswith("_")
+        and c not in _exclude
+        and pd.api.types.is_numeric_dtype(df[c])
+        and df[c].nunique() > 1
+    ]
+
+    if not hp_cols:
+        raise ValueError(
+            f"No variable numeric HP columns found for {optimizer_name!r}. "
+            f"Columns: {list(df.columns)}"
+        )
+
+    N = len(hp_cols)
+    df_conv = df[df["_converged"]]
+    df_div = df[~df["_converged"]]
+    n_conv = int(converged_mask.sum())
+    n_div = int((~converged_mask).sum())
+
+    # ------------------------------------------------------------------
+    # 4. Figure setup
+    # ------------------------------------------------------------------
+    if conv_color is None:
+        conv_color = get_optimizer_color(optimizer_name)
+
+    figsize = figsize or (max(3 * N, 6), max(3 * N, 6))
+    fig, axes = plt.subplots(N, N, figsize=figsize, squeeze=False)
+    fig.subplots_adjust(hspace=0.05, wspace=0.05)
+
+    # ------------------------------------------------------------------
+    # 5. Fill each panel
+    # ------------------------------------------------------------------
+    for i, yp in enumerate(hp_cols):
+        for j, xp in enumerate(hp_cols):
+            ax = axes[i, j]
+            use_xlog = xp in _HP_LOG_SCALE
+            use_ylog = yp in _HP_LOG_SCALE
+
+            if j > i:
+                # ---- Upper triangle: hide ----
+                ax.set_visible(False)
+                continue
+
+            if i == j:
+                # ---- Diagonal: overlapping histograms ----
+                all_vals = df[xp].dropna().to_numpy(dtype=float)
+                if use_xlog:
+                    all_vals = all_vals[all_vals > 0]
+                if len(all_vals) == 0:
+                    continue
+
+                if use_xlog:
+                    lo = np.log10(all_vals.min())
+                    hi = np.log10(all_vals.max())
+                    bins = np.logspace(lo, hi, 30)
+                    ax.set_xscale("log")
+                else:
+                    bins = np.linspace(all_vals.min(), all_vals.max(), 30)
+
+                vals_div = df_div[xp].dropna().to_numpy(dtype=float)
+                vals_conv = df_conv[xp].dropna().to_numpy(dtype=float)
+                if use_xlog:
+                    vals_div = vals_div[vals_div > 0]
+                    vals_conv = vals_conv[vals_conv > 0]
+
+                ax.hist(vals_div, bins=bins, color=div_color, alpha=0.5, linewidth=0)
+                ax.hist(vals_conv, bins=bins, color=conv_color, alpha=0.6, linewidth=0)
+                ax.set_yticks([])
+
+            else:
+                # ---- Lower triangle: scatter ----
+                # Diverged first so converged sits on top
+                ax.scatter(
+                    df_div[xp].to_numpy(dtype=float),
+                    df_div[yp].to_numpy(dtype=float),
+                    marker="x", c=div_color, alpha=alpha_div,
+                    s=point_size, linewidths=0.7, rasterized=True,
+                )
+                ax.scatter(
+                    df_conv[xp].to_numpy(dtype=float),
+                    df_conv[yp].to_numpy(dtype=float),
+                    marker="o", c=conv_color, alpha=alpha_conv,
+                    s=point_size, linewidths=0, rasterized=True,
+                )
+
+                if use_xlog:
+                    ax.set_xscale("log")
+                if use_ylog:
+                    ax.set_yscale("log")
+
+            # ---- Axis labels: bottom row gets x-labels, left column gets y-labels ----
+            if i == N - 1:
+                ax.set_xlabel(xp, fontsize=9)
+            else:
+                ax.tick_params(labelbottom=False)
+
+            if j == 0 and i != j:
+                ax.set_ylabel(yp, fontsize=9)
+            else:
+                ax.tick_params(labelleft=False)
+
+            ax.tick_params(labelsize=7)
+
+    # ------------------------------------------------------------------
+    # 6. Legend and title
+    # ------------------------------------------------------------------
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="w", markerfacecolor=conv_color,
+               markersize=8, label=f"Converged  (n={n_conv})"),
+        Line2D([0], [0], marker="x", color=div_color, markersize=8,
+               markeredgewidth=1.2, label=f"Diverged  (n={n_div})"),
+    ]
+    fig.legend(
+        handles=legend_handles, loc="upper right",
+        bbox_to_anchor=(1.0, 1.0), framealpha=0.9, fontsize=9,
+    )
+
+    title = title or f"{optimizer_name} — HP Sensitivity"
+    fig.suptitle(title, fontsize=13, y=1.01)
+
+    return fig, axes
+
+
+# ---------------------------------------------------------------------------
 # Results export utilities
 # ---------------------------------------------------------------------------
 
@@ -1999,6 +2308,7 @@ def save_best_hyperparameters(best_runs, filename, optimizers=None):
 __all__ = [
     "load_best_runs",
     "load_top_n_runs",
+    "load_all_runs",
     "extract_history",
     "compute_wall_times",
     "add_wall_times",
@@ -2013,6 +2323,7 @@ __all__ = [
     "plot_performance_summary",
     "plot_grouped_bars",
     "plot_multi_function_performance",
+    "plot_hp_sensitivity",
     "build_summary_dataframe",
     "compute_speedrun_results",
     "print_speedrun_table",
