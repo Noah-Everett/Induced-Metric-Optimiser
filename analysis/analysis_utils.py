@@ -223,8 +223,72 @@ def _load_json_run(filepath):
     return data
 
 
+_SUMMARY_KEYS = frozenset({
+    "function", "final_value", "iterations", "converged", "pruned",
+    "runtime_seconds", "sweep_metric",
+    "total_training_time_sec", "total_training_time_min", "seed", "optimizer",
+    # training-task variants
+    "train_loss", "val_loss", "test_loss", "train_acc", "val_acc", "test_acc",
+    "best_val_acc", "best_val_loss", "best_test_acc",
+    "n_epochs", "epoch",
+})
+
+
+def _load_local_runs_parquet(itr_dir: Path) -> list[dict]:
+    """Load runs from consolidated Parquet files (fast path).
+
+    Reconstructs the same run-dict format as _load_csv_run so all
+    downstream code works without modification.
+    """
+    summary_path = itr_dir / "summary.parquet"
+    traj_path = itr_dir / "trajectories.parquet"
+
+    summary_df = pd.read_parquet(summary_path)
+
+    # Load trajectories grouped by run_id (only if file exists)
+    traj_by_run: dict = {}
+    if traj_path.exists():
+        traj_df = pd.read_parquet(traj_path)
+        for run_id, group in traj_df.groupby("run_id"):
+            traj_by_run[run_id] = group.drop(columns="run_id")
+
+    runs = []
+    id_col = {"run_id"}
+    for _, row in summary_df.iterrows():
+        run_id = row.get("run_id", -1)
+
+        config = {
+            k: (None if (isinstance(v, float) and np.isnan(v)) else v)
+            for k, v in row.items()
+            if k not in _SUMMARY_KEYS and k not in id_col
+        }
+        summary = {
+            k: (None if (isinstance(v, float) and np.isnan(v)) else v)
+            for k, v in row.items()
+            if k in _SUMMARY_KEYS
+        }
+
+        if run_id in traj_by_run:
+            group = traj_by_run[run_id]
+            history = {col: group[col].tolist() for col in group.columns}
+        else:
+            history = {}
+
+        runs.append({
+            "config": config,
+            "history": history,
+            "summary": summary,
+            "_file": str(itr_dir / f"run_{run_id}.csv"),
+        })
+
+    return runs
+
+
 def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
-    """Load all runs for an optimizer from local CSV/JSON files.
+    """Load all runs for an optimizer from local Parquet or CSV/JSON files.
+
+    Prefers consolidated Parquet files (written by consolidate_results.py)
+    and falls back to scanning individual run_*.csv / run_*.json files.
 
     Args:
         results_dir: Base results directory
@@ -240,8 +304,12 @@ def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
     if not itr_dir.exists():
         return []
 
+    # Fast path: consolidated Parquet files
+    if (itr_dir / "summary.parquet").exists():
+        return _load_local_runs_parquet(itr_dir)
+
+    # Fallback: scan individual CSV/JSON files
     runs = []
-    # Load CSV files (new format) and JSON files (legacy)
     result_files = sorted(itr_dir.glob("run_*.csv")) + sorted(itr_dir.glob("run_*.json"))
     for result_file in result_files:
         if result_file.suffix == ".csv":
