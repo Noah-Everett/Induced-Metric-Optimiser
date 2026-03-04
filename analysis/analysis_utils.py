@@ -343,9 +343,8 @@ def _load_best_runs_local(results_dir, task_tag, optimizers,
         runs = _load_local_runs(results_dir, task_tag, optimizer, iteration=iteration)
 
         if runs:
-            key_fn = lambda r: r["summary"].get(
-                metric_key, float("inf") if direction == "minimize" else float("-inf")
-            )
+            _default = float("inf") if direction == "minimize" else float("-inf")
+            key_fn = lambda r, d=_default: (v if (v := r["summary"].get(metric_key)) is not None else d)
             runs_sorted = sorted(runs, key=key_fn, reverse=(direction == "maximize"))
             best = runs_sorted[0]
 
@@ -384,9 +383,8 @@ def _load_top_n_runs_local(results_dir, task_tag, optimizers,
         runs = _load_local_runs(results_dir, task_tag, optimizer, iteration=iteration)
 
         if runs:
-            key_fn = lambda r: r["summary"].get(
-                metric_key, float("inf") if direction == "minimize" else float("-inf")
-            )
+            _default = float("inf") if direction == "minimize" else float("-inf")
+            key_fn = lambda r, d=_default: (v if (v := r["summary"].get(metric_key)) is not None else d)
             runs_sorted = sorted(runs, key=key_fn, reverse=(direction == "maximize"))
             top_n_runs[optimizer] = runs_sorted[:n]
             print(f"  {optimizer}: {len(top_n_runs[optimizer])} runs")
