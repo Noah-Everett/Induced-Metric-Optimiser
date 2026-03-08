@@ -31,8 +31,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Given a model with $N$ parameters $\theta(t)=\{\theta^i(t)\}_{i=1}^N$ and a loss function
 $\loss:\mathbb{R}^N\to\mathbb{R}$,
-our goal is to find the most optimal parameter update $\delta \theta$ at each time step $t$.
-That is, in gradient descent we have $$
+our goal is to find the optimal parameter update $\delta \theta$ at each time step $t$.
+That is, in preconditioned gradient flow we have $$
     \frac{d \theta^i}{dt} = - g^{ij} \frac{\partial \loss}{\partial \theta^j}
     \implies
     \delta \theta^i \approx - \eta g^{ij} \frac{\partial \loss}{\partial \theta^j}
@@ -43,12 +43,14 @@ we embed parameter space into an ambient space via $$
     \phi:\mathbb{R}^N\to\mathbb{R}^{N+1}, \qquad
     \phi(\theta^1,\ldots,\theta^N) = (\theta^1,\ldots,\theta^N,f(\theta)),
 $$ where $f:\mathbb{R}^N\to\mathbb{R}$ is a scalar function of the parameters (taken to be the loss $\loss$, or a function thereof), and then pull back an ambient bilinear form $h\in\mathbb{R}^{(N+1)\times(N+1)}$ to the parameter space.
-The variants differ in the choice of $h$.
+The variants differ in the choice of $h$ (and, for the log-loss variant, the embedding function $f$; see below).
 
 We use the shorthand $l_i\coloneqq \partial \loss/\partial\theta^i$ for the raw gradient.
 When a base metric $\gamma_{ij}$ is present, we write $l^i \coloneqq \gamma^{ij} l_j$ for the
 metric-raised gradient (i.e.\ the inverse metric applied to $\vecb{l}$).
 When $\gamma = \Id_N$ (the identity), raising an index has no effect, so $l^i = l_i$ and the two notations coincide.
+The same index-raising convention applies to any covector:
+$a^i \coloneqq \gamma^{ij}a_j$, $m^i \coloneqq \gamma^{ij}m_j$, etc.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -92,7 +94,10 @@ So to summarize, (1) we start with an ambient metric $h$ which induces a metric 
     \item PyTorch: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/torch_fixed.py}{\texttt{optimisers/torch\_fixed.py}}
     \item Equivalence check: \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/optimisers/compare_fixed.py}{\texttt{optimisers/compare\_fixed.py}}
 \end{itemize}
-Exposed optimisers: \texttt{custom\_sgd} (plain embedding), \texttt{custom\_sgd\_log} (log-loss embedding), \texttt{custom\_sgd\_rms} (RMS-normalised gradients).
+Exposed optimisers: \texttt{custom\_sgd} (plain embedding, $f=\loss$),
+\texttt{custom\_sgd\_log} (log-loss embedding, $f=\log\loss$; requires $\loss>0$),
+\texttt{custom\_sgd\_rms} (RMS-normalised gradients, i.e.\ the update direction is
+$l_i/\|\vecb{l}\|$ instead of $l_i$).
 The sweep name is \texttt{sgd\_metric} / \texttt{sgd\_log\_metric} / \texttt{sgd\_rms}.
 
 
@@ -136,8 +141,11 @@ and using an exponential moving average (EMA) of the denominator quantity for st
     r_t = \frac{1}{1 + |\hat{v}_t|}, \qquad
     v_t = \xi\,\alpha\,\|\vecb{l}_t\|^2,
 \end{equation}
-where $\vecb{m}$ is the bias-corrected momentum vector and $\hat{v}_t$ is the bias-corrected EMA of $v_t$.
-For the log-loss embedding (Algorithm 2) the damping factor becomes
+where $\vecb{m}$ is the bias-corrected momentum vector
+(in practice, the update direction $\vecb{r}$ and the metric direction $\vecb{l}$
+need not coincide; see Section~\ref{sec:shared} for the full treatment)
+and $\hat{v}_t$ is the bias-corrected EMA of $v_t$.
+For the log-loss embedding (Algorithm 2, using $f=\log\loss$ with $\loss>0$) the damping factor becomes
 $r_t = \loss_t / (\loss_t^2 + |\hat{v}_t|)$.
 
 \begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable, title=\textbf{Mapping to Paper (Alg.\ 1/2)}, coltitle=black]
@@ -268,6 +276,13 @@ The online update is therefore
 \end{equation}
 followed by mean-centering and clipping (discussed below).
 
+\paragraph{Implementation note.}
+The current diagonal implementations omit the factor of $\xi$ in the $s$-update,
+effectively absorbing it into $\mu$.
+The scalar variant implementations do include $\xi$.
+The formulas above reflect the mathematically consistent version;
+reconciling the code is tracked as a known issue.
+
 \subsection*{Mean-Centering}
 After the gradient step \eqref{eq:diag-meta}, we apply a per-leaf mean-centering operation
 (i.e.\ independently for each parameter tensor in the model): $$
@@ -281,7 +296,8 @@ $$
     v = \xi\,e^{\bar{s}}\sum_k e^{\delta_k}l_k^2.
 $$
 The global mean $\bar{s}$ is exactly degenerate with $\xi$.
-Mean-centering enforces $\bar{s}=0$ after every step,
+Mean-centering enforces $\bar{s}=0$ after centering
+(note: subsequent clipping may re-introduce a small nonzero mean),
 which fixes this gauge and ensures that $\xi$ remains the single scalar controlling the overall metric magnitude while $\vecb{s}$ captures only the \emph{relative} per-parameter geometry.
 Since we apply this per leaf rather than globally, a separate mean mode is removed in each parameter tensor.
 This is a stronger constraint than global gauge-fixing: it prevents a leaf-wise uniform rescaling mode, not just a model-wide one.
@@ -339,7 +355,9 @@ the update direction need not be a descent direction even for convex objectives.
 We recommend defaulting to the symmetric case $\vec{a}=\vec{b}$;
 if using $\vec{a}\neq\vec{b}$, consider symmetrising the effective preconditioner
 or otherwise enforcing positive-definiteness.
-The induced bilinear form on the parameter space is then given by
+The derivation below sets $\xi=1$ for clarity; the implementations include the
+general $\xi$ scaling factor, replacing $g = \gamma + UV^\top$ with $g = \gamma + \xi\,UV^\top$.
+The induced bilinear form on the parameter space is then given by (with $\xi=1$)
 \begin{align*}
     g_{ij}
     &= h_{\alpha\beta} \frac{\partial \phi^\alpha}{\partial \theta^i} \frac{\partial \phi^\beta}{\partial \theta^j} \\
@@ -383,6 +401,12 @@ where
     &= (1 + c_{al})(1 + c_{bl} + c_{ll}) - c_{ll} (c_{ba} + c_{al}) \\
     &= 1 + c_{al} + c_{bl} + c_{al} c_{bl} + c_{ll} - c_{ll} c_{ba}.
 \end{align*}
+The closed-form inverse requires $D\neq 0$
+(equivalently, $\det(\Id_2 + V^\top\gamma^{-1}U)\neq 0$).
+The JAX implementation includes a near-singular fallback;
+the PyTorch implementation solves the $2\times 2$ system directly via
+\texttt{torch.linalg.solve}.
+
 A numerical check of this has been performed in
 \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/documents/off-diag-check.ipynb}{documents/off-diag-check.ipynb}:
 for random $\vec{a},\vec{b},\gamma,\vecb{l}$ the closed-form $g^{ij}l_j$ matches
@@ -422,7 +446,8 @@ Depending on the choices of $\vec{a}$ and $\vec{b}$, this can lead to a variety 
 \end{itemize}
 For $\vec{a}=\vec{b}=\vec{l}$ the update simplifies to $$
     \delta\theta^i = -\eta \frac{l^i}{1+3 c_{ll}}
-$$ which is similar to the diagonal case but with a stronger damping factor in the denominator ($\xi=3$ instead of $\xi=1$).
+$$ which is similar to the diagonal case but with a factor of $3$ in the denominator
+(corresponding to an effective $\xi=3$ in the $\xi=1$ normal form used above).
 
 \subsection*{Implementation}
 \begin{itemize}
@@ -432,7 +457,7 @@ $$ which is similar to the diagonal case but with a stronger damping factor in t
 \end{itemize}
 Sweep names follow the pattern \texttt{sgd\_offdiag\_\{a\}\_\{b\}} where \texttt{\{a\}} and \texttt{\{b\}} are drawn from
 \texttt{0} (zero), \texttt{l} (gradient), \texttt{m} (momentum), \texttt{theta} (parameters).
-All pairs are registered in \texttt{parameters/optimizer\_registry.py}.
+All pairs except \texttt{sgd\_offdiag\_0\_0} (which reduces to the fixed diagonal variant) are registered in \texttt{parameters/optimizer\_registry.py}.
 
 \paragraph{Computational cost.}
 Taking $\gamma_{ij}=\gamma\,\delta_{ij}$ (scalar base metric) and writing $$
@@ -460,7 +485,7 @@ For full generality the implementations also accept user-provided vectors or cal
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Shared Implementation Details}
+\section{Shared Implementation Details}\label{sec:shared}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -480,12 +505,12 @@ The four combinations are:
 \end{itemize}
 
 \subsection*{Computational Cost}
-All variants are $O(N)$ per step and never materialise a full $N\times N$ matrix:
+All variants are $O(N)$ per step (assuming scalar or diagonal $\gamma$) and never materialise a full $N\times N$ matrix:
 \begin{center}
 \small
 \begin{tabular}{llc}
     \toprule
-    \textbf{Variant} & \textbf{Dominant operation} & \textbf{Extra state} \\
+    \textbf{Variant} & \textbf{Dominant operation} & \textbf{Additional metric state} \\
     \midrule
     Fixed diagonal     & scalar $\times$ vector               & none \\
     Learnable scalar   & scalar $\times$ vector               & 1 float ($s$) \\
@@ -497,7 +522,7 @@ All variants are $O(N)$ per step and never materialise a full $N\times N$ matrix
 The metric-learning overhead for the learnable variants is negligible compared to the forward and backward passes.
 
 \subsection*{Shared Hyperparameters}
-The following hyperparameters are common to all variants:
+The following hyperparameters are common to the fixed diagonal, learnable scalar, and learnable diagonal variants:
 \begin{itemize}
     \item $\eta$ (\texttt{lr}): base learning rate.
     \item $\beta_m$ (\texttt{momentum}): EMA decay for the momentum buffer.
@@ -506,6 +531,7 @@ The following hyperparameters are common to all variants:
     \item $\beta$ (\texttt{beta}): EMA decay for the denominator estimate $\hat{v}$.
     \item $\lambda_\theta$ (\texttt{weight\_decay}): decoupled weight decay (AdamW style).
 \end{itemize}
+The off-diagonal variant uses $\eta$, $\beta_m$, $\xi$, and $\lambda_\theta$ but does not use the denominator EMA $\beta$.
 The learnable variants additionally require:
 \begin{itemize}
     \item $\mu$ (\texttt{metric\_lr}): step size for the online metric update.
@@ -579,7 +605,7 @@ each containing the full training history, final summary metrics, and the hyperp
     \texttt{sgd\_metric}, \texttt{sgd\_log\_metric}, \texttt{sgd\_rms} & Fixed diagonal metric \\
     \texttt{sgd\_learn\_scalar}, \texttt{sgd\_learn\_scalar\_log} & Learnable scalar metric \\
     \texttt{sgd\_learn\_diag}, \texttt{sgd\_learn\_diag\_log} & Learnable diagonal metric \\
-    \texttt{sgd\_offdiag\_\{a\}\_\{b\}} & Off-diagonal metric (all $\{0,l,m,\theta\}^2$ pairs) \\
+    \texttt{sgd\_offdiag\_\{a\}\_\{b\}} & Off-diagonal metric ($\{0,l,m,\theta\}^2$ pairs, excluding $0\_0$) \\
     \bottomrule
 \end{tabular}
 \end{center}
@@ -643,8 +669,7 @@ Results are compared head-to-head in the following notebooks:
     \caption{
         Small-example benchmark results for all optimiser variants.
         Each plot shows the best hyperparameter configuration found by the sweep.
-        \textit{(Fixed and off-diagonal sweeps are complete for small examples;
-        learnable scalar and diagonal sweeps are in progress.)}
+        \textit{(Fixed and off-diagonal sweeps are complete for small examples.)}
     }
 \end{figure}
 
