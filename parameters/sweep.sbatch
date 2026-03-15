@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=imo-sweep
 #SBATCH --account=schwartz_lab
-#SBATCH --array=0-129
+#SBATCH --array=0-25
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=0-4:00:00
+#SBATCH --time=0-0:30:00
 #SBATCH --output=slurm_logs/%A_%a.out
 #SBATCH --error=slurm_logs/%A_%a.err
 #SBATCH --mail-user=neverett@g.harvard.edu
@@ -33,21 +33,15 @@
 # -----------------------------------------------------------------------------
 
 # Task settings
-TASK="parameters/sweep_small_examples.py"  # Sweep script to run
+TASK="parameters/sweep_shake.py"           # Sweep script to run
 RESULTS_DIR="results"                      # Results directory
-ITERATION=3                                # Batch iteration number
+ITERATION=0                                # Batch iteration number
 
 # Functions to sweep (leave empty for single-task sweeps like mnist_mlp)
-FUNCTIONS=(
-    "beale"
-    "rosenbrock"
-    "himmelblau"
-    "ackley"
-    "rastrigin"
-)
+FUNCTIONS=()
 
 # Sweep settings
-NUM_RUNS=5000                              # Number of runs per optimizer
+NUM_RUNS=2                                 # Number of runs per optimizer
 BACKEND="local"                            # "local" or "wandb"
 SEARCH="random"                            # Search method: "random", "bayes" (TPE), "grid" (QMC)
 PRUNER="none"                              # Pruner: "none", "hyperband", "median", "percentile"
@@ -55,7 +49,7 @@ SEED=42                                    # Random seed for reproducibility
 
 # Training settings (empty = use task default)
 BATCH_SIZE=""                              # Override batch size
-VAL_FREQ=1                                 # Validation frequency (epochs)
+VAL_FREQ=50                                # Validation frequency (epochs)
 
 # -----------------------------------------------------------------------------
 # Environment setup
