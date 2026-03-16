@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=0-12:00:00
+#SBATCH --time=1-0:00:00
 #SBATCH --output=slurm_logs/%A_%a.out
 #SBATCH --error=slurm_logs/%A_%a.err
 #SBATCH --mail-user=neverett@g.harvard.edu
@@ -35,7 +35,7 @@
 # Task settings
 TASK="parameters/sweep_shake.py"           # Sweep script to run
 RESULTS_DIR="results"                      # Results directory
-ITERATION=0                                # Batch iteration number
+ITERATION=1                                # Batch iteration number
 
 # Functions to sweep (leave empty for single-task sweeps like mnist_mlp)
 FUNCTIONS=()
