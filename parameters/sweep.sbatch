@@ -6,7 +6,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
-#SBATCH --time=0-0:30:00
+#SBATCH --time=0-12:00:00
 #SBATCH --output=slurm_logs/%A_%a.out
 #SBATCH --error=slurm_logs/%A_%a.err
 #SBATCH --mail-user=neverett@g.harvard.edu
@@ -41,7 +41,7 @@ ITERATION=0                                # Batch iteration number
 FUNCTIONS=()
 
 # Sweep settings
-NUM_RUNS=2                                 # Number of runs per optimizer
+NUM_RUNS=200                               # Number of runs per optimizer
 BACKEND="local"                            # "local" or "wandb"
 SEARCH="random"                            # Search method: "random", "bayes" (TPE), "grid" (QMC)
 PRUNER="none"                              # Pruner: "none", "hyperband", "median", "percentile"
@@ -49,7 +49,7 @@ SEED=42                                    # Random seed for reproducibility
 
 # Training settings (empty = use task default)
 BATCH_SIZE=""                              # Override batch size
-VAL_FREQ=50                                # Validation frequency (epochs)
+VAL_FREQ=1                                 # Validation frequency (epochs)
 
 # -----------------------------------------------------------------------------
 # Environment setup
