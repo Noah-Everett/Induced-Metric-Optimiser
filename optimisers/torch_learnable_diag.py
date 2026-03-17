@@ -155,8 +155,8 @@ class SGDLearnableDiag(Optimizer):
                 st = self.state[p]
                 s = st['log_diag']
                 g2 = p.grad * p.grad
-                # grad_s = exp(s) * g^2
-                grad_s = torch.exp(s) * g2
+                # grad_s = xi * exp(s) * g^2
+                grad_s = xi * torch.exp(s) * g2
                 s.add_( metric_lr * grad_s - metric_lr * metric_reg * s )
                 # mean-centre per tensor
                 s.add_( -s.mean() )
