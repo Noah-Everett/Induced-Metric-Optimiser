@@ -93,8 +93,7 @@ Section~\ref{sec:fixed} reproduces the core method of~\cite{harvey2025},
 including the full algorithms, and defines the practical machinery
 (momentum, EMA, log-loss variant) used by all subsequent sections.
 The three extensions follow in Sections~\ref{sec:scalar}--\ref{sec:offdiag}.
-Section~\ref{sec:shared} collects implementation details common to all variants,
-and Section~\ref{sec:results} presents benchmark results.
+Section~\ref{sec:shared} collects implementation details common to all variants.
 Appendix~\ref{app:repo} documents the repository structure and sweep infrastructure.
 
 
@@ -974,64 +973,6 @@ The learnable variants additionally require:
     constraining $\alpha = e^s \in [e^{-s_{\max}},\,e^{s_{\max}}]$.
 \end{itemize}
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Results}\label{sec:results}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-All optimisers are evaluated together on the same suite of benchmark tasks.
-\begin{sloppypar}
-Results are compared head-to-head in the following notebooks:
-\begin{itemize}
-    \item \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/analysis/small_examples_analysis.ipynb}{analysis/small\_examples\_analysis.ipynb} --- 2D synthetic functions (Beale, Rosenbrock, Himmelblau, Ackley, Rastrigin).
-    \item \texttt{analysis/mnist\_analysis.ipynb} --- MNIST MLP (sweeps in progress).
-    \item \texttt{analysis/cifar\_analysis.ipynb} --- CIFAR-10 ResNet-18 (sweeps in progress).
-    \item \texttt{analysis/regression\_analysis.ipynb} --- Synthetic regression (sweeps in progress).
-    \item \texttt{analysis/shake\_analysis.ipynb} --- Shakespeare language modelling (sweeps in progress).
-\end{itemize}
-\end{sloppypar}
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.75\textwidth]{../images/step_profile_comparison.png}
-    \caption{Step-size profiles compared across all variants
-    in the single-parameter case ($N=1$, $\gamma=1$, $\xi=1$).
-    All induced-metric optimisers exhibit smooth gradient clipping relative to SGD.
-    The learnable scalar ($s=1$) has a larger peak step size;
-    the off-diagonal symmetric coupling ($\vecb{a}=\vecb{b}=\vecb{l}$) clips more aggressively.}
-    \label{fig:step-comparison}
-\end{figure}
-
-\begin{figure}[ht]
-    \centering
-    \begin{minipage}{0.70\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../images/Beale_116da11.png}
-    \end{minipage}
-    \begin{minipage}{0.70\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../images/Rosenbrock_116da11.png}
-    \end{minipage}
-    \begin{minipage}{0.70\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../images/Himmelblau_116da11.png}
-    \end{minipage}
-    \begin{minipage}{0.70\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../images/Ackley_116da11.png}
-    \end{minipage}
-    \begin{minipage}{0.70\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{../images/Rastrigin_116da11.png}
-    \end{minipage}
-    \caption{
-        Small-example benchmark results for all optimiser variants.
-        Each plot shows the best hyperparameter configuration found by the sweep.
-        \textit{(Fixed and off-diagonal sweeps are complete for small examples.)}
-    }
-\end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
