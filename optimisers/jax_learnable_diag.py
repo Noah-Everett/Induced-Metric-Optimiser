@@ -120,8 +120,8 @@ def custom_sgd_learnable_diag(
             )
 
         # --- Online metric learning step (diagonal only) ---
-        # Exact gradient for s: d/ds sum(exp(s) * g^2) = exp(s) * g^2
-        s_grad = jax.tree.map(lambda s, g: jnp.exp(s) * (g * g), state.log_diag, grads)
+        # Exact gradient for s: d/ds [xi * sum(exp(s) * g^2)] = xi * exp(s) * g^2
+        s_grad = jax.tree.map(lambda s, g: xi * jnp.exp(s) * (g * g), state.log_diag, grads)
         new_log_diag = jax.tree.map(
             lambda s, sg: s + metric_lr * sg - metric_lr * metric_reg * s,
             state.log_diag, s_grad
@@ -199,7 +199,7 @@ def custom_sgd_log_learnable_diag(
             )
 
         # Metric learning step (same as plain)
-        s_grad = jax.tree.map(lambda s, g: jnp.exp(s) * (g * g), state.log_diag, grads)
+        s_grad = jax.tree.map(lambda s, g: xi * jnp.exp(s) * (g * g), state.log_diag, grads)
         new_log_diag = jax.tree.map(
             lambda s, sg: s + metric_lr * sg - metric_lr * metric_reg * s,
             state.log_diag, s_grad
