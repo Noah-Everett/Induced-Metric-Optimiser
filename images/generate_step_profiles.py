@@ -26,7 +26,7 @@ plt.rcParams.update({
 
 FIGSIZE = (6, 4)
 DPI = 200
-l = np.linspace(-5, 5, 500)
+l = np.linspace(-4.5, 4.5, 500)
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +61,7 @@ def plot_fixed():
     ax.set_title(r"Fixed diagonal: step-size profile ($\gamma=I,\;\xi=1$)")
     ax.legend()
     ax.grid(True)
+    ax.set_xlim(l[0], l[-1])
     ax.set_ylim(y_min, y_max)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "step_profile_fixed.png"), dpi=DPI)
@@ -96,6 +97,7 @@ def plot_scalar():
     ax.set_title(r"Learnable scalar: effect of metric scale $s$")
     ax.legend()
     ax.grid(True)
+    ax.set_xlim(l[0], l[-1])
     ax.set_ylim(y_min, y_max)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "step_profile_scalar.png"), dpi=DPI)
@@ -130,6 +132,7 @@ def plot_offdiag():
     ax.set_title(r"Off-diagonal: coupling variants ($\xi=1$)")
     ax.legend()
     ax.grid(True)
+    ax.set_xlim(l[0], l[-1])
     ax.set_ylim(y_min, y_max)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "step_profile_offdiag.png"), dpi=DPI)
@@ -165,6 +168,7 @@ def plot_comparison():
     ax.set_title("Step-size profiles: all variants")
     ax.legend()
     ax.grid(True)
+    ax.set_xlim(l[0], l[-1])
     ax.set_ylim(y_min, y_max)
     fig.tight_layout()
     fig.savefig(os.path.join(OUT_DIR, "step_profile_comparison.png"), dpi=DPI)

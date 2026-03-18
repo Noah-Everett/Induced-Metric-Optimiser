@@ -35,7 +35,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Harvey~\cite{harvey2025} introduced a class of optimisers that precondition gradients
+Thomas~\cite{harvey2025} introduced a class of optimisers that precondition gradients
 using the Riemannian metric naturally induced when the loss landscape is embedded in
 higher-dimensional space.
 The key idea is to embed the $N$-dimensional parameter space into $\mathbb{R}^{N+1}$
@@ -145,7 +145,10 @@ Sections~\ref{sec:scalar}--\ref{sec:offdiag}.
 
 \subsection{Geometric Derivation}
 
-The original ambient metric in \cite{harvey2025} is $$
+The following derivation is due to Thomas~\cite{harvey2025};
+we reproduce it here to establish notation for the extensions that follow.
+
+The ambient metric in \cite{harvey2025} is $$
     h = \begin{pmatrix} \gamma & \vecb{0} \\ \vecb{0}^\top & 1 \end{pmatrix}\in\mathbb{R}^{(N+1)\times(N+1)}
 $$ where $\gamma\in\mathbb{R}^{N\times N}$ is symmetric positive-definite (taken to be diagonal or scalar in all our experiments).
 The induced metric $g$ on the parameter space is given by
@@ -199,39 +202,67 @@ for several fixed values of $\sum_{k\neq i} l_k^2$.
 
 \subsection{Practical Algorithm}\label{sec:practical}
 
-The theoretical update $\delta\theta^i = -\eta\,l^i/(1+l_kl^k)$ is clean but not directly usable:
-the denominator uses the exact gradient norm (unavailable with batched data),
-there is no momentum, and there is no control over the strength of the metric correction.
-We bridge this gap with four standard modifications, each motivated below.
+The theoretical update \eqref{eq:fixed-theory} is clean but not directly usable in stochastic training.
+Thomas~\cite{harvey2025} bridges this gap with four modifications,
+each of which is standard in the optimisation literature but takes on
+a specific role in the induced-metric framework.
 
 \paragraph{Metric strength $\xi$.}
 The theoretical derivation implicitly sets $\xi=1$.
-In practice we introduce a tunable scalar $\xi>0$ that multiplies the rank-1 correction,
-replacing $g_{ij} = \gamma_{ij} + l_il_j$ with $g_{ij} = \gamma_{ij} + \xi\,l_il_j$.
-This controls how aggressively the induced metric damps the update:
-$\xi\to 0$ recovers the base preconditioner $\gamma^{-1}$, while large $\xi$
+Geometrically, $\xi$ enters through the embedding itself:
+one replaces $\phi(\theta) = (\theta, f(\theta))$ with $\phi(\theta) = (\theta, \sqrt{\xi}\,f(\theta))$,
+which scales the loss dimension of the ambient space and yields the induced metric
+$g_{ij} = \gamma_{ij} + \xi\,l_il_j$.
+The parameter $\xi>0$ therefore controls how strongly the loss-surface curvature
+influences the preconditioner:
+$\xi\to 0$ recovers the base metric $\gamma^{-1}$, while large $\xi$
 makes the geometric clipping dominant.
 
 \paragraph{Momentum.}
-We maintain an exponential moving average (EMA) of the raw gradients,
-$\vecb{m}_t = \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$,
-and step along the bias-corrected, metric-raised momentum $\hat{\vecb{m}}_t = \gamma^{-1}\vecb{m}_t/(1-\beta_m^t)$
-rather than the instantaneous gradient.
-This is the same momentum scheme used in Adam~\cite{harvey2025} and provides the
-standard acceleration benefits.
+An exponential moving average (EMA) of the raw gradients,
+\begin{equation}\label{eq:momentum}
+    \vecb{m}_t = \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t,
+    \qquad \vecb{m}_0 = \vecb{0},
+\end{equation}
+replaces the instantaneous gradient with a smoothed direction.
+Here $\beta_m\in[0,1)$ is the momentum decay:
+$\beta_m=0$ recovers the raw gradient, while $\beta_m$ close to $1$
+gives a long look-back (roughly $1/(1-\beta_m)$ steps).
+The bias-corrected, metric-raised momentum
+$\hat{\vecb{m}}_t = \gamma^{-1}\vecb{m}_t/(1-\beta_m^t)$
+is then used as the step direction.
+Momentum is not required by the geometric framework---the induced metric
+works without it---but it provides the standard acceleration benefits
+(variance reduction, faster traversal of flat regions)
+and is included to match common practice.
 
 \paragraph{Denominator EMA.}
-The trace statistic $v_t = \xi\,\gamma^{mn}l_{t,m}l_{t,n}$ varies with each minibatch.
-To stabilise the damping factor, we smooth $v_t$ with a second EMA:
-$\bar{v}_t = \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$,
+The scalar $v_t = \xi\,\vecb{l}_t^\top\gamma^{-1}\vecb{l}_t$
+is the metric-weighted squared gradient norm.
+Thomas~\cite{harvey2025} calls it the \emph{trace statistic} because it equals
+$\xi\cdot\operatorname{tr}(\gamma^{-1}\vecb{l}\,\vecb{l}^\top)$,
+the trace of the rank-1 correction to the induced metric.
+In stochastic training each minibatch (a random subset of the data) yields a different $v_t$.
+To stabilise the damping factor, $v_t$ is smoothed with a \emph{second} EMA,
+independent of the momentum EMA above
+(momentum smooths the gradient \emph{direction}; this one smooths the scalar \emph{damping}):
+\begin{equation}\label{eq:denom-ema}
+    \bar{v}_t = \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t,
+    \qquad \bar{v}_0 = 0,
+\end{equation}
 bias-corrected to $\hat{v}_t = \bar{v}_t/(1-\beta^t)$.
+The parameter $\beta\in[0,1)$ plays the same role as $\beta_m$:
+it sets the look-back window, roughly $1/(1-\beta)$ steps.
 The damping factor is then $r_t = 1/(1+|\hat{v}_t|)$.
 
 \paragraph{Decoupled weight decay.}
-Following AdamW, weight decay is applied directly to the parameters
-($-\eta\lambda_\theta\theta_{t-1}$) rather than through the loss gradient.
-As discussed in~\cite{harvey2025}, this decoupled form is the natural choice
-from the geometric perspective due to general covariance.
+Following~\cite{harvey2025}, weight decay is applied directly to the parameters
+($+\lambda\,\theta_{t-1}$ with $\lambda\le 0$ for decay)
+rather than through the loss gradient.
+This decoupled form is the natural choice
+from the geometric perspective due to general covariance~\cite{harvey2025}.
+Like momentum, weight decay is not required by the induced-metric framework
+but is included because it is standard practice and has a natural geometric justification.
 
 \medskip\noindent
 These modifications are collected in Algorithm~\ref{alg:fixed}
@@ -243,7 +274,7 @@ The log-loss variant is Algorithm~\ref{alg:fixed-log}
 \caption{Fixed diagonal metric (plain embedding, $f=\loss$)}
 \label{alg:fixed}
 \begin{algorithmic}[1]
-\REQUIRE learning rate $\eta$, momentum decay $\beta_m$, metric strength $\xi$, denominator EMA decay $\beta$, weight decay $\lambda_\theta$, inverse base metric $\gamma^{-1}$
+\REQUIRE learning rate $\eta$, momentum decay $\beta_m$, metric strength $\xi$, denominator EMA decay $\beta$, weight decay $\lambda$, inverse base metric $\gamma^{-1}$
 \STATE Initialise $t \leftarrow 0$, $\vecb{m}_0 \leftarrow \vecb{0}$, $\bar{v}_0 \leftarrow 0$
 \WHILE{$\theta_t$ not converged}
 \STATE $t \leftarrow t + 1$
@@ -260,7 +291,7 @@ The log-loss variant is Algorithm~\ref{alg:fixed-log}
     \hfill{\footnotesize\textit{// momentum}}
 \STATE $\hat{\vecb{m}}_t \leftarrow \gamma^{-1}\vecb{m}_t / (1 - \beta_m^t)$
     \hfill{\footnotesize\textit{// bias-corrected, metric-raised}}
-\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t - \eta\,\lambda_\theta\,\theta_{t-1}$
+\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t + \lambda\,\theta_{t-1}$
 \ENDWHILE
 \RETURN $\theta_t$
 \end{algorithmic}
@@ -274,13 +305,16 @@ The log-loss variant is Algorithm~\ref{alg:fixed-log}
 \STATE Initialise $t \leftarrow 0$, $\vecb{m}_0 \leftarrow \vecb{0}$, $\bar{v}_0 \leftarrow 0$
 \WHILE{$\theta_t$ not converged}
 \STATE $t \leftarrow t + 1$
-\STATE $\vecb{l}_t \leftarrow \nabla_\theta \loss(\theta_{t-1})$;\quad $L_t \leftarrow \loss(\theta_{t-1})$
+\STATE $\vecb{l}_t \leftarrow \nabla_\theta \loss(\theta_{t-1})$
+\STATE $L_t \leftarrow \loss(\theta_{t-1})$
 \STATE $v_t \leftarrow \xi \cdot \sum_i l_{t,i}\,(\gamma^{-1}\vecb{l}_t)_i$
-\STATE $\bar{v}_t \leftarrow \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$;\quad $\hat{v}_t \leftarrow \bar{v}_t / (1 - \beta^t)$
+\STATE $\bar{v}_t \leftarrow \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$
+\STATE $\hat{v}_t \leftarrow \bar{v}_t / (1 - \beta^t)$
 \STATE $r_t \leftarrow L_t / (L_t^2 + |\hat{v}_t|)$
     \hfill{\footnotesize\textit{// log-loss damping}}
-\STATE $\vecb{m}_t \leftarrow \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$;\quad $\hat{\vecb{m}}_t \leftarrow \gamma^{-1}\vecb{m}_t / (1 - \beta_m^t)$
-\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t - \eta\,\lambda_\theta\,\theta_{t-1}$
+\STATE $\vecb{m}_t \leftarrow \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$
+\STATE $\hat{\vecb{m}}_t \leftarrow \gamma^{-1}\vecb{m}_t / (1 - \beta_m^t)$
+\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t + \lambda\,\theta_{t-1}$
 \ENDWHILE
 \RETURN $\theta_t$
 \end{algorithmic}
@@ -387,7 +421,9 @@ relative to the fixed diagonal case (Figure~\ref{fig:step-fixed}).
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.75\textwidth]{../images/step_profile_scalar.png}
-    \caption{Step-size profile for the learnable scalar metric ($\xi=1$).
+    \caption{Step-size profile for the learnable scalar metric:
+    $\delta\theta^i/\eta = -e^s l_i/(1 + \xi\,e^s\,l_i^2)$
+    in the single-parameter case ($N=1$, $\xi=1$).
     Increasing $s$ amplifies the peak step size and shifts it toward smaller gradients;
     decreasing $s$ flattens the curve, approaching plain SGD.
     The dashed line is the fixed diagonal baseline ($s=0$).}
@@ -407,19 +443,28 @@ The trace statistic $v_t = \xi\alpha\|\vecb{l}_t\|^2$ appears directly in the de
 of the update rule through $r_t = 1/(1+|\hat{v}_t|)$.
 When $v_t$ is near zero the damping is inactive and the optimiser reduces to scaled SGD;
 when $v_t$ is large the damping dominates and the geometric clipping is fully engaged.
-We adapt $s$ to keep $v_t$ in a useful operating range by performing
-\emph{gradient ascent} on $v_t$ with respect to $s$:
+We adapt $s$ by performing \emph{gradient ascent} on $v_t$ with respect to $s$.
+This is a convenient heuristic---$v_t$ is the quantity that already appears in the denominator,
+and ascent on it has a clear geometric interpretation (see below)---but
+we do not claim it is the unique or optimal choice of surrogate.
+Concretely:
 $$
     \frac{\partial v_t}{\partial s} = \xi\,e^s\,\|\vecb{l}_t\|^2 = v_t.
 $$
 
 \paragraph{Why ascent?}
+Consider a single parameter with $\gamma=1$.
 The effective step size per unit gradient is
-$$
-    \frac{|\delta\theta|}{|l|} = \frac{e^s}{1 + \xi\,e^s\,l^2},
-$$
-whose derivative with respect to $s$ is $e^s/(1+\xi\,e^s\,l^2)^2 > 0$:
-the step size is \emph{monotonically increasing} in $s$,
+\begin{equation}\label{eq:step-per-grad}
+    \frac{|\delta\theta|}{|l|} = \frac{e^s}{1 + \xi\,e^s\,l^2}.
+\end{equation}
+Its derivative with respect to the metric parameter $s$ is
+\begin{equation}\label{eq:step-deriv}
+    \frac{\partial}{\partial s}\!\left(\frac{e^s}{1 + \xi\,e^s\,l^2}\right)
+    = \frac{e^s}{(1 + \xi\,e^s\,l^2)^2} > 0.
+\end{equation}
+The step size is therefore \emph{monotonically increasing} in $s$
+(note: increasing in $s$, not in $l$),
 bounded above by $1/(\xi\,l^2)$.
 Gradient ascent on $v$ increases $s$, pushing the step size toward this
 upper bound---the regime where the geometric clipping is most active.
@@ -431,16 +476,27 @@ and the equilibrium between ascent and regularisation determines the operating p
 \paragraph{Regularisation and stability.}
 Since $v_t\ge 0$, the unregularised ascent rule monotonically increases~$s$.
 Three mechanisms keep $s$ bounded:
-(i)~an L2 regularisation term $-\mu\lambda s$ that pulls $s$ back towards zero (i.e.\ $\gamma^{-1}=\Id$),
+(i)~an L2 regularisation term $-\mu\lambda_s s$ that pulls $s$ back towards zero (i.e.\ $\gamma^{-1}=\Id$),
 (ii)~hard clipping of $s$ to $[-s_{\max}, s_{\max}]$, and
 (iii)~the denominator EMA, which smooths transient gradient spikes.
 
 The online metric update is
 \begin{equation}\label{eq:scalar-meta}
-    s \;\leftarrow\; s + \mu\,v_t - \mu\,\lambda\,s,
+    s \;\leftarrow\; s + \mu\,v_t - \mu\,\lambda_s\,s,
 \end{equation}
-where $\mu>0$ is the metric learning rate and $\lambda>0$ is the L2 regularisation coefficient,
+where $\mu>0$ is the metric learning rate and $\lambda_s>0$ is the L2 regularisation coefficient,
 followed by clipping to $[-s_{\max}, s_{\max}]$.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/s_evolution_scalar.png}
+    \caption{Evolution of the learnable scalar $s$ during training
+    (2-layer MLP on synthetic regression, 500 steps).
+    $s$ rises rapidly in early training as the metric engages with the gradient structure,
+    then plateaus as the regularisation balances the ascent pressure.
+    The loss (right axis, log scale) decreases throughout.}
+    \label{fig:s-scalar}
+\end{figure}
 
 \subsection{Algorithm}
 
@@ -449,20 +505,21 @@ followed by clipping to $[-s_{\max}, s_{\max}]$.
 \label{alg:scalar}
 \begin{algorithmic}[1]
 \REQUIRE all hyperparameters from Algorithm~\ref{alg:fixed},
-plus metric learning rate $\mu$, metric regularisation $\lambda$, clipping bound $s_{\max}$
+plus metric learning rate $\mu$, metric regularisation $\lambda_s$, clipping bound $s_{\max}$
 \STATE Initialise $t \leftarrow 0$, $\vecb{m}_0 \leftarrow \vecb{0}$, $\bar{v}_0 \leftarrow 0$, $s \leftarrow 0$
 \WHILE{$\theta_t$ not converged}
-\STATE $t \leftarrow t + 1$;\quad $\alpha \leftarrow e^s$
+\STATE $t \leftarrow t + 1$
+\STATE $\alpha \leftarrow e^s$
 \STATE $\vecb{l}_t \leftarrow \nabla_\theta \loss(\theta_{t-1})$
 \STATE $v_t \leftarrow \xi\,\alpha\,\|\vecb{l}_t\|^2$
-\STATE $\bar{v}_t \leftarrow \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$;\quad
-  $\hat{v}_t \leftarrow \bar{v}_t / (1-\beta^t)$;\quad
-  $r_t \leftarrow 1/(1+|\hat{v}_t|)$
-\STATE $\vecb{m}_t \leftarrow \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$;\quad
-  $\hat{\vecb{m}}_t \leftarrow \alpha\,\vecb{m}_t/(1-\beta_m^t)$
-\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t - \eta\,\lambda_\theta\,\theta_{t-1}$
+\STATE $\bar{v}_t \leftarrow \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$
+\STATE $\hat{v}_t \leftarrow \bar{v}_t / (1-\beta^t)$
+\STATE $r_t \leftarrow 1/(1+|\hat{v}_t|)$
+\STATE $\vecb{m}_t \leftarrow \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$
+\STATE $\hat{\vecb{m}}_t \leftarrow \alpha\,\vecb{m}_t/(1-\beta_m^t)$
+\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t + \lambda\,\theta_{t-1}$
     \hfill{\footnotesize\textit{// parameter update}}
-\STATE $s \leftarrow s + \mu\,v_t - \mu\,\lambda\,s$
+\STATE $s \leftarrow s + \mu\,v_t - \mu\,\lambda_s\,s$
     \hfill{\footnotesize\textit{// metric update}}
 \STATE $s \leftarrow \operatorname{clip}(s,\,-s_{\max},\,s_{\max})$
 \ENDWHILE
@@ -478,7 +535,7 @@ $r_t \leftarrow L_t/(L_t^2 + |\hat{v}_t|)$.
 The learnable scalar variant introduces three new hyperparameters beyond those of the fixed diagonal variant:
 \begin{itemize}
     \item $\mu$ (\texttt{metric\_lr}): step size for the online metric update in \eqref{eq:scalar-meta}.
-    \item $\lambda$ (\texttt{metric\_reg}): L2 regularisation strength on $s$, controlling how far the metric drifts from identity.
+    \item $\lambda_s$ (\texttt{metric\_reg}): L2 regularisation strength on $s$, controlling how far the metric drifts from identity.
     \item $s_{\max}$ (\texttt{metric\_clip}): clipping bound on $s$, bounding $\alpha\in[e^{-s_{\max}}, e^{s_{\max}}]$.
 \end{itemize}
 
@@ -555,7 +612,7 @@ Its gradient with respect to $s_i$ is $$
 $$
 The online update is therefore
 \begin{equation}\label{eq:diag-meta}
-    s_i \;\leftarrow\; s_i + \mu\,\xi\,e^{s_i}\,l_i^2 - \mu\,\lambda\,s_i,
+    s_i \;\leftarrow\; s_i + \mu\,\xi\,e^{s_i}\,l_i^2 - \mu\,\lambda_s\,s_i,
 \end{equation}
 followed by mean-centering and clipping (discussed below).
 The motivation for gradient \emph{ascent} (not descent) and the role of regularisation
@@ -571,8 +628,12 @@ We write $N_\ell$ for the number of scalar entries in a single leaf,
 as distinct from the total parameter count $N = \sum_\ell N_\ell$.
 
 \paragraph{The centering operation.}
-After the gradient step \eqref{eq:diag-meta}, we apply a per-leaf mean-centering operation: $$
-    s_i \;\leftarrow\; s_i - \bar{s}, \qquad \bar{s} = \frac{1}{N_\ell}\sum_{k=1}^{N_\ell} s_k.
+The vector $\vecb{s}$ has one entry per parameter, $i=1,\ldots,N$.
+After the gradient step \eqref{eq:diag-meta}, we mean-centre $\vecb{s}$
+\emph{within each leaf independently}:
+for each leaf $\ell$ containing parameters $i\in I_\ell$ (with $|I_\ell| = N_\ell$),
+$$
+    s_i \;\leftarrow\; s_i - \bar{s}_\ell, \qquad \bar{s}_\ell = \frac{1}{N_\ell}\sum_{k\in I_\ell} s_k.
 $$
 This is not an ad-hoc trick but a principled normalisation arising from a gauge degeneracy.
 
@@ -605,6 +666,18 @@ Since we apply this per leaf rather than globally, a separate mean mode is remov
     or make $\xi$ itself learnable.
 \end{tcolorbox}
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/s_evolution_diag.png}
+    \caption{Evolution of per-parameter log-scales $s_i$ during training
+    (same setup as Figure~\ref{fig:s-scalar}).
+    Different parameters acquire different scales:
+    some are upscaled ($s_i>0$), others downscaled ($s_i<0$).
+    Mean-centering keeps the average at zero,
+    so $\vecb{s}$ captures only relative geometry.}
+    \label{fig:s-diag}
+\end{figure}
+
 \subsection{Algorithm}
 
 \begin{algorithm}[H]
@@ -612,20 +685,20 @@ Since we apply this per leaf rather than globally, a separate mean mode is remov
 \label{alg:diag}
 \begin{algorithmic}[1]
 \REQUIRE all hyperparameters from Algorithm~\ref{alg:fixed},
-plus $\mu$, $\lambda$, $s_{\max}$
+plus $\mu$, $\lambda_s$, $s_{\max}$
 \STATE Initialise $t \leftarrow 0$, $\vecb{m}_0 \leftarrow \vecb{0}$, $\bar{v}_0 \leftarrow 0$, $\vecb{s} \leftarrow \vecb{0}$
 \WHILE{$\theta_t$ not converged}
 \STATE $t \leftarrow t + 1$
 \STATE $\vecb{l}_t \leftarrow \nabla_\theta \loss(\theta_{t-1})$
 \STATE $v_t \leftarrow \xi\sum_k e^{s_k}\,l_{t,k}^2$
-\STATE $\bar{v}_t \leftarrow \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$;\quad
-  $\hat{v}_t \leftarrow \bar{v}_t / (1-\beta^t)$;\quad
-  $r_t \leftarrow 1/(1+|\hat{v}_t|)$
-\STATE $\vecb{m}_t \leftarrow \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$;\quad
-  $\hat{m}^i_t \leftarrow e^{s_i}\,m_{t,i}/(1-\beta_m^t)$
-\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t - \eta\,\lambda_\theta\,\theta_{t-1}$
+\STATE $\bar{v}_t \leftarrow \beta\,\bar{v}_{t-1} + (1-\beta)\,v_t$
+\STATE $\hat{v}_t \leftarrow \bar{v}_t / (1-\beta^t)$
+\STATE $r_t \leftarrow 1/(1+|\hat{v}_t|)$
+\STATE $\vecb{m}_t \leftarrow \beta_m\,\vecb{m}_{t-1} + (1-\beta_m)\,\vecb{l}_t$
+\STATE $\hat{m}^i_t \leftarrow e^{s_i}\,m_{t,i}/(1-\beta_m^t)$
+\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,r_t\,\hat{\vecb{m}}_t + \lambda\,\theta_{t-1}$
     \hfill{\footnotesize\textit{// parameter update}}
-\STATE $s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,l_{t,i}^2 - \mu\,\lambda\,s_i$ for each $i$
+\STATE $s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,l_{t,i}^2 - \mu\,\lambda_s\,s_i$ for each $i$
     \hfill{\footnotesize\textit{// metric gradient ascent}}
 \STATE $s_i \leftarrow s_i - \bar{s}$ per leaf
     \hfill{\footnotesize\textit{// mean-centre (gauge fix)}}
@@ -769,9 +842,13 @@ Depending on the choices of $\vecb{a}$ and $\vecb{b}$, this can lead to a variet
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.75\textwidth]{../images/step_profile_offdiag.png}
-    \caption{Step-size profiles for off-diagonal variants in 1D ($\xi=1$).
-    The one-sided and symmetric couplings provide progressively stronger damping
-    compared to the fixed diagonal baseline (effective $\xi$ of $2$ and $3$ respectively).}
+    \caption{Step-size profiles for off-diagonal variants
+    in the single-parameter case ($N=1$, $\gamma=1$, $\xi=1$).
+    All curves plot $\delta\theta/\eta = -l/(1+\xi_{\mathrm{eff}}\,l^2)$
+    where $\xi_{\mathrm{eff}}$ depends on the coupling:
+    $\xi_{\mathrm{eff}}=1$ (fixed diagonal, $\vecb{a}=\vecb{b}=0$),
+    $\xi_{\mathrm{eff}}=2$ (one-sided),
+    $\xi_{\mathrm{eff}}=3$ (symmetric, $\vecb{a}=\vecb{b}=\vecb{l}$).}
     \label{fig:step-offdiag}
 \end{figure}
 
@@ -781,7 +858,7 @@ Depending on the choices of $\vecb{a}$ and $\vecb{b}$, this can lead to a variet
 \caption{Off-diagonal metric}
 \label{alg:offdiag}
 \begin{algorithmic}[1]
-\REQUIRE learning rate $\eta$, momentum decay $\beta_m$, metric strength $\xi$, weight decay $\lambda_\theta$,
+\REQUIRE learning rate $\eta$, momentum decay $\beta_m$, metric strength $\xi$, weight decay $\lambda$,
 inverse base metric $\gamma^{-1}$, mode choices for $\vecb{a}$, $\vecb{b}$, $\vecb{l}$, $\vecb{r}$
 \STATE Initialise $t \leftarrow 0$, $\vecb{m}_0 \leftarrow \vecb{0}$
 \WHILE{$\theta_t$ not converged}
@@ -793,7 +870,7 @@ inverse base metric $\gamma^{-1}$, mode choices for $\vecb{a}$, $\vecb{b}$, $\ve
 \STATE $U \leftarrow (\vecb{a},\,\vecb{l})$;\quad $V \leftarrow (\vecb{l},\,\vecb{b}+\vecb{l})$
 \STATE Compute $c_{al}$, $c_{ll}$, $c_{ba}$, $c_{bl}$ and $D$ via \eqref{eq:offdiag-det}
 \STATE Compute $G^{-1}\vecb{r}$ via Woodbury ($2\times 2$ solve + $O(N)$ vector ops)
-\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,(G^{-1}\vecb{r}) - \eta\,\lambda_\theta\,\theta_{t-1}$
+\STATE $\theta_t \leftarrow \theta_{t-1} - \eta\,(G^{-1}\vecb{r}) + \lambda\,\theta_{t-1}$
 \ENDWHILE
 \RETURN $\theta_t$
 \end{algorithmic}
@@ -886,13 +963,13 @@ The following hyperparameters are common to the fixed diagonal, learnable scalar
     (The paper~\cite{harvey2025} uses $\mu$ for this quantity; we write $\beta_m$ to avoid collision with the metric learning rate $\mu$.)
     \item $\xi$ (\texttt{xi}): strength of the induced metric correction.
     \item $\beta$ (\texttt{beta}): EMA decay for the denominator estimate $\hat{v}$.
-    \item $\lambda_\theta$ (\texttt{weight\_decay}): decoupled weight decay (AdamW style).
+    \item $\lambda$ (\texttt{weight\_decay}): decoupled weight decay ($\lambda\le 0$ for decay, following the convention of~\cite{harvey2025}).
 \end{itemize}
-The off-diagonal variant uses $\eta$, $\beta_m$, $\xi$, and $\lambda_\theta$ but does not use the denominator EMA $\beta$.
+The off-diagonal variant uses $\eta$, $\beta_m$, $\xi$, and $\lambda$ but does not use the denominator EMA $\beta$.
 The learnable variants additionally require:
 \begin{itemize}
     \item $\mu$ (\texttt{metric\_lr}): step size for the online metric update.
-    \item $\lambda$ (\texttt{metric\_reg}): L2 regularisation on $s$ or $\vecb{s}$.
+    \item $\lambda_s$ (\texttt{metric\_reg}): L2 regularisation on $s$ or $\vecb{s}$.
     \item $s_{\max}$ (\texttt{metric\_clip}): log-domain clipping bound on $s$,
     constraining $\alpha = e^s \in [e^{-s_{\max}},\,e^{s_{\max}}]$.
 \end{itemize}
@@ -908,7 +985,7 @@ All optimisers are evaluated together on the same suite of benchmark tasks.
 \begin{sloppypar}
 Results are compared head-to-head in the following notebooks:
 \begin{itemize}
-    \item \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/analysis/small_examples.ipynb}{analysis/small\_examples.ipynb} --- 2D synthetic functions (Beale, Rosenbrock, Himmelblau, Ackley, Rastrigin).
+    \item \href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/analysis/small_examples_analysis.ipynb}{analysis/small\_examples\_analysis.ipynb} --- 2D synthetic functions (Beale, Rosenbrock, Himmelblau, Ackley, Rastrigin).
     \item \texttt{analysis/mnist\_analysis.ipynb} --- MNIST MLP (sweeps in progress).
     \item \texttt{analysis/cifar\_analysis.ipynb} --- CIFAR-10 ResNet-18 (sweeps in progress).
     \item \texttt{analysis/regression\_analysis.ipynb} --- Synthetic regression (sweeps in progress).
@@ -919,10 +996,11 @@ Results are compared head-to-head in the following notebooks:
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.75\textwidth]{../images/step_profile_comparison.png}
-    \caption{Step-size profiles compared across all variants ($\xi=1$).
+    \caption{Step-size profiles compared across all variants
+    in the single-parameter case ($N=1$, $\gamma=1$, $\xi=1$).
     All induced-metric optimisers exhibit smooth gradient clipping relative to SGD.
-    The learnable scalar ($s=1$) has a larger peak step size but clips at the same rate;
-    the off-diagonal symmetric coupling clips more aggressively.}
+    The learnable scalar ($s=1$) has a larger peak step size;
+    the off-diagonal symmetric coupling ($\vecb{a}=\vecb{b}=\vecb{l}$) clips more aggressively.}
     \label{fig:step-comparison}
 \end{figure}
 
