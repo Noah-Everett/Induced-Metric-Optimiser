@@ -107,7 +107,7 @@ MAX_ITERATIONS = 1000
 # ---------------------------------------------------------------------------
 # Task-specific parameter overrides
 # ---------------------------------------------------------------------------
-# These match the original small_examples.ipynb analysis notebook.
+# These match the original small_examples_analysis.ipynb analysis notebook.
 # Key differences from the unified defaults:
 # - beta=0 for fixed metric optimizers (no stochasticity to smooth)
 # - eps searched for Adam/Muon/RMS (more sensitive for 2D functions)

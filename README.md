@@ -125,7 +125,7 @@ RESULTS_DIR = os.path.join('..', 'results')
 | `analysis/regression_analysis.ipynb` | Regression results |
 | `analysis/shake_analysis.ipynb` | Shakespeare results |
 | `analysis/shake_analysis_full.ipynb` | Shakespeare full sweep (runs training inline) |
-| `analysis/small_examples.ipynb` | 2D test function results |
+| `analysis/small_examples_analysis.ipynb` | 2D test function results |
 
 ### What the notebooks produce
 
