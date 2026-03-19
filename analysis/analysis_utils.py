@@ -756,8 +756,11 @@ def plot_2d_histograms(
         optimizers = list(top_n_runs.keys())
 
     n_plots = len(optimizers)
-    ncols = min(4, n_plots)
+    ncols = min(6, n_plots)
     nrows = (n_plots + ncols - 1) // ncols
+
+    if figsize == (20, 15):  # default — scale dynamically
+        figsize = (ncols * 4, nrows * 3.5)
 
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
     if n_plots == 1:
@@ -803,9 +806,10 @@ def plot_2d_histograms(
             h = axes[i].hist2d(x_vals, y_vals, bins=[x_bins, y_bins], cmap="viridis", alpha=0.8)
             plt.colorbar(h[3], ax=axes[i])
 
-        axes[i].set_title(f"{title_prefix}{opt.upper()}\n(n={len(x_vals)})")
-        axes[i].set_xlabel(x_metric)
-        axes[i].set_ylabel(y_metric)
+        axes[i].set_title(f"{title_prefix}{opt.upper()} (n={len(x_vals)})", fontsize=8)
+        axes[i].set_xlabel(x_metric, fontsize=7)
+        axes[i].set_ylabel(y_metric, fontsize=7)
+        axes[i].tick_params(labelsize=6)
         axes[i].grid(True, alpha=0.3)
 
     for j in range(len(optimizers), len(axes)):
@@ -824,6 +828,7 @@ def plot_training_curves(
     figsize=(15, 10),
     marker="o-",
     log_scale=False,
+    ylim=None,
 ):
     """
     Plot training curves for multiple optimizers.
@@ -858,8 +863,14 @@ def plot_training_curves(
     if colors is None:
         colors = get_optimizer_colors(optimizers)
 
+    n_opt = len(optimizers)
     nrows = len(y_keys)
     ncols = len(x_keys)
+
+    # Scale figure wider when many optimizers need an external legend
+    if figsize == (15, 10) and n_opt > 10:
+        figsize = (20, 5 * nrows)
+
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
 
     if nrows == 1 and ncols == 1:
@@ -868,6 +879,11 @@ def plot_training_curves(
         axes = axes[np.newaxis, :]
     elif ncols == 1:
         axes = axes[:, np.newaxis]
+
+    # Thinner lines and no markers when many optimizers
+    lw = 1.2 if n_opt > 10 else 2
+    ms = 0 if n_opt > 10 else 4
+    fmt = "-" if n_opt > 10 else marker
 
     for row, y_key in enumerate(y_keys):
         for col, x_key in enumerate(x_keys):
@@ -880,15 +896,27 @@ def plot_training_curves(
 
                 if len(x) > 0 and len(y) > 0:
                     min_len = min(len(x), len(y))
-                    plot_fn = ax.loglog if log_scale else ax.plot
-                    plot_fn(x[:min_len], y[:min_len], marker,
-                            linewidth=2, markersize=4, color=colors.get(opt), label=opt)
+                    plot_fn = ax.loglog if log_scale else (ax.semilogy if n_opt > 10 else ax.plot)
+                    plot_fn(x[:min_len], y[:min_len], fmt,
+                            linewidth=lw, markersize=ms, color=colors.get(opt),
+                            label=opt, alpha=0.8)
+
+            if ylim is not None:
+                if isinstance(ylim, dict):
+                    if y_key in ylim:
+                        ax.set_ylim(ylim[y_key])
+                else:
+                    ax.set_ylim(ylim)
 
             ax.set_xlabel(x_key)
             ax.set_ylabel(y_key)
             ax.set_title(f"{y_key} vs {x_key}")
             ax.grid(True, alpha=0.3)
-            ax.legend()
+            if n_opt > 10:
+                ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left",
+                          fontsize=7, ncol=1)
+            else:
+                ax.legend()
 
     plt.tight_layout()
     return fig
@@ -1169,36 +1197,79 @@ def plot_time_to_best(
         print("  No data available.")
         return plt.figure()
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+    n_opt = len(best_times)
+    use_horizontal = n_opt > 10
 
-    opts = list(best_times.keys())
-    wall_times = [best_times[o]["wall_time"] for o in opts]
-    epochs = [best_times[o]["epoch"] for o in opts]
-    clrs = [colors.get(o, "#333333") for o in opts]
+    if use_horizontal:
+        # Sort by wall time ascending (best at top)
+        sorted_opts = sorted(best_times.keys(),
+                             key=lambda o: best_times[o]["wall_time"],
+                             reverse=True)
+        if figsize == (15, 6):
+            figsize = (16, max(6, n_opt * 0.4))
 
-    bars1 = ax1.bar(range(len(opts)), wall_times, color=clrs, alpha=0.7)
-    ax1.set_xlabel("Optimizer")
-    ax1.set_ylabel("Wall Time (seconds)")
-    ax1.set_title("Time to Reach Best Metric")
-    ax1.set_xticks(range(len(opts)))
-    ax1.set_xticklabels([o.upper() for o in opts], rotation=45, ha="right")
-    ax1.grid(True, alpha=0.3)
-    for bar in bars1:
-        h = bar.get_height()
-        ax1.annotate(f"{h:.2f}s", xy=(bar.get_x() + bar.get_width() / 2, h),
-                     xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
-    bars2 = ax2.bar(range(len(opts)), epochs, color=clrs, alpha=0.7)
-    ax2.set_xlabel("Optimizer")
-    ax2.set_ylabel("Epoch")
-    ax2.set_title("Epoch of Best Metric")
-    ax2.set_xticks(range(len(opts)))
-    ax2.set_xticklabels([o.upper() for o in opts], rotation=45, ha="right")
-    ax2.grid(True, alpha=0.3)
-    for bar in bars2:
-        h = bar.get_height()
-        ax2.annotate(f"{int(h)}", xy=(bar.get_x() + bar.get_width() / 2, h),
-                     xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8)
+        wall_times = [best_times[o]["wall_time"] for o in sorted_opts]
+        epochs = [best_times[o]["epoch"] for o in sorted_opts]
+        clrs = [colors.get(o, "#333333") for o in sorted_opts]
+        y_pos = range(len(sorted_opts))
+
+        ax1.barh(y_pos, wall_times, color=clrs, alpha=0.7)
+        ax1.set_yticks(y_pos)
+        ax1.set_yticklabels([o.upper() for o in sorted_opts], fontsize=7)
+        ax1.set_xlabel("Wall Time (seconds)")
+        ax1.set_title("Time to Reach Best Metric")
+        ax1.grid(True, alpha=0.3, axis="x")
+        for i, v in enumerate(wall_times):
+            ax1.text(v + max(wall_times) * 0.01, i, f"{v:.1f}s", va="center", fontsize=6)
+
+        # Sort by epoch ascending for second panel
+        sorted_opts_ep = sorted(best_times.keys(),
+                                key=lambda o: best_times[o]["epoch"],
+                                reverse=True)
+        epochs_sorted = [best_times[o]["epoch"] for o in sorted_opts_ep]
+        clrs_ep = [colors.get(o, "#333333") for o in sorted_opts_ep]
+
+        ax2.barh(y_pos, epochs_sorted, color=clrs_ep, alpha=0.7)
+        ax2.set_yticks(y_pos)
+        ax2.set_yticklabels([o.upper() for o in sorted_opts_ep], fontsize=7)
+        ax2.set_xlabel("Epoch")
+        ax2.set_title("Epoch of Best Metric")
+        ax2.grid(True, alpha=0.3, axis="x")
+        for i, v in enumerate(epochs_sorted):
+            ax2.text(v + max(epochs_sorted) * 0.01, i, f"{int(v)}", va="center", fontsize=6)
+    else:
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+        opts = list(best_times.keys())
+        wall_times = [best_times[o]["wall_time"] for o in opts]
+        epochs = [best_times[o]["epoch"] for o in opts]
+        clrs = [colors.get(o, "#333333") for o in opts]
+
+        bars1 = ax1.bar(range(len(opts)), wall_times, color=clrs, alpha=0.7)
+        ax1.set_xlabel("Optimizer")
+        ax1.set_ylabel("Wall Time (seconds)")
+        ax1.set_title("Time to Reach Best Metric")
+        ax1.set_xticks(range(len(opts)))
+        ax1.set_xticklabels([o.upper() for o in opts], rotation=45, ha="right")
+        ax1.grid(True, alpha=0.3)
+        for bar in bars1:
+            h = bar.get_height()
+            ax1.annotate(f"{h:.2f}s", xy=(bar.get_x() + bar.get_width() / 2, h),
+                         xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8)
+
+        bars2 = ax2.bar(range(len(opts)), epochs, color=clrs, alpha=0.7)
+        ax2.set_xlabel("Optimizer")
+        ax2.set_ylabel("Epoch")
+        ax2.set_title("Epoch of Best Metric")
+        ax2.set_xticks(range(len(opts)))
+        ax2.set_xticklabels([o.upper() for o in opts], rotation=45, ha="right")
+        ax2.grid(True, alpha=0.3)
+        for bar in bars2:
+            h = bar.get_height()
+            ax2.annotate(f"{int(h)}", xy=(bar.get_x() + bar.get_width() / 2, h),
+                         xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=8)
 
     plt.tight_layout()
     return fig
@@ -1249,25 +1320,53 @@ def plot_speedrun_results(
 
     results = compute_speedrun_results(optimizer_data, targets, metric_key, direction, time_key, optimizers)
 
-    # Create plot
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    n_opt = len(optimizers)
 
-    x = np.arange(len(targets))
-    width = 0.8 / max(len(optimizers), 1)
+    if n_opt > 10:
+        # Line plot: each optimizer is a line, x-axis is targets
+        if figsize == (15, 6):
+            figsize = (18, 8)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    for i, opt in enumerate(optimizers):
-        times = [results[opt].get(t) for t in targets]
-        times_plot = [t if t is not None else 0 for t in times]
-        offset = (i - len(optimizers) / 2 + 0.5) * width
-        ax.bar(x + offset, times_plot, width, label=opt, color=colors.get(opt), alpha=0.8)
+        for opt in optimizers:
+            times = [results[opt].get(t) for t in targets]
+            # Only plot non-None segments
+            xs, ys = [], []
+            for j, t in enumerate(times):
+                if t is not None:
+                    xs.append(j)
+                    ys.append(t)
+            if xs:
+                ax.plot(xs, ys, "o-", color=colors.get(opt), label=opt,
+                        linewidth=1.2, markersize=4, alpha=0.8)
 
-    ax.set_xlabel("Target")
-    ax.set_ylabel("Time to reach target")
-    ax.set_title(f"Speedrun: Time to reach {metric_key} targets")
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"{t}" for t in targets])
-    ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
-    ax.grid(True, alpha=0.3)
+        ax.set_xlabel("Target")
+        ax.set_ylabel("Time to reach target (s)")
+        ax.set_title(f"Speedrun: Time to reach {metric_key} targets")
+        ax.set_xticks(range(len(targets)))
+        ax.set_xticklabels([f"{t}" for t in targets])
+        ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=7, ncol=1)
+        ax.grid(True, alpha=0.3)
+    else:
+        # Grouped bar plot for small number of optimizers
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        x = np.arange(len(targets))
+        width = 0.8 / max(n_opt, 1)
+
+        for i, opt in enumerate(optimizers):
+            times = [results[opt].get(t) for t in targets]
+            times_plot = [t if t is not None else 0 for t in times]
+            offset = (i - n_opt / 2 + 0.5) * width
+            ax.bar(x + offset, times_plot, width, label=opt, color=colors.get(opt), alpha=0.8)
+
+        ax.set_xlabel("Target")
+        ax.set_ylabel("Time to reach target")
+        ax.set_title(f"Speedrun: Time to reach {metric_key} targets")
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"{t}" for t in targets])
+        ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
+        ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     return fig
