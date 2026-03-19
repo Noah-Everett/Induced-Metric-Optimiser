@@ -58,9 +58,9 @@ module load python
 mamba activate induced-metric-optimiser
 
 # JAX/CUDA configuration
-export XLA_FLAGS='--xla_gpu_autotune_level=0'
+export XLA_FLAGS='--xla_gpu_autotune_level=4'
 export XLA_PYTHON_CLIENT_PREALLOCATE='true'
-export XLA_PYTHON_CLIENT_ALLOCATOR='platform'
+export JAX_DEFAULT_MATMUL_PRECISION='tensorfloat32'
 
 # -----------------------------------------------------------------------------
 # Optimizer array (indexed 0-25)

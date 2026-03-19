@@ -9,6 +9,7 @@ Usage::
 
 import os
 import time
+from functools import partial
 
 import jax
 import jax.numpy as jnp
@@ -116,18 +117,25 @@ def loss_fn(params, x, y, model, key):
     return optax.softmax_cross_entropy_with_integer_labels(logits_flat, targets_flat).mean()
 
 
+@partial(jax.jit, static_argnums=(2,))
+def _val_loss_batch(params, batch, model):
+    """JIT-compiled loss for a single validation batch."""
+    x, y = batch
+    logits = model.apply(params, x, train=False)
+    logits_flat = logits.reshape(-1, logits.shape[-1])
+    targets_flat = y.reshape(-1)
+    return optax.softmax_cross_entropy_with_integer_labels(logits_flat, targets_flat).mean(), y.size
+
+
 def perplexity_fn(params, data_batches, model):
     """Compute perplexity over all batches."""
     total_loss = 0.0
     total_tokens = 0
 
-    for x_batch, y_batch in data_batches:
-        logits = model.apply(params, x_batch, train=False)
-        logits_flat = logits.reshape(-1, logits.shape[-1])
-        targets_flat = y_batch.reshape(-1)
-        batch_loss = optax.softmax_cross_entropy_with_integer_labels(logits_flat, targets_flat).mean()
-        total_loss += batch_loss * y_batch.size
-        total_tokens += y_batch.size
+    for batch in data_batches:
+        batch_loss, n_tokens = _val_loss_batch(params, batch, model)
+        total_loss += batch_loss * n_tokens
+        total_tokens += n_tokens
 
     avg_loss = total_loss / total_tokens
     return jnp.exp(avg_loss)
