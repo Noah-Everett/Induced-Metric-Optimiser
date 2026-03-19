@@ -774,7 +774,7 @@ def plot_2d_histograms(
             else:
                 x_val = run["summary"].get(x_metric)
                 y_val = run["summary"].get(y_metric)
-            if x_val is not None and y_val is not None:
+            if x_val is not None and y_val is not None and np.isfinite(x_val) and np.isfinite(y_val):
                 all_x.append(x_val)
                 all_y.append(y_val)
 
@@ -795,7 +795,7 @@ def plot_2d_histograms(
             else:
                 x_val = run["summary"].get(x_metric)
                 y_val = run["summary"].get(y_metric)
-            if x_val is not None and y_val is not None:
+            if x_val is not None and y_val is not None and np.isfinite(x_val) and np.isfinite(y_val):
                 x_vals.append(x_val)
                 y_vals.append(y_val)
 
