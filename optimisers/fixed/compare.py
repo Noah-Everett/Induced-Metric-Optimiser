@@ -14,8 +14,8 @@ from typing import Dict, List, Tuple, Any
 import warnings
 
 # Import the implementations
-from jax_fixed import custom_sgd, custom_sgd_log, custom_sgd_rms
-from torch_fixed import CustomSGD, CustomSGDLog, CustomSGDRMS
+from .jax import custom_sgd, custom_sgd_log, custom_sgd_rms
+from .torch import CustomSGD, CustomSGDLog, CustomSGDRMS
 
 
 def set_seeds(seed: int = 42):

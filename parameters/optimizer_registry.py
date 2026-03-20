@@ -17,16 +17,16 @@ _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from optimisers.jax_fixed import custom_sgd, custom_sgd_log, custom_sgd_rms
-from optimisers.jax_learnable_scalar import (
+from optimisers.fixed import custom_sgd, custom_sgd_log, custom_sgd_rms
+from optimisers.learnable_scalar import (
     custom_sgd_learnable_scalar,
     custom_sgd_log_learnable_scalar,
 )
-from optimisers.jax_learnable_diag import (
+from optimisers.learnable_diag import (
     custom_sgd_learnable_diag,
     custom_sgd_log_learnable_diag,
 )
-from optimisers.jax_offdiag import custom_sgd_offdiag
+from optimisers.offdiag import custom_sgd_offdiag
 
 
 # ---------------------------------------------------------------------------

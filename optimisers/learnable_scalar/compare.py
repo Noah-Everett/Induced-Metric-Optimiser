@@ -3,8 +3,8 @@ import numpy as np
 import jax, jax.numpy as jnp, optax
 import torch
 
-from jax_learnable_scalar import custom_sgd_learnable_scalar
-from torch_learnable_scalar import SGDLearnableScalar
+from .jax import custom_sgd_learnable_scalar
+from .torch import SGDLearnableScalar
 
 def main():
     np.random.seed(0)

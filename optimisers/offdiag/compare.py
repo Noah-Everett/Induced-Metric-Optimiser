@@ -17,8 +17,8 @@ import jax.numpy as jnp
 from typing import Dict, List, Tuple, Any
 import warnings
 
-from jax_offdiag import custom_sgd_offdiag
-from torch_offdiag import CustomSGDOffDiag
+from .jax import custom_sgd_offdiag
+from .torch import CustomSGDOffDiag
 
 
 # ------------------------------------------------------------------------------

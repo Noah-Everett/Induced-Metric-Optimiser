@@ -12,11 +12,11 @@ import numpy as np
 # JAX side
 import jax, jax.numpy as jnp
 import optax
-from optimisers.jax_learnable_diag import custom_sgd_learnable_diag
+from .jax import custom_sgd_learnable_diag
 
 # Torch side
 import torch
-from optimisers.torch_learnable_diag import SGDLearnableDiag
+from .torch import SGDLearnableDiag
 
 def main():
     key = jax.random.PRNGKey(0)

@@ -25,8 +25,8 @@ import optax
 
 jax.config.update("jax_enable_x64", True)
 
-from optimisers.jax_learnable_scalar import custom_sgd_learnable_scalar
-from optimisers.jax_learnable_diag import custom_sgd_learnable_diag
+from optimisers.learnable_scalar import custom_sgd_learnable_scalar
+from optimisers.learnable_diag import custom_sgd_learnable_diag
 
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
