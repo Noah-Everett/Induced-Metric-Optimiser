@@ -22,10 +22,15 @@ from .core import (
     run_basin_filling,
     run_random_restarts,
 )
+from .metric_core import (
+    MetricBasinFillingConfig,
+    run_metric_basin_filling,
+)
 from . import strategies
 
 __all__ = [
-    'Basin', 'StepRecord', 'StepInfo', 'BasinFillingConfig',
-    'run_basin_filling', 'run_random_restarts',
+    'Basin', 'StepRecord', 'StepInfo',
+    'BasinFillingConfig', 'run_basin_filling', 'run_random_restarts',
+    'MetricBasinFillingConfig', 'run_metric_basin_filling',
     'strategies',
 ]
