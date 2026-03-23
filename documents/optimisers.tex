@@ -44,7 +44,7 @@ obtain a geometry-aware preconditioner.
 The resulting update automatically damps the effective learning rate in high-curvature
 regions---acting as a smooth form of gradient clipping---while adding only $O(N)$ overhead.
 
-This document extends that framework in three directions
+This document extends that framework in four directions
 (summarised in Table~\ref{tab:variants}):
 
 \begin{enumerate}[label=(\roman*)]
@@ -64,6 +64,13 @@ This document extends that framework in three directions
     We relax this by introducing coupling vectors $\vecb{a}$ and $\vecb{b}$,
     which add a second component to the update direction
     and enable geometry-induced momentum, weight decay, and other behaviours.
+
+    \item \textbf{Basin filling via spatially varying metric} (Section~\ref{sec:basin}):
+    to discover multiple minima, we promote $\xi$ and $\vecb{a},\vecb{b}$ to
+    spatially varying fields that are updated between optimiser runs.
+    Near a known minimum the modified metric removes gradient-norm damping and steers
+    the update direction away from the basin centre, causing the optimiser to
+    overshoot and explore new regions of the loss landscape.
 \end{enumerate}
 
 \begin{table}[ht]
@@ -82,6 +89,7 @@ Sections~\ref{sec:scalar}--\ref{sec:offdiag} are the new contributions of this d
     Learnable scalar   & $e^s\,\delta^{ij}$                         & Yes ($s\in\mathbb{R}$) & \ref{sec:scalar} \\
     Learnable diagonal & $e^{s_i}\,\delta^{ij}$                     & Yes ($\vecb{s}\in\mathbb{R}^N$) & \ref{sec:diag} \\
     Off-diagonal       & $\gamma\,\delta^{ij}$ + off-diag.\ $\vecb{a},\vecb{b}$ & No & \ref{sec:offdiag} \\
+    Basin filling       & $\gamma\,\delta^{ij}$ + $\xi(\theta),\vecb{a}(\theta)$ & No (adapted between runs) & \ref{sec:basin} \\
     \bottomrule
 \end{tabular}
 \end{table}
@@ -92,7 +100,8 @@ Section~\ref{sec:setup} establishes notation.
 Section~\ref{sec:fixed} reproduces the core method of~\cite{harvey2025},
 including the full algorithms, and defines the practical machinery
 (momentum, EMA, log-loss variant) used by all subsequent sections.
-The three extensions follow in Sections~\ref{sec:scalar}--\ref{sec:offdiag}.
+The three single-run extensions follow in Sections~\ref{sec:scalar}--\ref{sec:offdiag}.
+Section~\ref{sec:basin} develops the multi-basin extension.
 Section~\ref{sec:shared} collects implementation details common to all variants.
 Appendix~\ref{app:repo} documents the repository structure and sweep infrastructure.
 
@@ -911,6 +920,283 @@ The off-diagonal coupling vectors $\vecb{a}$ and $\vecb{b}$ each support:
     \item \textbf{Same-as-$a$}: $\vecb{b}_i=\vecb{a}_i$ --- symmetric off-diagonal structure.
 \end{itemize}
 For full generality the implementations also accept user-provided vectors or callables.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Basin Filling via Spatially Varying Metric}\label{sec:basin}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The preceding sections develop induced metric optimisers for a single training
+run.  We now address a complementary problem: given that the optimiser converges
+to a local minimum, how can we systematically discover \emph{other} minima?
+
+The key idea is to promote the coupling strength $\xi$ and the off-diagonal
+vectors $\vecb{a},\vecb{b}$ from constants to \emph{spatially varying fields}
+that are updated between runs.
+Near a known minimum the modified metric removes the gradient-norm damping
+(causing the optimiser to overshoot the basin) \emph{and} steers the update
+direction away from the basin centre.
+No walk-through heuristics, containment checks, or loss-function modifications
+are required: the metric itself encodes which basins have been ``filled''.
+
+\subsection{Damping and Steering Fields}
+
+Suppose we have discovered $K$ basins at centres
+$\theta^*_1,\ldots,\theta^*_K$ with radii $r_1,\ldots,r_K$.
+For each basin define the Gaussian bump
+\begin{equation}\label{eq:bump}
+    \psi_k(\theta) = \exp\!\left(-\frac{\|\theta-\theta^*_k\|^2}{2\,r_k^2}\right),
+\end{equation}
+so that $\psi_k(\theta^*_k)=1$ and $\psi_k\to 0$ away from the basin.
+The \emph{damping field} is the complementary product
+\begin{equation}\label{eq:phi}
+    \Phi(\theta) = \prod_{k=1}^{K}\bigl(1-\psi_k(\theta)\bigr),
+\end{equation}
+satisfying $\Phi\approx 0$ near any basin centre and $\Phi\approx 1$ far from
+all basins.  The coupling strength is promoted to a field:
+\begin{equation}\label{eq:xi-field}
+    \xi(\theta) = \xi_0\,\Phi(\theta).
+\end{equation}
+
+For direction control, define the unit radial outward direction from basin $k$:
+$$
+    n_k(\theta) = \frac{\theta - \theta^*_k}{\|\theta - \theta^*_k\| + \epsilon}
+$$
+(with $\epsilon>0$ a small regularisation constant).
+The off-diagonal coupling vectors become spatially varying fields:
+\begin{equation}\label{eq:ab-field}
+    \vecb{a}(\theta) = \vecb{a}_0 + \sum_{k=1}^K \alpha_k\,\psi_k(\theta)\,n_k(\theta),
+    \qquad
+    \vecb{b}(\theta) = \vecb{a}(\theta)
+    \quad\text{(symmetric case)},
+\end{equation}
+where $\vecb{a}_0$ is the baseline coupling (possibly zero) and
+$\alpha_k = \alpha_0\,r_k$ scales the steering strength with the basin radius.
+We restrict to the symmetric case $\vecb{a}=\vecb{b}$ throughout to ensure
+$g'$ is a proper Riemannian metric.
+
+\subsection{Modified Metric and Update Rule}
+
+The basin-filling metric is
+\begin{equation}\label{eq:bf-metric}
+    g'_{ij}(\theta) = \gamma_{ij} + \xi(\theta)\!\left[a_i(\theta)\,l_j + a_j(\theta)\,l_i + l_i\,l_j\right],
+\end{equation}
+which has the same rank-2 structure as the constant off-diagonal metric
+(Section~\ref{sec:offdiag}), with $\xi,\vecb{a},\vecb{b}$ now depending on $\theta$.
+At each $\theta$ the Woodbury formula applies identically, so the inverse is
+a $2\times 2$ system.
+
+The scalar contractions become $\theta$-dependent:
+\begin{equation}\label{eq:bf-contractions}
+    c_{al}(\theta) = \frac{a(\theta)^n l_n}{\gamma}, \qquad
+    c_{ll} = \frac{l_n l^n}{\gamma}, \qquad
+    c_{aa}(\theta) = \frac{a(\theta)^n a(\theta)_n}{\gamma},
+\end{equation}
+and the determinant (symmetric case $c_{bl}=c_{al}$, $c_{ba}=c_{aa}$) is
+\begin{equation}\label{eq:bf-det}
+    D(\theta) = 1 + \xi(\theta)\!\left(2c_{al} + c_{ll}\right)
+                  + \xi(\theta)^2\!\left(c_{al}^2 - c_{ll}\,c_{aa}\right).
+\end{equation}
+The parameter update is
+\begin{equation}\label{eq:bf-update}
+    \boxed{\delta\theta^i
+    = -\eta\left[
+        \frac{1+\xi(\theta)\,c_{al}(\theta)}{D(\theta)}\,l^i
+        \;-\;
+        \frac{\xi(\theta)\,c_{ll}}{D(\theta)}\,a^i(\theta)
+    \right]}
+\end{equation}
+with two components:
+\begin{enumerate}
+    \item \textbf{Gradient component} $\propto l^i$: descent direction with
+    spatially varying damping.  Near a known basin ($\xi\to 0$), the damping
+    vanishes and the update approaches $-\eta\,l^i/\gamma$ (undamped gradient
+    descent).
+    \item \textbf{Steering component} $\propto -a^i(\theta)$: active near
+    basins where $\psi_k$ is large, pushing the optimiser radially outward
+    from $\theta^*_k$.
+\end{enumerate}
+
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable,
+    title=\textbf{Special Cases}, coltitle=black]
+    \textbf{No basins} ($\mathcal{A}=\emptyset$):
+    $\Phi=1$, $\psi_k=0$, so $\xi=\xi_0$, $\vecb{a}=\vecb{a}_0$.
+    Recovers the constant off-diagonal metric \eqref{eq:offdiag-update}. \checkmark
+
+    \medskip\noindent
+    \textbf{No steering} ($\alpha_0=0$, $\vecb{a}_0=\vecb{0}$):
+    $\vecb{a}=\vecb{0}$, so $c_{al}=c_{aa}=0$ and $D = 1+\xi\,c_{ll}$.
+    The update reduces to
+    $\delta\theta^i = -\eta\,l^i/(1+\xi_0\,\Phi\,c_{ll})$:
+    spatially varying damping only (no directional control). \checkmark
+
+    \medskip\noindent
+    \textbf{No basins, no off-diagonal} ($\mathcal{A}=\emptyset$, $\vecb{a}_0=\vecb{0}$):
+    recovers the fixed diagonal update
+    $\delta\theta^i = -\eta\,l^i/(1+\xi_0\,c_{ll})$. \checkmark
+\end{tcolorbox}
+
+\subsection{Properties}
+
+\paragraph{Positive-definiteness.}
+In the symmetric case $\vecb{a}=\vecb{b}$, $g'$ is a sum of $\gamma\,I_N$
+(positive-definite) and the rank-2 term
+$\xi(\vecb{a}\vecb{l}^\top+\vecb{l}\vecb{a}^\top+\vecb{l}\vecb{l}^\top)$.
+Since $0\le\Phi\le 1$ ensures $\xi(\theta)\ge 0$, and near any basin
+$\xi\to 0$, positive-definiteness holds whenever
+$\gamma^2 > \xi(\theta)(\|\vecb{a}(\theta)\|\,\|l\| + \|l\|^2)$,
+which is automatically satisfied in the basin interior and at critical points
+(where $l\to 0$).
+
+\paragraph{Critical points are unchanged.}
+At any point where $\nabla\loss=0$, the update \eqref{eq:bf-update} gives
+$\delta\theta=0$ regardless of $\xi,\vecb{a}$, because $l^i=0$ makes both
+components vanish.  Conversely, $g'^{-1}\nabla\loss=0$ implies $\nabla\loss=0$
+(since $g'$ is invertible).  The metric modification cannot create, remove, or
+move critical points of~$\loss$.
+
+\paragraph{Loss descent.}
+For $d=l$, the loss change per step is
+$\Delta\loss = \nabla\loss\cdot\delta\theta = -\eta\,l_i\,g'^{ij}\,l_j$.
+When $g'$ is positive-definite this quadratic form is negative, so every step
+decreases the loss.
+
+\paragraph{Computational cost.}
+Evaluating $\psi_k$, $n_k$ and accumulating $\vecb{a}(\theta)$ costs $O(KN)$.
+The contractions, $2\times 2$ solve, and vector arithmetic cost $O(N)$.
+Total: $O(KN)$ per step.
+
+\paragraph{Smoothness.}
+All constituent functions ($\psi_k,\Phi,n_k,\vecb{a},\xi$) are $C^\infty$ in
+$\theta$ (the regularisation $\epsilon$ in $n_k$ ensures smoothness at the
+basin centre).  The update map $\theta\mapsto\delta\theta$ is $C^{k-1}$ when
+$\loss\in C^k$, on the open set $\{D\neq 0\}$.
+
+\subsection{Algorithm}\label{sec:bf-alg}
+
+\begin{algorithm}[H]
+\caption{Basin filling via spatially varying off-diagonal metric}
+\label{alg:basin-filling}
+\begin{algorithmic}[1]
+\REQUIRE loss function $\loss$, initial parameters $\theta_0$, learning rate $\eta$,
+    momentum decay $\beta_m$, base coupling $\xi_0$, base metric $\gamma$,
+    steering strength $\alpha_0$, detection patience $P$,
+    max runs $R$, max steps $T$
+\STATE $\mathcal{A} \leftarrow \{\}$ \COMMENT{archive of discovered basins}
+\FOR{$\text{run} = 1,\ldots,R$}
+    \STATE $\theta \leftarrow \theta_0$;\quad $\vecb{m}\leftarrow\vecb{0}$;\quad
+           $t\leftarrow 0$;\quad $\text{stuck}\leftarrow 0$
+    \WHILE{$t < T$}
+        \STATE $t \leftarrow t+1$
+        \STATE $\vecb{l} \leftarrow \nabla_\theta\loss(\theta)$
+        \STATE Compute $\Phi(\theta)$, $\xi(\theta)$, $\vecb{a}(\theta)$ from $\mathcal{A}$
+            via \eqref{eq:phi}--\eqref{eq:ab-field}
+        \STATE Compute $\vecb{r} \leftarrow g'(\theta)^{-1}\vecb{l}$ via Woodbury ($2\times 2$ solve)
+        \STATE $\vecb{m} \leftarrow \beta_m\vecb{m} + (1-\beta_m)\vecb{r}$;\quad
+               $\hat{\vecb{m}} \leftarrow \vecb{m}/(1-\beta_m^t)$
+        \STATE $\theta \leftarrow \theta - \eta\,\hat{\vecb{m}}$
+        \STATE Update stuck counter via detection criterion
+        \IF{$\text{stuck} \geq P$}
+            \STATE Estimate basin radius $r$
+            \STATE $\mathcal{A} \leftarrow \mathcal{A} \cup \{(\theta, r)\}$
+            \STATE \textbf{break} \COMMENT{start next run}
+        \ENDIF
+    \ENDWHILE
+\ENDFOR
+\RETURN $\mathcal{A}$
+\end{algorithmic}
+\end{algorithm}
+
+\noindent
+The momentum is applied to the Riemannian gradient $g'^{-1}\vecb{l}$ (not the
+raw gradient $\vecb{l}$), matching the pattern of the base optimiser:
+the metric preconditions the gradient, and momentum smooths the preconditioned
+direction.
+The detection criterion and radius estimation are pluggable; in the experiments
+of Section~\ref{sec:bf-experiments} we use loss-plateau detection and a fixed
+radius.
+
+\subsection{Hierarchy of Variants}
+
+The basin-filling metric is a four-level generalisation, each level adding one
+feature:
+\begin{center}
+\small
+\begin{tabular}{@{}clllll@{}}
+    \toprule
+    \textbf{Level} & $\xi$ & $\vecb{a}$ & $\vecb{b}$ & \textbf{Character} & \textbf{Section} \\
+    \midrule
+    0 & $\xi_0$ & $\vecb{0}$      & $\vecb{0}$      & Speed only, constant   & \ref{sec:fixed} \\
+    1 & $\xi_0\Phi$ & $\vecb{0}$  & $\vecb{0}$      & Speed only, varying    & \ref{sec:basin} \\
+    2 & $\xi_0$ & $\vecb{a}_0$    & $\vecb{b}_0$    & Speed + direction, constant & \ref{sec:offdiag} \\
+    3 & $\xi_0\Phi$ & $\vecb{a}(\theta)$ & $\vecb{a}(\theta)$ & Speed + direction, varying & \ref{sec:basin} \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Proof-of-Concept: Himmelblau's Function}\label{sec:bf-experiments}
+
+Himmelblau's function $f(x,y)=(x^2+y-11)^2+(x+y^2-7)^2$ has exactly four
+global minima.  Starting from the origin, a single optimiser run converges to
+one minimum.
+
+We compare three basin-filling configurations, all starting from $(0,0)$ with
+$\eta=0.1$, $\xi_0=0.1$, $\beta_m=0.9$, fixed radius $r=3$, plateau detection
+with threshold $10^{-7}$ and patience 50:
+\begin{center}
+\small
+\begin{tabular}{@{}lccc@{}}
+    \toprule
+    \textbf{Configuration} & $\alpha_0$ & \textbf{Unique minima} & \textbf{Runs} \\
+    \midrule
+    No basin filling (single run)        & ---  & 1/4 & 1  \\
+    Damping only ($\alpha_0=0$)          & 0    & 3/4 & 10 \\
+    Damping + steering ($\alpha_0=2$)    & 2    & 4/4 & 4  \\
+    \bottomrule
+\end{tabular}
+\end{center}
+The steering component ($\alpha_0=2$) is necessary to reach the fourth minimum,
+which is not accessible via gradient flow from the origin after the first three
+basins are filled with damping alone.
+
+\subsection{Open Questions}
+
+\begin{enumerate}
+    \item \textbf{Steering strength.}
+    The hyperparameter $\alpha_0$ required manual tuning ($\alpha_0=2$ worked
+    for Himmelblau; $\alpha_0=0.5$ was insufficient).
+    A principled rule---perhaps from the Hessian eigenvalues at $\theta^*_k$
+    or from the metric's own curvature---would eliminate this.
+
+    \item \textbf{Radius estimation.}
+    The experiments used a fixed radius $r=3$.  The metric defines a natural
+    notion of distance (geodesic distance under~$g'$); connecting this to the
+    basin radius would close the loop.  Alternatively, the Hessian at
+    $\theta^*_k$ gives a quadratic approximation to the basin shape, and
+    comparison theorems may yield radius bounds.
+
+    \item \textbf{Wrapper architecture.}
+    The metric modification is a \emph{per-step} operation on $\xi$ and
+    $\vecb{a}$: it can be applied to any induced metric optimiser
+    (fixed, learnable scalar, learnable diagonal, off-diagonal) by wrapping
+    its metric computation.  Implementing this as an optax transform wrapper
+    would separate basin-filling logic from single-run optimiser quality.
+
+    \item \textbf{High-dimensional behaviour.}
+    The Gaussian bump $\psi_k$ has support concentrated in an $O(r_k)$-ball,
+    whose volume is exponentially small in $N$.  This means basin filling is
+    cheap (the damping region is tiny) but the steering may need to be
+    strengthened.  Testing on neural network benchmarks is needed.
+\end{enumerate}
+
+\subsection{Implementation}
+\begin{itemize}
+    \item Standalone: \texttt{optimisers/basin\_filling/metric\_core.py}
+    \item Strategy-based (walk-through heuristics): \texttt{optimisers/basin\_filling/core.py}
+    \item Runner: \texttt{parameters/run\_basin\_filling.py}
+\end{itemize}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
