@@ -1303,6 +1303,49 @@ it improves training stability without distorting the local geometry
 near minima, and the $O(N)$ cost makes it attractive compared to
 second-order methods that explicitly manipulate the Hessian.
 
+Figures~\ref{fig:geodesic-eigenvalue}--\ref{fig:geodesic-saddle}
+illustrate these properties on the Rosenbrock and saddle functions.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/geodesic_eigenvalue_min.pdf}
+    \caption{Minimum eigenvalue of the Euclidean Hessian $H$ and the
+    Riemannian Hessian $\operatorname{Hess}_g\loss$ along the diagonal
+    of the Rosenbrock function, for several values of $\xi$.
+    The sign is preserved; only the magnitude is damped.}
+    \label{fig:geodesic-eigenvalue}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/geodesic_scaling_factor.pdf}
+    \caption{The scaling factor $1/(1+\xi\|\nabla\loss\|^2)$ along the
+    Rosenbrock diagonal.  Near the minimum ($t\approx 0.75$) where
+    $\|\nabla\loss\|\to 0$, the factor approaches~1; far from the minimum
+    it is strongly suppressed.}
+    \label{fig:geodesic-scaling}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.85\textwidth]{../images/geodesic_nonconvexity_map.pdf}
+    \caption{Minimum eigenvalue of $H$ (left) and $\operatorname{Hess}_g\loss$
+    with $\xi=10$ (right) over the Rosenbrock domain $[-2,2]^2$.
+    The sign structure is identical; the induced metric compresses the
+    magnitude in high-gradient regions.}
+    \label{fig:geodesic-nonconvexity}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/geodesic_saddle_eigenvalues.pdf}
+    \caption{Eigenvalues of $H$ and $\operatorname{Hess}_g\loss$ ($\xi=10$)
+    for the saddle function $\loss=x^2-y^2$ on the unit circle.
+    The Euclidean eigenvalues $\pm 2$ (dashed) are uniformly compressed
+    but never change sign.}
+    \label{fig:geodesic-saddle}
+\end{figure}
+
 \begin{thebibliography}{1}
 \bibitem{harvey2025}
 T.~R.~Harvey,
