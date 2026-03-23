@@ -1161,6 +1161,21 @@ The steering component ($\alpha_0=2$) is necessary to reach the fourth minimum,
 which is not accessible via gradient flow from the origin after the first three
 basins are filled with damping alone.
 
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../images/basin_filling_himmelblau.png}
+    \caption{Progressive basin filling on Himmelblau's function.
+    Each panel shows one optimiser run (red trajectory from $\circ$ to $\bigstar$)
+    on the loss contours (grey).
+    Blue shading shows the damping field $1-\Phi(\theta)$:
+    regions where $\xi(\theta)\to 0$ and the gradient-norm clipping is removed.
+    Run~1 discovers the first minimum with no prior basins.
+    Runs~2--4 start from the same initial point but are deflected by the
+    modified metric, discovering a new minimum each time.
+    All four global minima are found in four runs.}
+    \label{fig:basin-filling-himmelblau}
+\end{figure}
+
 \subsection{Open Questions}
 
 \begin{enumerate}
