@@ -1685,27 +1685,28 @@ on the Rosenbrock and saddle functions.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.75\textwidth]{../images/geodesic_eigenvalue_min.pdf}
+    \includegraphics[width=0.75\textwidth]{../images/geodesic_eigenvalue_min.png}
     \caption{Minimum eigenvalue of the Euclidean Hessian $H$ and the
-    Riemannian Hessian $\operatorname{Hess}_g\loss$ along the diagonal
-    of the Rosenbrock function, for several values of $\xi$.
+    Riemannian Hessian $\operatorname{Hess}_g\loss$ along a semicircular
+    arc through the Rosenbrock landscape, for several values of $\xi$.
     The sign is preserved; only the magnitude is damped.}
     \label{fig:geodesic-eigenvalue}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.75\textwidth]{../images/geodesic_scaling_factor.pdf}
+    \includegraphics[width=0.75\textwidth]{../images/geodesic_scaling_factor.png}
     \caption{The scaling factor $1/(1+\xi\|\nabla\loss\|^2)$ along the
-    Rosenbrock diagonal.  Near the minimum ($t\approx 0.75$) where
-    $\|\nabla\loss\|\to 0$, the factor approaches~1; far from the minimum
-    it is strongly suppressed.}
+    Rosenbrock valley $y = x^2$.  At the minimum ($t = 0.5$, corresponding
+    to the point $(1,1)$) where $\|\nabla\loss\|\to 0$, the factor
+    approaches~1; away from the minimum it is strongly suppressed, with
+    larger $\xi$ producing a narrower peak.}
     \label{fig:geodesic-scaling}
 \end{figure}
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.85\textwidth]{../images/geodesic_nonconvexity_map.pdf}
+    \includegraphics[width=0.85\textwidth]{../images/geodesic_nonconvexity_map.png}
     \caption{Minimum eigenvalue of $H$ (left) and $\operatorname{Hess}_g\loss$
     with $\xi=10$ (right) over the Rosenbrock domain $[-2,2]^2$.
     The sign structure is identical; the induced metric compresses the
@@ -1715,7 +1716,7 @@ on the Rosenbrock and saddle functions.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.75\textwidth]{../images/geodesic_saddle_eigenvalues.pdf}
+    \includegraphics[width=0.75\textwidth]{../images/geodesic_saddle_eigenvalues.png}
     \caption{Eigenvalues of $H$ and $\operatorname{Hess}_g\loss$ ($\xi=10$)
     for the saddle function $\loss=x^2-y^2$ on the unit circle.
     The Euclidean eigenvalues $\pm 2$ (dashed) are uniformly compressed
