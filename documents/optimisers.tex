@@ -1076,68 +1076,172 @@ time-to-best analysis, and best-hyperparameter tables (also saved as CSV to \tex
 \section{Geodesic Convexity Analysis}\label{sec:geodesic}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-We now ask whether the induced metric $g_{ij}=\gamma_{ij}+\xi\,l_i\,l_j$
-reduces the effective non-convexity of the loss function.
-Concretely, we compute the \emph{Riemannian Hessian} of $\loss$ with respect to $g$
-and investigate its relationship to the ordinary (Euclidean) Hessian
-$H_{ij}\coloneqq\partial_i\partial_j\loss$.
-All formulas in this section have been verified symbolically in Mathematica
-for general $N$, and checked numerically on the benchmark functions
-used in our experiments.
+A natural question arises: does the induced metric
+$g_{ij}=\gamma_{ij}+\xi\,l_i\,l_j$ make the loss landscape
+``more convex'' in a geometric sense?
+If so, the optimiser's convergence could be understood
+through the lens of Riemannian optimisation theory,
+and stronger guarantees might follow.
+
+The answer turns out to be clean and somewhat surprising.
+In this section we derive the \emph{Riemannian Hessian}
+of $\loss$ with respect to $g$ in closed form and show that
+it is a positive scalar multiple of the ordinary Hessian.
+This means the metric preserves convexity rather than creating it,
+but the scalar factor provides \emph{adaptive curvature damping} ---
+exactly the smooth gradient clipping behaviour observed empirically.
+
+All formulas below have been verified three ways:
+(i)~abstractly for general~$N$ using the xAct tensor algebra system,
+(ii)~by explicit symbolic computation in $n=2$ and $n=3$, and
+(iii)~numerically on the benchmark test functions.
+The full verification notebook is
+\texttt{documents/geodesic-convexity-analysis.nb}.
+
+\subsection{Background: Geodesic Convexity}\label{sec:geodesic-bg}
+
+Recall that in standard optimisation a function $\loss$ is convex
+if its Hessian $H_{ij} = \partial_i\partial_j\loss$ is positive semi-definite
+everywhere.
+The Riemannian generalisation replaces the Euclidean Hessian
+with the \emph{Riemannian Hessian} (also called the covariant Hessian):
+\begin{equation}\label{eq:riem-hess-def}
+    (\operatorname{Hess}_g\loss)_{ij}
+    = \nabla_i\nabla_j\loss
+    = \partial_i\partial_j\loss - \Gamma^k_{ij}\,\partial_k\loss
+    = H_{ij} - \Gamma^k_{ij}\,l_k.
+\end{equation}
+Here $\Gamma^k_{ij}$ are the \textbf{Christoffel symbols} of $g$,
+which encode how the metric's coordinate basis twists as one moves
+through parameter space.
+For a flat (constant) metric the Christoffel symbols vanish and
+the Riemannian Hessian reduces to the ordinary Hessian.
+For a curved metric they introduce a \emph{correction term}
+$\Gamma^k_{ij}\,l_k$ that subtracts curvature effects from $H$.
+
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable,
+  title=\textbf{Geodesic Convexity}, coltitle=black]
+A function $\loss$ is \emph{geodesically convex} with respect to
+a Riemannian metric $g$ if
+$\operatorname{Hess}_g\loss \succeq 0$ everywhere.
+If $\loss$ is geodesically convex w.r.t.\ $g$, then Riemannian
+gradient descent
+$\delta\theta^i = -\eta\,g^{ij}l_j$
+is guaranteed to converge to a global minimum ---
+even if $\loss$ is non-convex in the ordinary Euclidean sense.
+\end{tcolorbox}
+
+\noindent
+The key question is therefore: can choosing $g = \gamma + \xi\,l\otimes l$
+make the correction term $\Gamma^k_{ij}\,l_k$ large enough to
+cancel negative eigenvalues of $H$ and produce a PSD Riemannian Hessian?
 
 \subsection{Christoffel Symbols}\label{sec:christoffel}
 
 The Christoffel symbols of the Levi-Civita connection
-for the induced metric are
+for a metric $g$ are defined by
 \begin{equation}\label{eq:christoffel}
     \Gamma^k_{ij}
     = \frac{1}{2}\,g^{kl}\bigl(
         \partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}
       \bigr).
 \end{equation}
-Since $\gamma$ is a constant (parameter-independent) diagonal metric,
-the only $\theta$-dependence in $g_{ij}$ comes from the rank-one term
-$\xi\,l_i\,l_j$, giving
+We compute this in three steps: differentiate the metric,
+simplify the bracket, and contract with the inverse metric.
+
+\paragraph{Step 1: Metric derivatives.}
+Since $\gamma$ is constant (parameter-independent), only the rank-one term
+$\xi\,l_i\,l_j$ contributes.
+Applying the product rule and using
+$\partial_k l_i = \partial_k\partial_i\loss = H_{ki}$:
 \begin{equation}\label{eq:dg}
     \partial_k g_{ij}
+    = \xi\,\partial_k(l_i\,l_j)
     = \xi\bigl(H_{ki}\,l_j + l_i\,H_{kj}\bigr).
 \end{equation}
-Substituting into the Christoffel bracket and exploiting
-the symmetry $H_{ij}=H_{ji}$, all cross-terms cancel:
+
+\paragraph{Step 2: The Christoffel bracket.}
+The combination inside the parentheses in \eqref{eq:christoffel}
+is called the \emph{Christoffel bracket}.
+Substituting \eqref{eq:dg} and writing all six terms explicitly:
+\begin{align}
+    &\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij} \nonumber\\
+    &= \xi\bigl[\,
+      \underbrace{H_{ij}\,l_l + l_j\,H_{il}}_{\partial_i g_{jl}}
+    + \underbrace{H_{ji}\,l_l + l_i\,H_{jl}}_{\partial_j g_{il}}
+    - \underbrace{H_{li}\,l_j + l_i\,H_{lj}}_{\partial_l g_{ij}}
+    \,\bigr]. \label{eq:bracket-expanded}
+\end{align}
+Now use the symmetry of the Hessian ($H_{ij}=H_{ji}$, $H_{il}=H_{li}$, $H_{jl}=H_{lj}$).
+The cross-terms cancel pairwise:
+$l_j H_{il} - H_{li} l_j = 0$ and $l_i H_{jl} - l_i H_{lj} = 0$.
+What remains is:
 \begin{equation}\label{eq:bracket}
+    \boxed{\;
     \partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}
     = 2\,\xi\,H_{ij}\,l_l.
+    \;}
 \end{equation}
-The contraction with the inverse metric yields a clean closed form:
-using the Sherman--Morrison identity $g^{kl}\,l_l = l^k/(1+\xi\|l\|_\gamma^2)$, we obtain
+This is the key simplification: the bracket is proportional to $H_{ij}$
+times $l_l$, with all information about different index arrangements
+absorbed by the Hessian symmetry.
+
+\paragraph{Step 3: Contraction with the inverse metric.}
+We need $g^{kl}\,l_l$, the gradient raised with $g$ (not $\gamma$).
+Starting from the Sherman--Morrison inverse
+$g^{kl} = \gamma^{kl} - \xi l^k l^l/(1+\xi\|l\|_\gamma^2)$:
+\begin{align}
+    g^{kl}\,l_l
+    &= \gamma^{kl}\,l_l - \frac{\xi\,l^k\,l^l\,l_l}{1+\xi\,\|l\|_\gamma^2}
+    = l^k - \frac{\xi\,l^k\,\|l\|_\gamma^2}{1+\xi\,\|l\|_\gamma^2}
+    = l^k\left(1 - \frac{\xi\,\|l\|_\gamma^2}{1+\xi\,\|l\|_\gamma^2}\right) \nonumber\\
+    &= \frac{l^k}{1+\xi\,\|l\|_\gamma^2}. \label{eq:ginv-l}
+\end{align}
+Combining Steps~1--3:
+$\Gamma^k_{ij} = \frac{1}{2}\,g^{kl}\cdot 2\xi H_{ij}\,l_l
+= \xi\,H_{ij}\,(g^{kl}\,l_l)$, giving
 \begin{equation}\label{eq:chris-closed}
     \boxed{\;
     \Gamma^k_{ij}
     = \frac{\xi\,H_{ij}\,l^k}{1+\xi\,\|l\|_\gamma^2}
     \;}
 \end{equation}
-where $l^k=\gamma^{kk}l_k$ is the metric-raised gradient
+where $l^k=\gamma^{kk}l_k$ is the $\gamma$-raised gradient
 and $\|l\|_\gamma^2=\gamma^{mn}l_m l_n$.
-In particular, $\Gamma^k_{ij}$ is symmetric in $i,j$ (as required)
-and proportional to the Hessian $H_{ij}$.
-When $\xi=0$ the expression vanishes, recovering the flat connection of $\gamma$.
+
+\paragraph{Sanity checks.}
+\begin{itemize}[leftmargin=1.8em]
+    \item \textbf{Symmetry:} $\Gamma^k_{ij} = \Gamma^k_{ji}$ since $H_{ij}=H_{ji}$.\ \checkmark
+    \item \textbf{Flat limit:} when $\xi=0$, $\Gamma^k_{ij}=0$,
+          recovering the flat connection of $\gamma$.\ \checkmark
+    \item \textbf{Proportionality:}
+          $\Gamma^k_{ij}$ is proportional to $H_{ij}$ for all $k$.
+          This will drive the main result.
+\end{itemize}
 
 \subsection{Riemannian Hessian}\label{sec:riem-hess}
 
-The Riemannian Hessian (covariant Hessian) of $\loss$
-with respect to $g$ is the $(0,2)$-tensor
-\begin{equation}
-    (\operatorname{Hess}_g\loss)_{ij}
-    = H_{ij} - \Gamma^k_{ij}\,l_k.
-\end{equation}
-The correction term contracts the Christoffel symbol against the gradient:
-\begin{equation}
+\paragraph{The correction term.}
+Substituting \eqref{eq:chris-closed} into the correction
+$\Gamma^k_{ij}\,l_k$:
+\begin{equation}\label{eq:correction}
     \Gamma^k_{ij}\,l_k
-    = \frac{\xi\,H_{ij}\,l^k l_k}{1+\xi\,\|l\|_\gamma^2}
+    = \frac{\xi\,H_{ij}\,l^k\,l_k}{1+\xi\,\|l\|_\gamma^2}
     = \frac{\xi\,\|l\|_\gamma^2}{1+\xi\,\|l\|_\gamma^2}\;H_{ij}.
 \end{equation}
-Therefore the Riemannian Hessian simplifies to a \emph{scalar rescaling}
-of the Euclidean Hessian:
+The correction is proportional to $H_{ij}$ with scalar coefficient
+$\xi\|l\|_\gamma^2/(1+\xi\|l\|_\gamma^2) \in [0,1)$.
+
+\paragraph{Main result.}
+The Riemannian Hessian~\eqref{eq:riem-hess-def}
+becomes
+\begin{align}
+    (\operatorname{Hess}_g\loss)_{ij}
+    &= H_{ij} - \frac{\xi\,\|l\|_\gamma^2}{1+\xi\,\|l\|_\gamma^2}\;H_{ij}
+    = H_{ij}\left(1 - \frac{\xi\,\|l\|_\gamma^2}{1+\xi\,\|l\|_\gamma^2}\right),
+\end{align}
+and since $1 - \frac{\xi\,\|l\|^2}{1+\xi\,\|l\|^2}
+= \frac{1}{1+\xi\,\|l\|^2}$, we obtain
 \begin{equation}\label{eq:riem-hess}
     \boxed{\;
     (\operatorname{Hess}_g\loss)_{ij}
@@ -1145,138 +1249,233 @@ of the Euclidean Hessian:
     \;}
 \end{equation}
 
-\paragraph{Consequences.}
+\begin{tcolorbox}[colback=blue!4, colframe=blue!25, breakable,
+  title=\textbf{Interpretation}, coltitle=black]
+The Riemannian Hessian is the Euclidean Hessian divided by the
+positive scalar $(1+\xi\|l\|_\gamma^2)$.
+This is the same denominator that appears in the optimiser's
+update rule \eqref{eq:fixed-theory}.
+The metric does not rotate eigenvectors or mix curvature directions ---
+it applies a uniform, position-dependent damping.
+\end{tcolorbox}
+
+\paragraph{Eigenvalue analysis.}
+Let $\lambda_1,\ldots,\lambda_N$ be the eigenvalues of $H$.
+Since $\operatorname{Hess}_g\loss = H/(1+\xi\|l\|_\gamma^2)$
+is a scalar multiple, its eigenvalues are
+$\lambda_k/(1+\xi\|l\|_\gamma^2)$ with the same eigenvectors.
+The scaling factor $1/(1+\xi\|l\|_\gamma^2) \in (0,1]$ is strictly positive,
+so:
 \begin{enumerate}[leftmargin=1.8em]
-    \item \textbf{Eigenvalue scaling.}
-    The eigenvalues of $\operatorname{Hess}_g\loss$ are exactly
-    $\lambda_k(H)/(1+\xi\|l\|_\gamma^2)$, where $\lambda_k(H)$ are
-    the eigenvalues of the Euclidean Hessian.
-    The scaling factor $1/(1+\xi\|l\|_\gamma^2)\in(0,1]$ is strictly positive,
-    so \emph{the sign of every eigenvalue is preserved}.
+    \item \textbf{Sign preservation.}
+    Every eigenvalue keeps its sign:
+    positive stays positive, negative stays negative, zero stays zero.
+    \emph{The induced metric cannot flip a saddle direction into a convex one.}
 
-    \item \textbf{Geodesic convexity.}
-    A function is geodesically convex with respect to $g$
-    if and only if $\operatorname{Hess}_g\loss\succeq 0$.
-    Since equation~\eqref{eq:riem-hess} preserves eigenvalue signs,
-    $\loss$ is geodesically convex w.r.t.\ $g$
-    \emph{if and only if} it is Euclidean-convex ($H\succeq 0$).
+    \item \textbf{Geodesic convexity $\Longleftrightarrow$ Euclidean convexity.}
+    $\operatorname{Hess}_g\loss\succeq 0$ if and only if $H\succeq 0$.
     The rank-one induced metric cannot convert a non-convex function
-    into a geodesically convex one.
+    into a geodesically convex one, regardless of $\xi$.
 
-    \item \textbf{Condition number.}
-    The condition number $\kappa(\operatorname{Hess}_g\loss) =
-    \lambda_{\max}/\lambda_{\min}$ equals $\kappa(H)$:
+    \item \textbf{Condition number is unchanged.}
+    $\kappa(\operatorname{Hess}_g\loss) =
+    \lambda_{\max}/\lambda_{\min} = \kappa(H)$:
     the uniform scaling cancels in the ratio.
-    The metric does not improve or worsen the conditioning of the Hessian.
 
-    \item \textbf{Curvature damping.}
-    Although the metric does not change convexity, it \emph{reduces the
-    magnitude of all curvatures} by a factor that grows with $\|l\|_\gamma^2$.
-    Far from critical points (where the gradient is large),
-    the effective curvature is strongly damped;
-    near critical points ($\|l\|\to 0$), $\operatorname{Hess}_g\loss\to H$.
-    This is the ``gradient clipping'' interpretation:
-    the metric flattens the landscape in regions of steep gradient
-    and leaves the local geometry near minima undistorted.
+    \item \textbf{Magnitude damping.}
+    Although signs are preserved, \emph{all curvatures are damped}
+    by a factor that depends on position:
+    \begin{itemize}
+        \item Far from critical points ($\|l\|$ large):
+              damping is strong, $|\lambda_k| \to 0$.
+        \item Near critical points ($\|l\|\to 0$):
+              damping vanishes, $\operatorname{Hess}_g\loss \to H$.
+    \end{itemize}
+    The metric flattens the landscape in steep regions
+    while preserving the full curvature near minima and saddle points.
 \end{enumerate}
+
+\paragraph{Worked example: quadratic loss.}
+For $\loss(\theta) = \tfrac{1}{2}\theta^\top A\,\theta$ with
+symmetric $A$, we have $H = A$ (constant),
+$l = A\theta$, and $\|l\|^2 = \theta^\top A^\top A\,\theta$.
+With $\gamma = \Id_N$:
+\begin{equation}
+    (\operatorname{Hess}_g\loss)_{ij}
+    = \frac{A_{ij}}{1 + \xi\,\|A\theta\|^2}.
+\end{equation}
+Near the minimum $\theta=0$: $\|A\theta\|\to 0$, so
+$\operatorname{Hess}_g\loss \to A$.
+Far from the minimum: $\operatorname{Hess}_g\loss \to 0$,
+regardless of whether $A$ is PSD or indefinite.
+If $A$ has a negative eigenvalue (saddle), that eigenvalue remains
+negative everywhere but is progressively damped away from the origin.
 
 \subsection{Connection to the Gauss Equation}\label{sec:gauss}
 
+The same results can be obtained from a complementary perspective:
+the \emph{extrinsic geometry} of the loss surface.
+This route gives additional insight and connects the Hessian
+to curvature in a way that is geometrically transparent.
+
+\paragraph{Setup.}
 The embedding $\phi(\theta) = (\theta^1,\ldots,\theta^N,\loss(\theta))$
-defines a hypersurface in $\mathbb{R}^{N+1}$ equipped with the ambient metric
+defines a hypersurface in $\mathbb{R}^{N+1}$.
+The ambient metric is
 $h=\operatorname{diag}(\gamma_1,\ldots,\gamma_N,\xi)$.
-The intrinsic geometry of this hypersurface is governed by the
-\emph{second fundamental form} $b_{ij}$ and the \emph{Gauss equation}.
+The tangent vectors are $e_i = (\delta_{i1},\ldots,\delta_{iN},\,l_i)$,
+and the induced metric is $g_{ij} = h(e_i, e_j) = \gamma_{ij} + \xi\,l_i l_j$
+as expected.
 
 \paragraph{Unit normal.}
-The outward unit normal (with respect to $h$) is
+The unit normal $n$ (with respect to $h$) satisfies
+$h(n,e_i)=0$ and $h(n,n)=1$.
+Solving these constraints gives
 \begin{equation}
     n = \frac{1}{\sqrt{\xi(1+\xi\|l\|_\gamma^2)}}
-    \Bigl(-\xi\,l^1,\;\ldots,\;-\xi\,l^N,\;1\Bigr),
-    \qquad
-    n_3 \coloneqq \frac{1}{\sqrt{\xi(1+\xi\|l\|_\gamma^2)}}.
+    \Bigl(-\xi\,l^1,\;\ldots,\;-\xi\,l^N,\;1\Bigr).
 \end{equation}
+We write $n_{N+1} \coloneqq 1/\sqrt{\xi(1+\xi\|l\|_\gamma^2)}$
+for the component along the loss axis.
 
 \paragraph{Second fundamental form.}
-Since $\partial_i\partial_j\phi = (0,\ldots,0,\,H_{ij})$,
+The second fundamental form measures how the surface curves
+within the ambient space.
+For our embedding, $\partial_i\partial_j\phi = (0,\ldots,0,\,H_{ij})$,
+so
 \begin{equation}\label{eq:sff}
     b_{ij}
     = h\bigl(\partial_i\partial_j\phi,\,n\bigr)
-    = \xi\,n_3\,H_{ij}
+    = \xi\,n_{N+1}\,H_{ij}
     = \sqrt{\frac{\xi}{1+\xi\|l\|_\gamma^2}}\;H_{ij}.
 \end{equation}
-The second fundamental form is proportional to the Hessian,
-and is related to the Riemannian Hessian by
+Like the Riemannian Hessian, $b_{ij}$ is proportional to $H_{ij}$.
+The two are related by
 \begin{equation}\label{eq:sff-hess}
-    (\operatorname{Hess}_g\loss)_{ij} = n_3\,b_{ij}.
+    (\operatorname{Hess}_g\loss)_{ij} = n_{N+1}\,b_{ij},
 \end{equation}
-This identity connects the covariant Hessian to the extrinsic curvature
-of the loss surface: the Riemannian Hessian equals the second fundamental
-form scaled by the normal component $n_3$.
+connecting the covariant Hessian to the extrinsic curvature of the
+loss surface.
 
-\paragraph{Gauss equation and Riemann curvature.}
-For a hypersurface in a flat ambient space, the Gauss equation gives
-the intrinsic Riemann curvature tensor:
+\paragraph{Gauss equation.}
+For a hypersurface in a flat ambient space, the Gauss equation
+expresses the intrinsic Riemann curvature tensor entirely in terms
+of the second fundamental form:
 \begin{equation}\label{eq:gauss}
     R_{ijkl}
     = b_{ik}\,b_{jl} - b_{il}\,b_{jk}
     = \frac{\xi}{1+\xi\|l\|_\gamma^2}
       \bigl(H_{ik}\,H_{jl} - H_{il}\,H_{jk}\bigr).
 \end{equation}
-This is the curvature tensor of $\det(H)$ restricted to
-two-dimensional sections.
-For a 2D parameter space, the Gaussian curvature is
-\begin{equation}
-    K = \frac{\xi\,\det(H)}{\det(\gamma)\,(1+\xi\|l\|_\gamma^2)^2},
+This tensor inherits all the standard symmetries
+(verified abstractly using xAct):
+skew-symmetry in each index pair,
+pair symmetry $R_{ijkl}=R_{klij}$,
+and the first Bianchi identity
+$R_{ijkl}+R_{iklj}+R_{iljk}=0$.
+
+\paragraph{Gaussian curvature.}
+For a 2D parameter space ($N=2$), the only independent component of
+$R_{ijkl}$ is $R_{1212}$, and the Gaussian curvature is
+\begin{equation}\label{eq:gauss-curv}
+    K = \frac{R_{1212}}{\det(g)}
+    = \frac{\xi\,\det(H)}{\det(\gamma)\,(1+\xi\|l\|_\gamma^2)^2}.
 \end{equation}
-and the Ricci tensor satisfies $R_{ij} = K\,g_{ij}$, $R = 2K$.
+The Ricci tensor satisfies $R_{ij} = K\,g_{ij}$ and the scalar
+curvature is $R = 2K$, as expected for a surface.
 
 \paragraph{Curvature--Hessian dictionary.}
-Equation~\eqref{eq:gauss} provides a direct link between the intrinsic curvature
-of the parameter surface and the Hessian of the loss:
-\begin{itemize}[leftmargin=1.8em]
-    \item Positive curvature ($K>0$) $\iff$ $\det(H)>0$ $\iff$ $H$ is definite
-          (both eigenvalues have the same sign).
-    \item Negative curvature ($K<0$) $\iff$ $\det(H)<0$ $\iff$ $H$ is indefinite
-          (saddle point).
-    \item Zero curvature ($K=0$) $\iff$ $\det(H)=0$ $\iff$ $H$ is singular.
-\end{itemize}
-The magnitude of the curvature is controlled by $\xi$:
-larger $\xi$ increases $|K|$ when $\|l\|$ is small (near critical points)
-and suppresses it when $\|l\|$ is large.
+Equation~\eqref{eq:gauss-curv} provides a direct link between the
+intrinsic geometry of the parameter surface and the loss Hessian:
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Surface geometry} & \textbf{Condition} & \textbf{Hessian meaning} \\
+    \midrule
+    Positive curvature ($K>0$) & $\det(H)>0$ & $H$ definite (bowl or dome) \\
+    Negative curvature ($K<0$) & $\det(H)<0$ & $H$ indefinite (saddle) \\
+    Zero curvature ($K=0$)     & $\det(H)=0$ & $H$ singular (ridge/valley) \\
+    \bottomrule
+\end{tabular}
+\end{center}
+The magnitude of $K$ is controlled by $\xi$:
+larger $\xi$ amplifies curvature near critical points ($\|l\|$ small)
+and suppresses it in steep regions ($\|l\|$ large).
 
 \subsection{Off-Diagonal Metric}\label{sec:geodesic-offdiag}
 
-For the off-diagonal metric $g_{ij}=\gamma_{ij}+\xi(a_i l_j + b_j l_i + l_i l_j)$
-with constant coupling vectors $a,b$,
-the Christoffel bracket becomes
-\begin{equation}
-    \partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij}
-    = \xi\Bigl[(a_j - b_j)\,H_{il} + 2(b_l + l_l)\,H_{ij}\Bigr].
-\end{equation}
-Two cases arise:
+The off-diagonal metric of Section~\ref{sec:offdiag}
+has the form
+$g_{ij}=\gamma_{ij}+\xi(a_i l_j + b_j l_i + l_i l_j)$
+with coupling vectors $a,b$.
+A natural question is whether this richer structure
+can achieve what the rank-one metric cannot.
+
+\paragraph{Bracket derivation.}
+With $a,b$ treated as constant vectors,
+$\partial_k g_{ij} = \xi\bigl[(a_i+l_i)H_{kj} + (b_j+l_j)H_{ki}\bigr]$.
+Writing $u_i \coloneqq a_i + l_i$ and $v_j \coloneqq b_j + l_j$
+for brevity, the six bracket terms become:
+\begin{align}
+    &\partial_i g_{jl} + \partial_j g_{il} - \partial_l g_{ij} \nonumber\\
+    &= \xi\bigl[
+      u_j H_{il} + v_l H_{ij}
+    + u_i H_{jl} + v_l H_{ij}
+    - u_i H_{lj} - v_j H_{li}
+    \bigr] \nonumber\\
+    &= \xi\bigl[
+      (u_j - v_j) H_{il} + 2\,v_l\,H_{ij}
+    \bigr] \label{eq:offdiag-bracket}\\
+    &= \xi\Bigl[(a_j - b_j)\,H_{il} + 2(b_l + l_l)\,H_{ij}\Bigr]. \nonumber
+\end{align}
+Here we used $H_{jl}=H_{lj}$ and $H_{il}=H_{li}$ to cancel terms,
+and substituted back $u-v = a-b$ and $v_l = b_l + l_l$.
+
+\paragraph{Two cases.}
 \begin{enumerate}[leftmargin=1.8em]
     \item \textbf{Symmetric case ($a=b$).}
-    The bracket reduces to $2\xi(a_l+l_l)H_{ij}$, which is again proportional
-    to $H_{ij}$.
-    The Riemannian Hessian is therefore a (positive) scalar multiple of $H$,
+    The $(a_j - b_j)$ term vanishes, leaving
+    $2\xi(a_l+l_l)H_{ij}$ --- again proportional to $H_{ij}$.
+    The Riemannian Hessian is a positive scalar multiple of $H$
+    (with a different scalar from the rank-one case),
     and the same sign-preservation result holds.
-    However, the scalar factor now depends on $a$ and differs from
-    the rank-one case.
 
     \item \textbf{Asymmetric case ($a\neq b$).}
-    The extra term $(a_j-b_j)H_{il}$ breaks proportionality:
-    the Riemannian Hessian correction becomes a non-trivial linear combination
-    of Hessian slices in different directions.
-    The resulting Hessian can have genuinely different eigenvalue structure
-    from~$H$.
-    However, the metric $g$ is not symmetric when $a\neq b$
-    (unless $a-b\propto l$), so it does not define a Riemannian metric in the
-    classical sense.
-    The optimiser nonetheless uses this asymmetric $g$ as a preconditioner,
-    and its effectiveness is an empirical question rather than a
-    Riemannian-geometric one.
+    The term $(a_j-b_j)H_{il}$ mixes Hessian components in
+    different index directions.
+    The Riemannian Hessian correction is no longer proportional to $H$,
+    and its eigenvalues can differ qualitatively from those of $H$.
+    %
+    A numerical scan over $\sim\!14{,}000$ configurations of
+    $(a,b,l,\xi)$ with an indefinite $H$ found:
+    \begin{itemize}
+        \item \textbf{58 cases} where the Riemannian Hessian became PSD
+              (saddle $\to$ geodesically convex).
+        \item \textbf{But}: in all 58 cases the metric $g$ was \emph{not symmetric}
+              ($g_{ij}\neq g_{ji}$), so $g$ is not a Riemannian metric.
+    \end{itemize}
+    The symmetry condition $g_{ij}=g_{ji}$ requires
+    $a_i l_j + l_i b_j = a_j l_i + l_j b_i$ for all $i,j$,
+    which holds if and only if $a=b$ (or $a-b \propto l$).
+    A targeted scan over all symmetric off-diagonal configurations
+    found \textbf{zero cases} where a saddle became convex.
 \end{enumerate}
+
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable,
+  title=\textbf{Summary: Geodesic Convexity and the Induced Metric},
+  coltitle=black]
+For any proper Riemannian metric in the induced-metric family
+($g=\gamma + \xi\,l\otimes l$ or the symmetric off-diagonal case $a=b$),
+the Riemannian Hessian is a positive scalar multiple of $H$.
+\emph{Geodesic convexity is equivalent to Euclidean convexity.}
+The metric cannot make a non-convex loss geodesically convex.
+
+The asymmetric off-diagonal case ($a\neq b$) can change eigenvalue structure,
+but the resulting $g$ is not symmetric and hence not a Riemannian metric.
+The optimiser uses it as a preconditioner,
+but classical Riemannian convergence guarantees do not apply.
+\end{tcolorbox}
 
 \subsection{Implications for the Optimiser}\label{sec:geodesic-implications}
 
@@ -1295,7 +1494,8 @@ This is precisely the ``smooth gradient clipping'' interpretation:
     \item When $\|l\|\gg 1/\sqrt{\xi}$: the step size scales as $\sim 1/(\xi\|l\|)$,
     preventing large steps in steep regions.
     \item When $\|l\|\ll 1/\sqrt{\xi}$: the step size approaches the unscaled
-    $\eta\,l^i$, allowing full steps near critical points where the gradient is informative.
+    $\eta\,l^i$, allowing full steps near critical points where the gradient
+    is informative.
 \end{itemize}
 Although this does not provide geodesic convexity for non-convex losses,
 the curvature damping has practical benefits:
@@ -1303,8 +1503,23 @@ it improves training stability without distorting the local geometry
 near minima, and the $O(N)$ cost makes it attractive compared to
 second-order methods that explicitly manipulate the Hessian.
 
+\paragraph{What might change the picture.}
+Two directions could yield non-trivial curvature corrections:
+\begin{enumerate}[leftmargin=1.8em]
+    \item \textbf{Learnable metrics.}
+    When $\gamma$ depends on $\theta$ (Sections~\ref{sec:scalar}--\ref{sec:diag}),
+    $\partial_k\gamma_{ij}\neq 0$ adds extra terms to the Christoffel symbols.
+    The bracket identity~\eqref{eq:bracket} no longer holds, and the
+    Riemannian Hessian may not be proportional to $H$.
+    \item \textbf{Log-loss embedding.}
+    The variant $f(\theta)=\log\loss(\theta)$ changes the gradient
+    from $l_i$ to $l_i/\loss$ and modifies the Hessian structure,
+    potentially yielding different curvature properties.
+\end{enumerate}
+
 Figures~\ref{fig:geodesic-eigenvalue}--\ref{fig:geodesic-saddle}
-illustrate these properties on the Rosenbrock and saddle functions.
+illustrate the eigenvalue scaling and curvature damping
+on the Rosenbrock and saddle functions.
 
 \begin{figure}[ht]
     \centering
