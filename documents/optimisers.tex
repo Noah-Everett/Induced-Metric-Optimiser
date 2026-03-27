@@ -1488,18 +1488,9 @@ The Christoffel bracket becomes:
 \end{equation}
 The rank-one term is exactly as before;
 the new ingredient is the Christoffel bracket of $\gamma$ itself.
-The Christoffel symbols of $g$ therefore decompose as
-\begin{equation}\label{eq:chris-learnable}
-    \Gamma^k_{ij}(g)
-    = \Gamma^k_{ij}(\gamma)
-    + \frac{\xi\,H_{ij}\,l^k}{1+\xi\,\|l\|_\gamma^2},
-\end{equation}
-where $\Gamma^k_{ij}(\gamma)$ are the Christoffel symbols of the
-base metric $\gamma$ alone (computed with $g^{kl}$, not $\gamma^{kl}$,
-but the Sherman--Morrison correction contributes only subleading terms).
-
-Contracting with $l_k$ and subtracting from $H$ gives the
-Riemannian Hessian:
+Contracting with $\tfrac{1}{2}g^{kl}$ and then with $l_k$, the
+Riemannian Hessian becomes (after simplification;
+see the verification notebook for the full derivation):
 \begin{equation}\label{eq:riem-hess-learnable}
     \boxed{\;
     (\operatorname{Hess}_g\loss)_{ij}
@@ -1532,20 +1523,30 @@ The correction term is:
     = \tfrac{1}{2}\bigl(s_i\,l_j + s_j\,l_i
     - (\nabla s \cdot l)\,\delta_{ij}\bigr).
 \end{equation}
-This is a rank-2 symmetric matrix built from the outer products of
+This is a symmetric matrix built from the outer products of
 $\nabla s$ and $l$.
-Crucially, $C_{ij}$ is \textbf{traceless}:
-$\delta^{ij}C_{ij} = s_i l_i + s_i l_i - N(\nabla s\cdot l) = (2-N)(\nabla s\cdot l)$,
-which vanishes when $N=2$ and is generally small.
+Its trace is
+\begin{equation}\label{eq:scalar-trace}
+    \operatorname{tr}(C)
+    = \delta^{ij}C_{ij}
+    = \nabla s\cdot l - \tfrac{N}{2}(\nabla s\cdot l)
+    = \frac{2-N}{2}\,(\nabla s \cdot l).
+\end{equation}
+For $N=2$ the correction is traceless, and for $N>2$ the trace is
+\emph{negative} (when $\nabla s\cdot l > 0$),
+meaning the correction shifts the \emph{average} eigenvalue of the
+Riemannian Hessian downward.
 
 The eigenvalues of $C$ scale as $\pm\|\nabla s\|\,\|l\|/2$
 (the precise values depend on the angle between $\nabla s$ and $l$).
-Because $C$ is traceless, it can only redistribute curvature
-between directions --- it can make one eigenvalue of
-$\operatorname{Hess}_g\loss$ more positive at the expense of another.
-A sign flip is possible only when $\operatorname{tr}(H) > 0$
-(the Laplacian $\Delta\loss > 0$), so that $C$ can push the
-negative eigenvalue above zero while the positive one absorbs the cost.
+For $N=2$ the tracelessness forces $C$ to redistribute curvature
+between directions without shifting the mean,
+so a sign flip requires $\operatorname{tr}(H) > 0$.
+For $N>2$ the situation is \emph{harder}: the negative trace pulls
+eigenvalues down on average, so even larger $\operatorname{tr}(H)$
+is needed to compensate.
+Numerical tests confirm that the required $\operatorname{tr}(H)$
+for a sign flip grows with $N$, strengthening the hierarchy.
 
 \paragraph{Learnable diagonal: $\gamma = \operatorname{diag}(e^{s_1},\ldots,e^{s_N})$.}
 For $\gamma_{ij} = e^{s_i}\,\delta_{ij}$ (no sum) with
@@ -1590,12 +1591,31 @@ On the saddle function $\loss = x^2 - y^2$
     \bottomrule
 \end{tabular}
 \end{center}
-The diagonal learnable metric converts an indefinite Hessian
-into a positive-definite Riemannian Hessian.
+With an appropriately chosen $\nabla s$, the diagonal learnable metric
+converts an indefinite Hessian into a positive-definite Riemannian Hessian.
 This was also verified on more extreme cases:
 $\loss = x^2 - 3y^2$ ($\operatorname{tr}(H) = -4$)
 and $\loss = x^2 - 100y^2$ ($\operatorname{tr}(H) = -198$),
-both achieving sign flips with appropriate choices of $\nabla s$.
+both achieving sign flips.
+
+\paragraph{Caveat: theoretical capability vs.\ current optimizer.}
+The sign flips above use $\nabla s$ values chosen to maximize $\lambda_{\min}$.
+The \emph{current} online learning rule
+$s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,l_i^2 - \mu\,\lambda_s\,s_i$
+does \emph{not} produce these optimal gradients.
+At symmetric saddle points (where $l_i^2$ is equal across directions),
+the rule drives all $s_i$ toward the same value,
+creating zero trace correction and no sign flip.
+Numerical tests confirm that the online rule fails to achieve sign flips
+at the saddle $\loss = x^2 - y^2$ for all tested values of $\lambda_s$.
+
+The gap between theoretical capability and current optimizer behavior
+is substantial:
+the optimal $\nabla s$ achieves $\lambda_{\min} \approx +0.36$ at the
+saddle where the online rule gives $\lambda_{\min} \approx -0.07$.
+Closing this gap --- for instance by incorporating curvature-sign
+information into the metric update --- is a promising direction
+for future work.
 
 \begin{tcolorbox}[colback=blue!4, colframe=blue!25, breakable,
   title=\textbf{Key Finding: Hierarchy of Curvature Correction},
@@ -1610,11 +1630,14 @@ There is a strict hierarchy of curvature correction power:
     \item \emph{Constant $\gamma$:} $C=0$.
     Only rescaling, never changes eigenvalue signs.
     \item \emph{Scalar learnable ($e^s\Id$):}
-    $C$ is traceless.
-    Can flip signs only when $\Delta\loss > 0$.
+    $\operatorname{tr}(C) = \tfrac{2-N}{2}(\nabla s\cdot l)$.
+    For $N=2$: traceless, can flip signs when $\Delta\loss > 0$.
+    For $N>2$: negative trace makes flipping \emph{harder};
+    the required $\operatorname{tr}(H)$ grows with $N$.
     \item \emph{Diagonal learnable ($\operatorname{diag}(e^{s_i})$):}
     $C$ has non-zero trace amplified by $e^{s_i - s_k}$.
-    Can flip signs even for predominantly concave losses.
+    Can flip signs even for predominantly concave losses,
+    independent of $N$.
 \end{itemize}
 The learnable diagonal metric performs \textbf{genuine Riemannian curvature
 correction}, not just gradient clipping.
@@ -1626,14 +1649,18 @@ This provides a geometric explanation for its empirical superiority
 The metric learning rule of Section~\ref{sec:diag}
 updates $s_i$ via gradient ascent on the denominator trace:
 $s_i \leftarrow s_i + \mu\,\xi\,e^{s_i}\,l_i^2 - \mu\,\lambda_s\,s_i$.
-This implicitly controls the curvature correction $C_{ij}$
-through the gradient $\nabla s$.
-The learning rate $\mu$ and regularisation $\lambda_s$ are therefore not
-just stability knobs --- they determine the \emph{strength of curvature
-correction} that the metric applies.
-Larger $\mu$ (faster metric adaptation) allows stronger corrections;
-stronger regularisation ($\lambda_s$) pulls the metric toward $\gamma=\Id$
-and suppresses the correction.
+This rule was designed to maximise adaptive step-size calibration,
+not to optimise the curvature correction $C_{ij}$.
+The analysis above shows that $\nabla s$ produced by this rule
+is suboptimal for sign flipping: the optimal $\nabla s$ requires
+anti-correlation with $H_{ii}$ (shrink scale along positive-curvature
+directions, grow along negative-curvature),
+whereas the online rule drives $s_i$ proportionally to $l_i^2$
+regardless of curvature sign.
+An update rule that incorporates curvature-sign information ---
+for instance via secant approximations to $H_{ii}$ from
+consecutive gradient differences --- could close the gap
+between theoretical capability and actual performance.
 
 \subsection{Implications for the Optimiser}\label{sec:geodesic-implications}
 
