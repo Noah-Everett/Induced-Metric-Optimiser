@@ -1,0 +1,2344 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     88767,       2335]
+NotebookOptionsPosition[     82963,       2266]
+NotebookOutlinePosition[     83280,       2280]
+CellTagsIndexPosition[     83237,       2277]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell["Optimal Learnable Metric Analysis", "Title",ExpressionUUID->"60648578-2c5f-4e5c-853b-f2f87c01232c"],
+
+Cell["Setup: Riemannian Hessian Framework for n=2", "Section",ExpressionUUID->"c88495c2-8964-4856-b35f-58d9842e39a8"],
+
+Cell[TextData[{
+ "For the learnable diagonal metric ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["g", "TI"], "\[LongEqual]", "diag", 
+         RowBox[{"(", 
+           RowBox[{
+             SuperscriptBox[
+              StyleBox["e", "TI"], 
+              SubscriptBox[
+               StyleBox["s", "TI"], "1"]], ",", 
+             SuperscriptBox[
+              StyleBox["e", "TI"], 
+              SubscriptBox[
+               StyleBox["s", "TI"], "2"]]}], ")"}], "+", "\[Xi] ", 
+         StyleBox["l", "TI"], "\[CircleTimes]", 
+         StyleBox["l", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "g = \\text{diag}(e^{s_1}, e^{s_2}) + \\xi\\, l \\otimes l", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b5ccf931-352a-4ae4-ab07-868f813d8180"],
+ ", the Riemannian Hessian is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox["Hess", 
+               StyleBox["g", "TI"]], 
+              StyleBox["L", "TI"]}], ")"}], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "\[LongEqual]", 
+         FractionBox[
+          RowBox[{
+            SubscriptBox[
+             StyleBox["H", "TI"], 
+             RowBox[{
+               StyleBox["i", "TI"], 
+               StyleBox["j", "TI"]}]], "-", 
+            SubscriptBox[
+             StyleBox["C", "TI"], 
+             RowBox[{
+               StyleBox["i", "TI"], 
+               StyleBox["j", "TI"]}]]}], 
+          
+          RowBox[{"1", "+", "\[Xi]", 
+            "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", 
+            StyleBox["l", "TI"], 
+            SubsuperscriptBox[
+            "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", "\[Gamma]",
+              "2"]}]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "(\\text{Hess}_g L)_{ij} = \\frac{H_{ij} - C_{ij}}{1 + \\xi \
+|l|^2_\\gamma}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ae8e96da-25e2-439c-a082-abb71a001c81"],
+ "where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["C", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "\[LongEqual]", 
+         SubsuperscriptBox["\[CapitalGamma]", 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}], 
+          StyleBox["k", "TI"]], 
+         RowBox[{"(", "\[Gamma]", ")"}], " ", 
+         SubscriptBox[
+          StyleBox["l", "TI"], 
+          StyleBox["k", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "C_{ij} = \\Gamma^k_{ij}(\\gamma)\\, l_k", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "595a1963-47b5-4927-a8fa-85cf87fc2eed"],
+ " is the curvature correction depending on ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d9d1a81f-ee15-46fd-bcb9-312ae7300838"],
+ "."
+}], "Text",ExpressionUUID->"986932aa-ba6a-4d8e-a759-b2627f0a798a"],
+
+Cell[TextData[{
+ "At ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Gamma]", "\[LongEqual]", 
+         StyleBox["I", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\gamma = I", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "823aa62c-2295-4c55-b3b3-4d93cddb10c4"],
+ " (i.e. ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "s_1 = s_2 = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2392b0f9-14c5-4087-97eb-b2293a00009e"],
+ "), the correction matrix is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["C", "TI"], "\[LongEqual]", 
+         RowBox[{"(", 
+           Cell[
+            BoxData[
+             FormBox[
+              GridBox[{{
+                 Cell[
+                  TextData[{" ", 
+                    Cell[
+                    BoxData[
+                    FractionBox[
+                    RowBox[{
+                    StyleBox["a", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "1"], "-", 
+                    StyleBox["b", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "2"]}], "2"]], "InlineFormula"], 
+                    " "}]], 
+                 Cell[
+                  TextData[{" ", 
+                    Cell[
+                    BoxData[
+                    FractionBox[
+                    RowBox[{
+                    StyleBox["b", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "1"], "+", 
+                    StyleBox["c", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "2"]}], "2"]], "InlineFormula"], 
+                    " "}]]}, {
+                 Cell[
+                  TextData[{" ", 
+                    Cell[
+                    BoxData[
+                    FractionBox[
+                    RowBox[{
+                    StyleBox["b", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "1"], "+", 
+                    StyleBox["c", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "2"]}], "2"]], "InlineFormula"], 
+                    " "}]], 
+                 Cell[
+                  TextData[{" ", 
+                    Cell[
+                    BoxData[
+                    FractionBox[
+                    RowBox[{"-", 
+                    StyleBox["c", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "1"], "+", 
+                    StyleBox["d", "TI"], " ", 
+                    SubscriptBox[
+                    StyleBox["l", "TI"], "2"]}], "2"]], "InlineFormula"], 
+                    " "}]]}}], TraditionalForm]]], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "C = \\begin{pmatrix} \\frac{a\\, l_1 - b\\, l_2}{2} & \\frac{b\\, l_1 + \
+c\\, l_2}{2} \\\\ \\frac{b\\, l_1 + c\\, l_2}{2} & \\frac{-c\\, l_1 + d\\, \
+l_2}{2} \\end{pmatrix}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d3491349-914f-4cf4-a2ef-854b18281a8d"],
+ "where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LongEqual]", "\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", "1"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "a = \\partial s_1/\\partial\\theta^1", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "014f660c-cc28-4d52-b1e2-361d0352b7d0"],
+ ", ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["b", "TI"], "\[LongEqual]", "\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "b = \\partial s_1/\\partial\\theta^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "06afb83e-8d6c-43fa-8546-1cc283a37ecd"],
+ ", ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["c", "TI"], "\[LongEqual]", "\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", "1"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "c = \\partial s_2/\\partial\\theta^1", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "03bf971e-9695-4551-b5f4-7fac2a8219d4"],
+ ", ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["d", "TI"], "\[LongEqual]", "\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "d = \\partial s_2/\\partial\\theta^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "41f0e398-1ec9-498a-ae71-7919a5d495f8"],
+ ". "
+}], "Text",ExpressionUUID->"2452cb16-431a-43ed-abf3-80f934e76e99"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "\"\<Global`*\>\"", "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Christoffel", " ", "symbols", " ", "at", " ", "gamma"}], "=", 
+    RowBox[{"I", " ", "for", " ", "diagonal", " ", "metric"}]}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"dsm", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"a", ",", "b"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"c", ",", "d"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"l", "=", 
+    RowBox[{"{", 
+     RowBox[{"l1", ",", "l2"}], "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"christoffelSymb", "[", 
+     RowBox[{"k_", ",", "i_", ",", "j_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"val", "=", "0"}], ",", 
+        RowBox[{"s", "=", 
+         RowBox[{"{", 
+          RowBox[{"s1", ",", "s2"}], "}"}]}]}], "}"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"j", "==", "k"}], ",", 
+         RowBox[{"val", " ", "+=", " ", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"1", "/", "2"}], ")"}], " ", 
+           RowBox[{"Exp", "[", 
+            RowBox[{
+             RowBox[{"s", "[", 
+              RowBox[{"[", "j", "]"}], "]"}], "-", 
+             RowBox[{"s", "[", 
+              RowBox[{"[", "k", "]"}], "]"}]}], "]"}], " ", 
+           RowBox[{"dsm", "[", 
+            RowBox[{"[", 
+             RowBox[{"j", ",", "i"}], "]"}], "]"}]}]}]}], "]"}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"i", "==", "k"}], ",", 
+         RowBox[{"val", " ", "+=", " ", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"1", "/", "2"}], ")"}], " ", 
+           RowBox[{"Exp", "[", 
+            RowBox[{
+             RowBox[{"s", "[", 
+              RowBox[{"[", "i", "]"}], "]"}], "-", 
+             RowBox[{"s", "[", 
+              RowBox[{"[", "k", "]"}], "]"}]}], "]"}], " ", 
+           RowBox[{"dsm", "[", 
+            RowBox[{"[", 
+             RowBox[{"i", ",", "j"}], "]"}], "]"}]}]}]}], "]"}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"If", "[", 
+        RowBox[{
+         RowBox[{"i", "==", "j"}], ",", 
+         RowBox[{"val", " ", "-=", " ", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"1", "/", "2"}], ")"}], " ", 
+           RowBox[{"Exp", "[", 
+            RowBox[{
+             RowBox[{"s", "[", 
+              RowBox[{"[", "i", "]"}], "]"}], "-", 
+             RowBox[{"s", "[", 
+              RowBox[{"[", "k", "]"}], "]"}]}], "]"}], " ", 
+           RowBox[{"dsm", "[", 
+            RowBox[{"[", 
+             RowBox[{"i", ",", "k"}], "]"}], "]"}]}]}]}], "]"}], ";", 
+       "\[IndentingNewLine]", "  ", "val"}]}], "\[IndentingNewLine]", "]"}]}],
+    ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"corrC", "[", 
+    RowBox[{"i_", ",", "j_"}], "]"}], ":=", 
+   RowBox[{"Sum", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"christoffelSymb", "[", 
+       RowBox[{"k", ",", "i", ",", "j"}], "]"}], "*", 
+      RowBox[{"l", "[", 
+       RowBox[{"[", "k", "]"}], "]"}]}], ",", 
+     RowBox[{"{", 
+      RowBox[{"k", ",", "1", ",", "2"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Cmat", "=", 
+   RowBox[{"Table", "[", 
+    RowBox[{
+     RowBox[{"corrC", "[", 
+      RowBox[{"i", ",", "j"}], "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"i", ",", "1", ",", "2"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"j", ",", "1", ",", "2"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"CmatAtI", "=", 
+    RowBox[{
+     RowBox[{"Cmat", " ", "/.", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"s1", "->", "0"}], ",", 
+        RowBox[{"s2", "->", "0"}]}], "}"}]}], " ", "//", " ", "Simplify"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<Correction matrix C at \[Gamma] = I:\>\"", "]"}],
+   ";"}], "\[IndentingNewLine]", 
+ RowBox[{"CmatAtI", " ", "//", " ", "MatrixForm"}]}], "Input",ExpressionUUID->\
+"09ad8710-e434-485b-8d1a-7cfde9eafeb2"],
+
+Cell["Test Functions", "Section",ExpressionUUID->"20142df6-980a-4807-915b-72f9b30fd535"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"x", ",", "y"}], "]"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", "Saddle", " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Lsaddle", "=", 
+   RowBox[{
+    RowBox[{"x", "^", "2"}], "-", 
+    RowBox[{"y", "^", "2"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gradSaddle", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"Lsaddle", ",", 
+     RowBox[{"{", 
+      RowBox[{"{", 
+       RowBox[{"x", ",", "y"}], "}"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"hessSaddle", "=", 
+    RowBox[{"D", "[", 
+     RowBox[{"Lsaddle", ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"x", ",", "y"}], "}"}], ",", "2"}], "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", "Rosenbrock", " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Lrosen", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"1", "-", "x"}], ")"}], "^", "2"}], "+", 
+    RowBox[{"100", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"y", "-", 
+        RowBox[{"x", "^", "2"}]}], ")"}], "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gradRosen", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"Lrosen", ",", 
+     RowBox[{"{", 
+      RowBox[{"{", 
+       RowBox[{"x", ",", "y"}], "}"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"hessRosen", "=", 
+    RowBox[{"D", "[", 
+     RowBox[{"Lrosen", ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"x", ",", "y"}], "}"}], ",", "2"}], "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Asymmetric", " ", "saddle"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Lasym", "=", 
+   RowBox[{
+    RowBox[{"x", "^", "2"}], "-", 
+    RowBox[{"3", " ", 
+     RowBox[{"y", "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gradAsym", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"Lasym", ",", 
+     RowBox[{"{", 
+      RowBox[{"{", 
+       RowBox[{"x", ",", "y"}], "}"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"hessAsym", "=", 
+    RowBox[{"D", "[", 
+     RowBox[{"Lasym", ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"x", ",", "y"}], "}"}], ",", "2"}], "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Monkey", " ", "saddle"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Lmonkey", "=", 
+   RowBox[{
+    RowBox[{"x", "^", "3"}], "-", 
+    RowBox[{"3", " ", "x", " ", 
+     RowBox[{"y", "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gradMonkey", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"Lmonkey", ",", 
+     RowBox[{"{", 
+      RowBox[{"{", 
+       RowBox[{"x", ",", "y"}], "}"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hessMonkey", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{"Lmonkey", ",", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"x", ",", "y"}], "}"}], ",", "2"}], "}"}]}], "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"e9148bbe-89ea-428b-8661-41e28425c20c"],
+
+Cell["\<\
+Part A: Optimal lambda_min vs Gradient Budget R (Diagonal Case)\
+\>", "Section",ExpressionUUID->"f2a5d910-38c8-43c6-83cc-96a63d28ac72"],
+
+Cell[TextData[{
+ "We optimize ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[Lambda]", "min"], "(", 
+         RowBox[{
+           SubscriptBox["Hess", 
+            StyleBox["g", "TI"]], 
+           StyleBox["L", "TI"]}], ")"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\lambda_{\\min}(\\text{Hess}_g L)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5c517a84-f181-47ee-9625-cb2988453984"],
+ " over the 4 free parameters $(a, b, c, d)$ subject to ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          StyleBox["a", "TI"], "2"], "+", 
+         SuperscriptBox[
+          StyleBox["b", "TI"], "2"], "+", 
+         SuperscriptBox[
+          StyleBox["c", "TI"], "2"], "+", 
+         SuperscriptBox[
+          StyleBox["d", "TI"], "2"], "\[LessEqual]", 
+         SuperscriptBox[
+          StyleBox["R", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "a^2 + b^2 + c^2 + d^2 \\le R^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "89c483f4-c7cd-4854-9428-852090cd3263"],
+ ". "
+}], "Text",ExpressionUUID->"cc3fe987-a096-4dd3-af08-021ff97da5c2"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", "optimalNablaS", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optimalNablaS", "[", 
+    RowBox[{"Hmat_List", ",", "lvec_List", ",", 
+     RowBox[{"rr_", "?", "NumericQ"}]}], "]"}], ":=", 
+   RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"Cgen", ",", "Mgen", ",", "denom", ",", "res"}], "}"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Cgen", "=", 
+       RowBox[{"CmatAtI", " ", "/.", " ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"l1", "->", 
+           RowBox[{"lvec", "[", 
+            RowBox[{"[", "1", "]"}], "]"}]}], ",", 
+          RowBox[{"l2", "->", 
+           RowBox[{"lvec", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Mgen", "=", 
+       RowBox[{"Hmat", "-", "Cgen"}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"denom", "=", 
+       RowBox[{"1", "+", 
+        RowBox[{"lvec", " ", ".", " ", "lvec"}]}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"If", "[", 
+       RowBox[{
+        RowBox[{"rr", "==", "0"}], ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{"res", "=", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{
+            RowBox[{"Min", "[", 
+             RowBox[{"Eigenvalues", "[", 
+              RowBox[{"N", "[", "Hmat", "]"}], "]"}], "]"}], "/", "denom"}], ",", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"a", "->", "0"}], ",", 
+             RowBox[{"b", "->", "0"}], ",", 
+             RowBox[{"c", "->", "0"}], ",", 
+             RowBox[{"d", "->", "0"}]}], "}"}]}], "}"}]}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"res", "=", 
+         RowBox[{"NMaximize", "[", "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"Min", "[", 
+               RowBox[{"Eigenvalues", "[", 
+                RowBox[{"Mgen", " ", "//", " ", "N"}], "]"}], "]"}], "/", 
+              "denom"}], ",", 
+             RowBox[{
+              RowBox[{
+               RowBox[{"a", "^", "2"}], "+", 
+               RowBox[{"b", "^", "2"}], "+", 
+               RowBox[{"c", "^", "2"}], "+", 
+               RowBox[{"d", "^", "2"}]}], "<=", 
+              RowBox[{"rr", "^", "2"}]}]}], "}"}], ",", "\[IndentingNewLine]",
+            "      ", 
+           RowBox[{"{", 
+            RowBox[{"a", ",", "b", ",", "c", ",", "d"}], "}"}], ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"Method", "->", 
+            RowBox[{"{", 
+             RowBox[{"\"\<DifferentialEvolution\>\"", ",", 
+              RowBox[{"\"\<ScalingFactor\>\"", "->", "0.9"}], ",", 
+              "\[IndentingNewLine]", "                 ", 
+              RowBox[{"\"\<CrossProbability\>\"", "->", "0.9"}], ",", 
+              RowBox[{"\"\<SearchPoints\>\"", "->", "50"}]}], "}"}]}], ",", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"MaxIterations", "->", "500"}]}], "\[IndentingNewLine]", 
+          "    ", "]"}]}]}], "\[IndentingNewLine]", "  ", "]"}], ";", 
+      "\[IndentingNewLine]", "  ", "res"}]}], "\[IndentingNewLine]", "]"}]}], 
+  ";"}]}], "Input",ExpressionUUID->"b489ff46-b718-48c2-8417-867bd485ae08"],
+
+Cell[TextData[{
+ "Results: Saddle ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["L", "TI"], "\[LongEqual]", 
+         SuperscriptBox[
+          StyleBox["x", "TI"], "2"], "-", 
+         SuperscriptBox[
+          StyleBox["y", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "L = x^2 - y^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "42384728-50ea-4c1c-ac5d-e3685561b750"],
+ " at $(1,1)$"
+}], "Subsection",ExpressionUUID->"b5135573-c85c-4d49-87d0-93e54d2aa9d5"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["H", "TI"], "\[LongEqual]", "diag", 
+         RowBox[{"(", 
+           RowBox[{"2", ",", "-2"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "H = \\text{diag}(2,-2)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3e6684cb-52f0-46c7-bd60-b1419834fe2e"],
+ ", ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["l", "TI"], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{"2", ",", "-2"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "l = (2,-2)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "28f12e60-32f0-474d-aee1-b656b1ea5d9a"],
+ ", denominator ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[LongEqual]", "9"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "= 9", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "04759146-3c8b-46cb-9f83-61eaffc7a7fa"],
+ ". "
+}], "Text",ExpressionUUID->"a5f0882b-4d4b-4489-aad8-5af9cff2f07b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"Hsaddle", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"2", ",", "0"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"0", ",", 
+        RowBox[{"-", "2"}]}], "}"}]}], "}"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"completeResultsSaddle", "=", 
+    RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Module", "[", 
+       RowBox[{
+        RowBox[{"{", "res", "}"}], ",", "\[IndentingNewLine]", "    ", 
+        RowBox[{"If", "[", 
+         RowBox[{
+          RowBox[{"R", "==", "0"}], ",", "\[IndentingNewLine]", "      ", 
+          RowBox[{"{", 
+           RowBox[{"R", ",", 
+            RowBox[{
+             RowBox[{"Min", "[", 
+              RowBox[{"Eigenvalues", "[", 
+               RowBox[{"Hsaddle", " ", "//", " ", "N"}], "]"}], "]"}], "/", 
+             "9."}], ",", "0", ",", "0", ",", "0", ",", "0"}], "}"}], ",", 
+          "\[IndentingNewLine]", "      ", 
+          RowBox[{
+           RowBox[{"res", "=", 
+            RowBox[{"NMaximize", "[", "\[IndentingNewLine]", "        ", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{
+                RowBox[{
+                 RowBox[{"Min", "[", 
+                  RowBox[{"Eigenvalues", "[", 
+                   RowBox[{
+                    RowBox[{"Hsaddle", "-", 
+                    RowBox[{"(", 
+                    RowBox[{"CmatAtI", " ", "/.", " ", 
+                    RowBox[{"{", 
+                    RowBox[{
+                    RowBox[{"l1", "->", "2"}], ",", 
+                    RowBox[{"l2", "->", 
+                    RowBox[{"-", "2"}]}]}], "}"}]}], ")"}]}], " ", "//", " ", 
+                    "N"}], "]"}], "]"}], "/", "9.0"}], ",", 
+                "\[IndentingNewLine]", "         ", 
+                RowBox[{
+                 RowBox[{
+                  RowBox[{"a", "^", "2"}], "+", 
+                  RowBox[{"b", "^", "2"}], "+", 
+                  RowBox[{"c", "^", "2"}], "+", 
+                  RowBox[{"d", "^", "2"}]}], "<=", 
+                 RowBox[{"R", "^", "2"}]}]}], "}"}], ",", 
+              "\[IndentingNewLine]", "        ", 
+              RowBox[{"{", 
+               RowBox[{"a", ",", "b", ",", "c", ",", "d"}], "}"}], ",", 
+              "\[IndentingNewLine]", "        ", 
+              RowBox[{"Method", "->", 
+               RowBox[{"{", 
+                RowBox[{"\"\<DifferentialEvolution\>\"", ",", 
+                 RowBox[{"\"\<SearchPoints\>\"", "->", "100"}]}], "}"}]}], ",",
+               "\[IndentingNewLine]", "        ", 
+              RowBox[{"MaxIterations", "->", "1000"}]}], 
+             "\[IndentingNewLine]", "      ", "]"}]}], ";", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"{", 
+            RowBox[{"R", ",", 
+             RowBox[{"res", "[", 
+              RowBox[{"[", "1", "]"}], "]"}], ",", 
+             RowBox[{"a", " ", "/.", " ", 
+              RowBox[{"res", "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], ",", 
+             RowBox[{"b", " ", "/.", " ", 
+              RowBox[{"res", "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], ",", 
+             RowBox[{"c", " ", "/.", " ", 
+              RowBox[{"res", "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}], ",", 
+             RowBox[{"d", " ", "/.", " ", 
+              RowBox[{"res", "[", 
+               RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}]}], 
+         "\[IndentingNewLine]", "    ", "]"}]}], "\[IndentingNewLine]", "  ", 
+       "]"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"R", ",", 
+        RowBox[{"{", 
+         RowBox[{
+         "0", ",", "0.5", ",", "1", ",", "1.5", ",", "2", ",", "2.5", ",", 
+          "3", ",", "5", ",", "10"}], "}"}]}], "}"}]}], "\[IndentingNewLine]",
+      "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"TableForm", "[", 
+  RowBox[{"completeResultsSaddle", ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"TableHeadings", "->", 
+    RowBox[{"{", 
+     RowBox[{"None", ",", 
+      RowBox[{"{", 
+       RowBox[{"\"\<R\>\"", ",", "\"\<\[Lambda]_min\>\"", ",", "\"\<a\>\"", 
+        ",", "\"\<b\>\"", ",", "\"\<c\>\"", ",", "\"\<d\>\""}], "}"}]}], 
+     "}"}]}]}], "]"}]}], "Input",ExpressionUUID->"ba68777c-b933-4e65-aa47-\
+7791147aff96"],
+
+Cell["Results: ", "Text",ExpressionUUID->"8180dac0-50cb-462f-a3f6-67f46560f452"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"R\"\>",
+          HoldForm], 
+         TagBox["\<\"lambda_min\"\>",
+          HoldForm], 
+         TagBox["\<\"a\"\>",
+          HoldForm], 
+         TagBox["\<\"b\"\>",
+          HoldForm], 
+         TagBox["\<\"c\"\>",
+          HoldForm], 
+         TagBox["\<\"d\"\>",
+          HoldForm]},
+        {"\<\"0\"\>", "\<\"-0.222\"\>", "\<\"0\"\>", "\<\"0\"\>", \
+"\<\"0\"\>", "\<\"0\"\>"},
+        {"\<\"0.5\"\>", "\<\"-0.147\"\>", "\<\"-0.002\"\>", "\<\"0.058\"\>", \
+"\<\"0.319\"\>", "\<\"0.380\"\>"},
+        {"\<\"1\"\>", "\<\"-0.076\"\>", "\<\"-0.016\"\>", "\<\"0.211\"\>", \
+"\<\"0.568\"\>", "\<\"0.795\"\>"},
+        {"\<\"1.5\"\>", "\<\"-0.009\"\>", "\<\"-0.045\"\>", "\<\"0.426\"\>", \
+"\<\"0.753\"\>", "\<\"1.224\"\>"},
+        {"\<\"2\"\>", "\<\"+0.055\"\>", "\<\"-0.089\"\>", "\<\"0.678\"\>", \
+"\<\"0.889\"\>", "\<\"1.656\"\>"},
+        {"\<\"2.5\"\>", "\<\"+0.118\"\>", "\<\"-0.145\"\>", "\<\"0.953\"\>", \
+"\<\"0.987\"\>", "\<\"2.085\"\>"},
+        {"\<\"3\"\>", "\<\"+0.176\"\>", "\<\"-0.583\"\>", "\<\"1.002\"\>", \
+"\<\"1.002\"\>", "\<\"2.579\"\>"},
+        {"\<\"5\"\>", "\<\"+0.360\"\>", "\<\"-2.235\"\>", "\<\"0.995\"\>", \
+"\<\"0.995\"\>", "\<\"4.246\"\>"},
+        {"\<\"10\"\>", "\<\"+0.770\"\>", "\<\"-5.933\"\>", "\<\"1.005\"\>", "\
+\<\"1.005\"\>", "\<\"7.923\"\>"}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, Center, Center, Center, Center, {Center}}, 
+         "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[
+      BoxForm`e$, 
+       TableHeadings -> {None, {"R", "lambda_min", "a", "b", "c", "d"}}]]], 
+    "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"5987e09b-ca41-4192-aded-ba2bfd79e64f"],
+
+Cell[TextData[{
+ "**Sign flip occurs at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+        "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", "\[Del]", 
+         StyleBox["s", "TI"], 
+         "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", 
+         "\[TildeTilde]", "1.57"}], TraditionalForm], "errors" -> {}, "input" -> 
+     "|\\nabla s| \\approx 1.57", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "77a0d316-6989-4dbd-90ec-39b10d7c41fa"],
+ ".** "
+}], "Text",ExpressionUUID->"e1885275-e843-4c5c-8f8f-7026a6ed7f9b"],
+
+Cell["Analytical Solution (Saddle, Large R)", "Subsection",ExpressionUUID->"185172a7-2f40-48fc-b8bf-1e4dc22b2ec0"],
+
+Cell[TextData[{
+ "For ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["R", "TI"], "\[GreaterEqual]", "3"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "R \\ge 3", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "90371f69-b128-442d-bdac-45cc5ab46756"],
+ ": optimal is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["b", "TI"], "\[LongEqual]", 
+         StyleBox["c", "TI"], "\[LongEqual]", "1"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "b = c = 1", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7f01e75f-9017-4466-83b7-c25ecadbcea4"],
+ ", ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LongEqual]", "1", "-", 
+         SqrtBox[
+          RowBox[{
+            RowBox[{"(", 
+              RowBox[{
+                SuperscriptBox[
+                 StyleBox["R", "TI"], "2"], "-", "2"}], ")"}], "/", "2"}]]}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "a = 1 - \\sqrt{(R^2-2)/2}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "be80a93e-649c-424b-b385-9e03dbe2821a"],
+ ", ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["d", "TI"], "\[LongEqual]", "1", "+", 
+         SqrtBox[
+          RowBox[{
+            RowBox[{"(", 
+              RowBox[{
+                SuperscriptBox[
+                 StyleBox["R", "TI"], "2"], "-", "2"}], ")"}], "/", "2"}]]}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "d = 1 + \\sqrt{(R^2-2)/2}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e45c8d0f-31c2-4d16-9997-2046adf912f2"],
+ "."
+}], "Text",ExpressionUUID->"ba271f69-fc16-4f02-a957-157a63f01fd1"],
+
+Cell[TextData[{
+ "Both eigenvalues equalize at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[Lambda]", "min"], "\[LongEqual]", 
+         SqrtBox[
+          RowBox[{
+            RowBox[{"(", 
+              RowBox[{
+                SuperscriptBox[
+                 StyleBox["R", "TI"], "2"], "-", "2"}], ")"}], "/", "2"}]], 
+         " ", "/ ", "9"}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\lambda_{\\min} = \\sqrt{(R^2 - 2)/2}\\, / \\, 9", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "30c28c38-3ffd-4858-b377-faaacfa83075"],
+ ". "
+}], "Text",ExpressionUUID->"b4279c99-84c0-4dca-827c-435b0f5acd45"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", "Verify", " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"aOpt", "=", 
+     RowBox[{"1", "-", 
+      RowBox[{"Sqrt", "[", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"25", "-", "2"}], ")"}], "/", "2"}], "]"}]}]}], ";"}], " ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"R", "=", "5"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"dOpt", "=", 
+     RowBox[{"1", "+", 
+      RowBox[{"Sqrt", "[", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"25", "-", "2"}], ")"}], "/", "2"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Mverify", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"2", "-", "aOpt", "-", "1"}], ",", 
+         RowBox[{"1", "-", "1"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"1", "-", "1"}], ",", 
+         RowBox[{
+          RowBox[{"-", "2"}], "+", "1", "+", "dOpt"}]}], "}"}]}], "}"}]}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<M at R=5: \>\"", ",", 
+      RowBox[{
+       RowBox[{"Mverify", " ", "//", " ", "Simplify"}], " ", "//", " ", 
+       "MatrixForm"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Both eigenvalues = \>\"", ",", 
+      RowBox[{
+       RowBox[{"Sqrt", "[", 
+        RowBox[{"21", "/", "2"}], "]"}], " ", "//", " ", "N"}], 
+      ",", "\"\<, \[Lambda]_min = \>\"", ",", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Sqrt", "[", 
+         RowBox[{"21", "/", "2"}], "]"}], "/", "9"}], " ", "//", " ", "N"}]}],
+      "]"}], ";"}]}]}]], "Input",ExpressionUUID->"e5f5529d-6b05-4c24-afcf-\
+b5c6ac66c94d"],
+
+Cell["All Saddle-Type Points: Scalar vs Diagonal", "Subsection",ExpressionUUID->"341b6731-dfba-435d-9b2e-e2dbb18d5d34"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"saddleCases", "=", 
+   RowBox[{"{", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"\"\<Saddle \
+x\[ThinSpace]\\[Superscript]2-y\[ThinSpace]\\[Superscript]2 at (1,1)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"2", ",", "0"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", 
+           RowBox[{"-", "2"}]}], "}"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"2", ",", 
+         RowBox[{"-", "2"}]}], "}"}]}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Saddle \
+x\[ThinSpace]\\[Superscript]2-y\[ThinSpace]\\[Superscript]2 at (2,1)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"2", ",", "0"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", 
+           RowBox[{"-", "2"}]}], "}"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"4", ",", 
+         RowBox[{"-", "2"}]}], "}"}]}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Asym saddle at (1,1)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"2", ",", "0"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", 
+           RowBox[{"-", "6"}]}], "}"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"2", ",", 
+         RowBox[{"-", "6"}]}], "}"}]}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Monkey saddle at (1,0)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"6", ",", "0"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"0", ",", 
+           RowBox[{"-", "6"}]}], "}"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0"}], "}"}]}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Monkey saddle at (1,1)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"6", ",", 
+           RowBox[{"-", "6"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "6"}], ",", 
+           RowBox[{"-", "6"}]}], "}"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "6"}]}], "}"}]}], "}"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Rosenbrock at (1,0)\>\"", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"1202", ",", 
+           RowBox[{"-", "400"}]}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", "400"}], ",", "200"}], "}"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"400", ",", 
+         RowBox[{"-", "200"}]}], "}"}]}], "}"}]}], "\[IndentingNewLine]", 
+    "}"}]}], ";"}]], "Input",ExpressionUUID->"3431aa8f-a26f-4162-ba30-\
+d0a8dc10e5f5"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"Point\"\>",
+          HoldForm], 
+         TagBox["\<\"No correction\"\>",
+          HoldForm], 
+         TagBox["\<\"Scalar bound\"\>",
+          HoldForm], 
+         TagBox["\<\"Scalar best\"\>",
+          HoldForm], 
+         TagBox["\<\"Diag R=5\"\>",
+          HoldForm], 
+         TagBox["\<\"Diag R=10\"\>",
+          HoldForm]},
+        {"\<\"Saddle at (1,1)\"\>", "\<\"-0.222\"\>", "\<\"0\"\>", \
+"\<\"0\"\>", "\<\"+0.360\"\>", "\<\"+0.769\"\>"},
+        {"\<\"Saddle at (2,1)\"\>", "\<\"-0.095\"\>", "\<\"0\"\>", \
+"\<\"0\"\>", "\<\"+0.300\"\>", "\<\"+0.616\"\>"},
+        {"\<\"Asym saddle at (1,1)\"\>", "\<\"-0.146\"\>", "\<\"-0.049\"\>", \
+"\<\"-0.049\"\>", "\<\"+0.182\"\>", "\<\"+0.437\"\>"},
+        {"\<\"Monkey saddle at (1,0)\"\>", "\<\"-0.600\"\>", "\<\"0\"\>", "\<\
+\"0\"\>", "\<\"+0.150\"\>", "\<\"+0.875\"\>"},
+        {"\<\"Monkey saddle at (1,1)\"\>", "\<\"-0.229\"\>", "\<\"0\"\>", "\<\
+\"0\"\>", "\<\"+0.207\"\>", "\<\"+0.538\"\>"},
+        {"\<\"Rosenbrock at (1,0)\"\>", "\<\"+0.0003\"\>", "\<\"+0.0035\"\>", \
+"\<\"+0.0035\"\>", "\<\"+0.0065\"\>", "\<\"+0.0104\"\>"}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, Center, Center, Center, Center, {Center}}, 
+         "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[
+      BoxForm`e$, 
+       TableHeadings -> {
+        None, {"Point", "No correction", "Scalar bound", "Scalar best", 
+          "Diag R=5", "Diag R=10"}}]]], "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"98bf4460-fa40-4f13-a4bb-ae457b2a5bc9"],
+
+Cell["Part B: Key Theorem -- Scalar Case Cannot Flip Signs", "Section",ExpressionUUID->"10eacf54-16a6-4df5-bb2d-db4f28dcde72"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Trace", " ", "of", " ", "the", " ", "correction", " ", "matrix"}],
+    " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"trC", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"CmatAtI", "[", 
+        RowBox[{"[", 
+         RowBox[{"1", ",", "1"}], "]"}], "]"}], "+", 
+       RowBox[{"CmatAtI", "[", 
+        RowBox[{"[", 
+         RowBox[{"2", ",", "2"}], "]"}], "]"}]}], " ", "//", " ", 
+      "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<tr(C) at \[Gamma]=I = \>\"", ",", "trC"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Scalar", " ", 
+       RowBox[{"case", ":", " ", "a"}]}], "=", 
+      RowBox[{"c", "=", "p"}]}], ",", " ", 
+     RowBox[{"b", "=", 
+      RowBox[{"d", "=", "q"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"trCscalar", "=", 
+     RowBox[{
+      RowBox[{"trC", " ", "/.", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"a", "->", "p"}], ",", 
+         RowBox[{"c", "->", "p"}], ",", 
+         RowBox[{"b", "->", "q"}], ",", 
+         RowBox[{"d", "->", "q"}]}], "}"}]}], " ", "//", " ", "Simplify"}]}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<tr(C) scalar = \>\"", ",", "trCscalar", 
+      ",", "\"\< = 0 always\>\""}], "]"}], ";"}]}]}]], "Input",ExpressionUUID->\
+"42e9e96a-c02c-4ae4-8768-84b7469a7846"],
+
+Cell[TextData[{
+ StyleBox["Theorem.",
+  FontWeight->Bold],
+ " In the scalar case (",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"], "\[LongEqual]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_1 = s_2 = s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7011db8c-7b32-423b-9b52-cac103931782"],
+ "), we have ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["C", "TI"], ")"}], "\[LongEqual]", "0"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "\\text{tr}(C) = 0", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7d1423ed-5dc5-4a22-b613-5771bd7c544a"],
+ " identically, so ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox["Hess", 
+              StyleBox["g", "TI"]], 
+             StyleBox["L", "TI"]}], ")"}], "\[LongEqual]", "tr", 
+         RowBox[{"(", 
+           StyleBox["H", "TI"], ")"}], "/", 
+         RowBox[{"(", 
+           
+           RowBox[{"1", "+", "\[Xi]", 
+             "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", 
+             StyleBox["l", "TI"], 
+             SuperscriptBox[
+             "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", "2"]}], 
+           ")"}]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\text{tr}(\\text{Hess}_g L) = \\text{tr}(H) / (1 + \\xi|l|^2)", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "17af48d9-9a24-474d-b87b-3875414670d5"],
+ ". For any ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["H", "TI"], TraditionalForm], "errors" -> {}, "input" -> "H", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cae704f5-14ce-4b32-b4d0-fa53600bc888"],
+ " with ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["H", "TI"], ")"}], "\[LessEqual]", "0"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "\\text{tr}(H) \\le 0", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e764a83e-de96-4d43-9036-7a972f480540"],
+ " (including all symmetric saddles), ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[Lambda]", "min"], 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox["Hess", 
+              StyleBox["g", "TI"]], 
+             StyleBox["L", "TI"]}], ")"}], "\[LessEqual]", "0"}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "\\lambda_{\\min}(\\text{Hess}_g L) \\le 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0ae54b8f-1656-449f-89c7-3a7c910cd3ed"],
+ " regardless of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "978e0d50-f35a-4316-8997-7367eee0f16e"],
+ ".",
+ StyleBox["Proof.",
+  FontSlant->Italic],
+ " In the scalar case, ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LongEqual]", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "a = c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c2a0ecf8-2b5e-461d-8e53-9208a27a525d"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["b", "TI"], "\[LongEqual]", 
+         StyleBox["d", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "b = d", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "4a6f8884-d30a-4a36-b21e-d1c87be0c8fb"],
+ ", so ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["C", "TI"], ")"}], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{
+             RowBox[{"(", 
+               RowBox[{
+                 StyleBox["a", "TI"], "-", 
+                 StyleBox["c", "TI"]}], ")"}], 
+             SubscriptBox[
+              StyleBox["l", "TI"], "1"], "+", 
+             RowBox[{"(", 
+               RowBox[{
+                 StyleBox["d", "TI"], "-", 
+                 StyleBox["b", "TI"]}], ")"}], 
+             SubscriptBox[
+              StyleBox["l", "TI"], "2"]}], ")"}], "/", "2", "\[LongEqual]", 
+         "0"}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\text{tr}(C) = ((a-c)l_1 + (d-b)l_2)/2 = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3ef2d50b-9c9a-4104-8fb2-eb2fca568c0d"],
+ "."
+}], "Text",ExpressionUUID->"560a20d0-1c96-4fc2-8b0f-99168c237674"],
+
+Cell[TextData[{
+ "**The diagonal case can achieve ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["C", "TI"], ")"}], "\[NotEqual]", "0"}], TraditionalForm],
+      "errors" -> {}, "input" -> "\\text{tr}(C) \\ne 0", "state" -> "Boxes"|>,
+    
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b17aac2d-b9a9-47c0-9f8b-d169989f01b1"],
+ " because ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[NotEqual]", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "a \\ne c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e45ac966-8de6-463f-a428-3460d7bdc3d4"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["b", "TI"], "\[NotEqual]", 
+         StyleBox["d", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "b \\ne d", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "bf39f164-c25b-43bd-a439-aa81c0fea392"],
+ ", giving the trace shift ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[CapitalDelta]", "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{
+             RowBox[{"(", 
+               RowBox[{
+                 StyleBox["a", "TI"], "-", 
+                 StyleBox["c", "TI"]}], ")"}], 
+             SubscriptBox[
+              StyleBox["l", "TI"], "1"], "+", 
+             RowBox[{"(", 
+               RowBox[{
+                 StyleBox["d", "TI"], "-", 
+                 StyleBox["b", "TI"]}], ")"}], 
+             SubscriptBox[
+              StyleBox["l", "TI"], "2"]}], ")"}], "/", "2"}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "\\Delta = ((a-c)l_1 + (d-b)l_2)/2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c863be39-8471-49ed-823b-3f662be0c306"],
+ " that shifts both eigenvalues.** "
+}], "Text",ExpressionUUID->"1fba77a4-2c7a-4fc3-8e2d-4bdfd374daa1"],
+
+Cell["Part C: Online Update Rule Comparison", "Section",ExpressionUUID->"4f86de6f-710d-41f5-a803-24194dc8114e"],
+
+Cell[TextData[{
+ "The current rule is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LeftArrow]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "+", "\[Mu] ", "\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          SubscriptBox[
+           StyleBox["s", "TI"], 
+           StyleBox["i", "TI"]]], " ", 
+         SubsuperscriptBox[
+          StyleBox["l", "TI"], 
+          StyleBox["i", "TI"], "2"], "-", "\[Mu] ", 
+         SubscriptBox["\[Lambda]", 
+          StyleBox["s", "TI"]], " ", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i \\leftarrow s_i + \\mu\\,\\xi\\, e^{s_i}\\, l_i^2 - \
+\\mu\\,\\lambda_s\\, s_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cf110367-cef6-4187-bb09-aede071a6aec"],
+ "."
+}], "Text",ExpressionUUID->"fbd1e985-b0d6-4489-b398-375f6edfa6bf"],
+
+Cell[TextData[{
+ "Near ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["s", "TI"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "s = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "74dda29f-6503-48d1-a4ce-0873d73086c6"],
+ ", at equilibrium the linearized gradient is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         FractionBox[
+          RowBox[{"\[PartialD]", 
+            SubscriptBox[
+             StyleBox["s", "TI"], 
+             StyleBox["i", "TI"]]}], 
+          RowBox[{"\[PartialD]", 
+            SuperscriptBox["\[Theta]", 
+             StyleBox["j", "TI"]]}]], "\[TildeTilde]", 
+         FractionBox[
+          RowBox[{"2 ", "\[Xi] ", 
+            SubscriptBox[
+             StyleBox["l", "TI"], 
+             StyleBox["i", "TI"]], " ", 
+            SubscriptBox[
+             StyleBox["H", "TI"], 
+             RowBox[{
+               StyleBox["i", "TI"], 
+               StyleBox["j", "TI"]}]]}], 
+          RowBox[{
+            SubscriptBox["\[Lambda]", 
+             StyleBox["s", "TI"]], "-", "\[Xi] ", 
+            SubsuperscriptBox[
+             StyleBox["l", "TI"], 
+             StyleBox["i", "TI"], "2"]}]]}], TraditionalForm], "errors" -> {},
+      "input" -> 
+     "\\frac{\\partial s_i}{\\partial \\theta^j} \\approx \\frac{2\\,\\xi\\, \
+l_i\\, H_{ij}}{\\lambda_s - \\xi\\, l_i^2}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f538239d-833c-477e-a14b-1a41d07ffe5c"]
+}], "Text",ExpressionUUID->"e6ff1be2-9cc9-478a-9f0e-07a3e20c8b30"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Online", " ", "rule", " ", "results", " ", "for", " ", "saddle", " ", 
+    "at", " ", 
+    RowBox[{"(", 
+     RowBox[{"1", ",", "1"}], ")"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"xi", "=", "1"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"onlineResults", "=", 
+     RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"Module", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"dsOnline", ",", "Ceval", ",", "Meval", ",", 
+           RowBox[{"denom", "=", "9"}], ",", "lamMinOnline", ",", "normDS", ",", 
+           RowBox[{"lvec", "=", 
+            RowBox[{"{", 
+             RowBox[{"2", ",", 
+              RowBox[{"-", "2"}]}], "}"}]}], ",", 
+           RowBox[{"Hmat", "=", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"{", 
+               RowBox[{"2", ",", "0"}], "}"}], ",", 
+              RowBox[{"{", 
+               RowBox[{"0", ",", 
+                RowBox[{"-", "2"}]}], "}"}]}], "}"}]}]}], "}"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{
+          RowBox[{"dsOnline", "=", 
+           RowBox[{"Table", "[", "\[IndentingNewLine]", "      ", 
+            RowBox[{
+             RowBox[{"If", "[", 
+              RowBox[{
+               RowBox[{
+                RowBox[{"lams", "-", 
+                 RowBox[{
+                  RowBox[{"lvec", "[", 
+                   RowBox[{"[", "i", "]"}], "]"}], "^", "2"}]}], "==", "0"}], 
+               ",", "Infinity", ",", "\[IndentingNewLine]", "        ", 
+               RowBox[{"2", " ", "xi", " ", 
+                RowBox[{"lvec", "[", 
+                 RowBox[{"[", "i", "]"}], "]"}], " ", 
+                RowBox[{
+                 RowBox[{"Hmat", "[", 
+                  RowBox[{"[", 
+                   RowBox[{"i", ",", "j"}], "]"}], "]"}], "/", 
+                 RowBox[{"(", 
+                  RowBox[{"lams", "-", 
+                   RowBox[{
+                    RowBox[{"lvec", "[", 
+                    RowBox[{"[", "i", "]"}], "]"}], "^", "2"}]}], ")"}]}]}]}],
+               "]"}], ",", "\[IndentingNewLine]", "      ", 
+             RowBox[{"{", 
+              RowBox[{"i", ",", "1", ",", "2"}], "}"}], ",", 
+             RowBox[{"{", 
+              RowBox[{"j", ",", "1", ",", "2"}], "}"}]}], 
+            "\[IndentingNewLine]", "    ", "]"}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"normDS", "=", 
+           RowBox[{
+            RowBox[{"Norm", "[", 
+             RowBox[{"Flatten", "[", "dsOnline", "]"}], "]"}], " ", "//", " ",
+             "N"}]}], ";", "\[IndentingNewLine]", "    ", 
+          RowBox[{"Ceval", "=", 
+           RowBox[{"CmatAtI", " ", "/.", " ", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"l1", "->", "2"}], ",", 
+              RowBox[{"l2", "->", 
+               RowBox[{"-", "2"}]}], ",", 
+              RowBox[{"a", "->", 
+               RowBox[{"dsOnline", "[", 
+                RowBox[{"[", 
+                 RowBox[{"1", ",", "1"}], "]"}], "]"}]}], ",", 
+              RowBox[{"b", "->", 
+               RowBox[{"dsOnline", "[", 
+                RowBox[{"[", 
+                 RowBox[{"1", ",", "2"}], "]"}], "]"}]}], ",", 
+              "\[IndentingNewLine]", "                        ", 
+              RowBox[{"c", "->", 
+               RowBox[{"dsOnline", "[", 
+                RowBox[{"[", 
+                 RowBox[{"2", ",", "1"}], "]"}], "]"}]}], ",", 
+              RowBox[{"d", "->", 
+               RowBox[{"dsOnline", "[", 
+                RowBox[{"[", 
+                 RowBox[{"2", ",", "2"}], "]"}], "]"}]}]}], "}"}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"Meval", "=", 
+           RowBox[{"Hmat", "-", "Ceval"}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"lamMinOnline", "=", 
+           RowBox[{
+            RowBox[{"Min", "[", 
+             RowBox[{"Eigenvalues", "[", 
+              RowBox[{"N", "[", "Meval", "]"}], "]"}], "]"}], "/", 
+            "denom"}]}], ";", "\[IndentingNewLine]", "    ", 
+          RowBox[{"{", 
+           RowBox[{
+           "lams", ",", "lamMinOnline", ",", "normDS", ",", "dsOnline"}], 
+           "}"}]}]}], "\[IndentingNewLine]", "  ", "]"}], ",", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"{", 
+        RowBox[{"lams", ",", 
+         RowBox[{"{", 
+          RowBox[{"5", ",", "10", ",", "20", ",", "50"}], "}"}]}], "}"}]}], 
+      "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"TableForm", "[", 
+    RowBox[{
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"r", "[", 
+          RowBox[{"[", "1", "]"}], "]"}], ",", 
+         RowBox[{"r", "[", 
+          RowBox[{"[", "2", "]"}], "]"}], ",", 
+         RowBox[{"r", "[", 
+          RowBox[{"[", "3", "]"}], "]"}]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"r", ",", "onlineResults"}], "}"}]}], "]"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"TableHeadings", "->", 
+      RowBox[{"{", 
+       RowBox[{"None", ",", 
+        RowBox[{"{", 
+         RowBox[{"\"\<\[Lambda]_s\>\"", ",", "\"\<\[Lambda]_min(online)\>\"", 
+          ",", "\"\<||\[Del]s||\>\""}], "}"}]}], "}"}]}]}], 
+    "]"}]}]}]], "Input",ExpressionUUID->"8969cef7-b9b4-4c53-955c-\
+d9d57011c00c"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"lambda_s\"\>",
+          HoldForm], 
+         TagBox["\<\"lambda_min(online)\"\>",
+          HoldForm], 
+         TagBox[Cell[TextData[{
+           "norm",
+           StyleBox["grad",
+            FontSlant->Italic],
+           "s"
+          }],ExpressionUUID->"dd4ebb07-1e4a-4dc7-9827-9e6d8360ed76"],
+          HoldForm]},
+        {"\<\"5\"\>", "\<\"-0.667\"\>", "\<\"11.3\"\>"},
+        {"\<\"10\"\>", "\<\"-0.074\"\>", "\<\"1.89\"\>"},
+        {"\<\"20\"\>", "\<\"-0.167\"\>", "\<\"0.71\"\>"},
+        {"\<\"50\"\>", "\<\"-0.203\"\>", "\<\"0.25\"\>"}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, Center, {Center}}, "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[
+      BoxForm`e$, TableHeadings -> {None, {"lambda_s", "lambda_min(online)", 
+          RawBoxes[
+           Cell[
+            TextData[{"norm", 
+              StyleBox["grad", FontSlant -> Italic], "s"}]]]}}]]], "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"61ee6ec8-fa44-40bd-b6a7-60214030d80c"],
+
+Cell[TextData[{
+ StyleBox["The online rule NEVER achieves sign flip on any of the test \
+saddles",
+  FontWeight->Bold],
+ ", regardless of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox["\[Lambda]", 
+        StyleBox["s", "TI"]], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\lambda_s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "308f371c-31a4-409d-8db8-671ada2250dd"],
+ ". "
+}], "Text",ExpressionUUID->"cb51a081-aa7b-438e-a9a3-d3f56cd3ed22"],
+
+Cell["Root Cause", "Subsection",ExpressionUUID->"2eed20ac-fdfc-47fe-ade9-c691804b58e4"],
+
+Cell[TextData[{
+ "For the saddle at $(1,1)$ with ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["l", "TI"], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{"2", ",", "-2"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "l = (2,-2)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0101679d-485d-4184-90fa-8c02edda5ac2"],
+ ": since ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox[
+          StyleBox["l", "TI"], "1", "2"], "\[LongEqual]", 
+         SubsuperscriptBox[
+          StyleBox["l", "TI"], "2", "2"], "\[LongEqual]", "4"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "l_1^2 = l_2^2 = 4", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "23c2114e-4deb-4e71-8729-d625f0986c5d"],
+ ", the online rule gives ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LongEqual]", 
+         StyleBox["d", "TI"], "\[LongEqual]", "8", "/", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox["\[Lambda]", 
+              StyleBox["s", "TI"]], "-", "4"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "a = d = 8/(\\lambda_s - 4)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "27fce485-d6f4-4c14-b824-1c41aaa756d2"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["b", "TI"], "\[LongEqual]", 
+         StyleBox["c", "TI"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "b = c = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "28a0c9b7-1ba1-4acd-a162-c807c914c67b"],
+ "."
+}], "Text",ExpressionUUID->"c6034313-7740-472e-b80a-b002a1657f8e"],
+
+Cell[TextData[{
+ "The trace correction is: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["C", "TI"], ")"}], "\[LongEqual]", 
+         FractionBox[
+          RowBox[{
+            RowBox[{"(", 
+              RowBox[{
+                StyleBox["a", "TI"], "-", 
+                StyleBox["c", "TI"]}], ")"}], " ", 
+            SubscriptBox[
+             StyleBox["l", "TI"], "1"], "+", 
+            RowBox[{"(", 
+              RowBox[{
+                StyleBox["d", "TI"], "-", 
+                StyleBox["b", "TI"]}], ")"}], " ", 
+            SubscriptBox[
+             StyleBox["l", "TI"], "2"]}], "2"], "\[LongEqual]", 
+         FractionBox[
+          RowBox[{
+            StyleBox["a", "TI"], "\[CenterDot]", "2", "+", 
+            StyleBox["d", "TI"], "\[CenterDot]", 
+            RowBox[{"(", "-2", ")"}]}], "2"], "\[LongEqual]", 
+         StyleBox["a", "TI"], "-", 
+         StyleBox["d", "TI"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\text{tr}(C) = \\frac{(a-c)\\,l_1 + (d-b)\\,l_2}{2} = \\frac{a \\cdot \
+2 + d \\cdot (-2)}{2} = a - d = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e4a7c885-e2c8-41a6-b75e-e4447eb2f172"],
+ "**The online rule creates zero trace shift because ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LongEqual]", 
+         StyleBox["d", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "a = d", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "4b677760-ff43-4493-b6fa-e4c6ad99a874"],
+ " (both scales adapt identically when ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox[
+          StyleBox["l", "TI"], "1", "2"], "\[LongEqual]", 
+         SubsuperscriptBox[
+          StyleBox["l", "TI"], "2", "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "l_1^2 = l_2^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7d9b9921-73da-4c55-8b4a-6527b91a6d40"],
+ ").** The diagonal degree of freedom is completely wasted."
+}], "Text",ExpressionUUID->"c908868c-bd05-4b8f-98ed-67132449118a"],
+
+Cell[TextData[{
+ "The optimal requires ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LessLess]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "a \\ll 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5ebb2a18-b98a-4f47-90d1-e0970c8a1746"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["d", "TI"], "\[GreaterGreater]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "d \\gg 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "9d63241d-284a-4723-a4c7-94d360db44a5"],
+ " (anti-correlated with the Hessian diagonal), which the current rule cannot \
+produce. "
+}], "Text",ExpressionUUID->"f750fe9c-3936-44a9-b437-2aa22a85a0d1"],
+
+Cell["Part D: Structure of the Optimal Gradient", "Section",ExpressionUUID->"294e6ce1-62f2-41be-ab69-21c1f1df39af"],
+
+Cell["Pattern", "Subsection",ExpressionUUID->"6246a324-b848-4a67-8fe0-a774d0768108"],
+
+Cell[TextData[{
+ "For diagonal ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["H", "TI"], TraditionalForm], "errors" -> {}, "input" -> "H", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "fa6fbea7-b00e-4d37-bab3-ac101f1afb15"],
+ " at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Gamma]", "\[LongEqual]", 
+         StyleBox["I", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\gamma = I", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "6a9f16af-e460-4d21-9b93-d2c97c685fa7"],
+ ", the optimal ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ae1677d4-c7ca-4301-b348-36d6e9044128"],
+ " at large budget ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["R", "TI"], TraditionalForm], "errors" -> {}, "input" -> "R", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "25eebdc6-51a7-4dc1-ab85-a06c313e1814"],
+ ":"
+}], "Text",ExpressionUUID->"7b27aa61-9c34-45d3-b817-368e74804f8a"],
+
+Cell[TextData[{
+ "1. ",
+ StyleBox["Off-diagonal zeroing:",
+  FontWeight->Bold],
+ " ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["c", "TI"], "\[LongEqual]", "-", 
+         StyleBox["b", "TI"], " ", 
+         SubscriptBox[
+          StyleBox["l", "TI"], "1"], "/", 
+         SubscriptBox[
+          StyleBox["l", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "c = -b\\,l_1/l_2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cfeb93ef-7f72-4958-b63c-6265f13692eb"],
+ " (makes ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["Hess", 
+          StyleBox["g", "TI"]], 
+         StyleBox["L", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\text{Hess}_g L", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "bc34eb34-9905-42a1-9bb1-f2e2f4fedeed"],
+ " diagonal)"
+}], "Text",ExpressionUUID->"b310bfb5-5541-4716-afa4-50bfde9c60ec"],
+
+Cell[TextData[{
+ "2. ",
+ StyleBox["Equal eigenvalues:",
+  FontWeight->Bold],
+ " ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "+", "2", 
+         StyleBox["b", "TI"], "+", 
+         StyleBox["d", "TI"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "1"], "-", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "a + 2b + d = h_1 - h_2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ef940b32-25fa-4f22-96e9-4d11c569e5b4"],
+ " (equalizes the two eigenvalues)"
+}], "Text",ExpressionUUID->"42f8b3a7-ffbb-4f2d-aefd-359a590164a6"],
+
+Cell[TextData[{
+ "3. ",
+ StyleBox["Anti-correlation:",
+  FontWeight->Bold],
+ " ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\partial s_i / \\partial \\theta^i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "390aad29-ca21-477c-8589-13188b9c9b28"],
+ " is anti-correlated with $H_{ii}$ "
+}], "Text",ExpressionUUID->"982aed93-f73d-4e40-9347-9d38ab23a9db"],
+
+Cell[TextData[{
+ "Where curvature is positive ($H",
+ StyleBox["{ii} > 0$): $\\partial s",
+  FontSlant->Italic],
+ "i / \\partial \\theta^i < 0$ (shrink scale)"
+}], "Subitem",ExpressionUUID->"ecaa1359-cd94-4382-ab54-5f8f48002edd"],
+
+Cell[TextData[{
+ "Where curvature is negative ($H",
+ StyleBox["{ii} < 0$): $\\partial s",
+  FontSlant->Italic],
+ "i / \\partial \\theta^i > 0$ (grow scale)"
+}], "Subitem",ExpressionUUID->"94c47e9a-969b-4bad-afbf-e457933e3f00"],
+
+Cell["Physical Interpretation", "Subsection",ExpressionUUID->"90ef5fe5-ede6-455f-a414-07f630558078"],
+
+Cell[TextData[{
+ "The Christoffel correction $C_{ij}$ acts as a ",
+ StyleBox["curvature redistribution",
+  FontWeight->Bold],
+ ": it transfers curvature from positive-curvature directions to \
+negative-curvature directions, equalizing the eigenvalue spectrum. The \
+diagonal metric's extra freedom (",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "\[NotEqual]", "\[Del]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\nabla s_1 \\ne \\nabla s_2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0667c73e-d785-4a04-a292-7790e35d33e9"],
+ ") is what enables this redistribution via a nonzero trace shift. "
+}], "Text",ExpressionUUID->"4f0429bc-83d5-49c9-93b2-459fc7520203"],
+
+Cell["Summary and Recommendations", "Section",ExpressionUUID->"d9a2d9d7-8630-4052-9bd9-1b94dd6cf25b"],
+
+Cell["Finding 1: Diagonal is Strictly Necessary", "Subsection",ExpressionUUID->"4c1af736-f393-4472-9db9-90c6853bf26b"],
+
+Cell[TextData[{
+ "Scalar learnable metric (",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "s_1 = s_2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "bde842c3-e66e-4f82-8ca3-04de04c958fd"],
+ ") provably cannot achieve sign flip when ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["H", "TI"], ")"}], "\[LessEqual]", "0"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "\\text{tr}(H) \\le 0", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c2caba40-8981-4b40-9acd-84b8c29692a6"],
+ ", because ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"tr", 
+         RowBox[{"(", 
+           StyleBox["C", "TI"], ")"}], "\[LongEqual]", "0"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "\\text{tr}(C) = 0", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7551afd9-91e7-45cf-bd61-7581c0853aa7"],
+ " identically. Diagonal learnable metric CAN achieve sign flip for any \
+indefinite ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["H", "TI"], TraditionalForm], "errors" -> {}, "input" -> "H", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "efa19ef6-5c91-4b9f-928a-f7c9b9e35ddd"],
+ ", given sufficient ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+        "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", "\[Del]", 
+         StyleBox["s", "TI"], 
+         "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "|\\nabla s|", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0f6db715-ca26-467f-937c-69f4fcc94e5f"],
+ " budget. "
+}], "Text",ExpressionUUID->"52e51482-a089-4ce9-a63a-bce133ed1999"],
+
+Cell["Finding 2: Current Rule Wastes Diagonal Freedom", "Subsection",ExpressionUUID->"1e0ac9cb-7533-48fe-8fa1-dd6a0b9ecf98"],
+
+Cell[TextData[{
+ "The online rule ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LeftArrow]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "+", "\[Mu]\[Xi]", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          SubscriptBox[
+           StyleBox["s", "TI"], 
+           StyleBox["i", "TI"]]], 
+         SubsuperscriptBox[
+          StyleBox["l", "TI"], 
+          StyleBox["i", "TI"], "2"], "-", 
+         SubscriptBox["\[Mu]\[Lambda]", 
+          StyleBox["s", "TI"]], 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i \\leftarrow s_i + \\mu\\xi e^{s_i} l_i^2 - \\mu\\lambda_s s_i", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "6acbb7ba-1f41-49c4-abcf-40ca287ec7c5"],
+ " produces ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3523ce8f-460d-4ee6-9ca2-7a63f1126da3"],
+ " proportional to $l",
+ StyleBox["i H",
+  FontSlant->Italic],
+ "{ij}$, which gives ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["a", "TI"], "\[LongEqual]", 
+         StyleBox["d", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "a = d", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b465d193-d7be-47d3-b576-85575c2e84e3"],
+ " at symmetric saddles (zero trace correction). It never achieves sign flip \
+on any test case. "
+}], "Text",ExpressionUUID->"022bdea2-e220-4952-b0fa-eeafe8833545"],
+
+Cell["Finding 3: Optimal nabla-s is Anti-Correlated with Curvature", \
+"Subsection",ExpressionUUID->"c61f9147-3c9e-4d6b-b193-8c75ba8efca6"],
+
+Cell[TextData[{
+ "The optimal gradient of the scale parameters has ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\partial s_i / \\partial \\theta^i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d3f1d4c4-6da2-4c08-b6c3-f6867252b0a0"],
+ " anti-correlated with $H_{ii}$: shrink the metric scale along \
+positive-curvature directions, grow it along negative-curvature directions. \
+This creates a positive trace shift that raises both eigenvalues. "
+}], "Text",ExpressionUUID->"c30a1c95-16e8-4523-b8d6-8045d0415521"],
+
+Cell["\<\
+Finding 4: Better Update Rule Must Include Curvature Information\
+\>", "Subsection",ExpressionUUID->"4d9ec338-1f5b-4d9d-9777-4da15ad256bc"],
+
+Cell[TextData[{
+ "A better rule should target ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[PartialD]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "/", "\[PartialD]", 
+         SuperscriptBox["\[Theta]", 
+          StyleBox["i", "TI"]], "\[Proportional]", "-", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["H", "TI"], 
+              RowBox[{
+                StyleBox["i", "TI"], 
+                StyleBox["i", "TI"]}]], "-", 
+             OverscriptBox[
+              StyleBox["H", "TI"], "_"]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\partial s_i / \\partial \\theta^i \\propto -(H_{ii} - \\bar{H})", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e7e1325c-8ab9-4a7c-b0b1-1727aa51c7ba"],
+ " where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       OverscriptBox[
+        StyleBox["H", "TI"], "_"], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\bar{H}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ab3b31c2-0a76-4be0-836c-ac9cb6d5a6cd"],
+ " is the mean diagonal curvature. One concrete proposal: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LeftArrow]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "+", "\[Mu]", 
+         RowBox[{"[", 
+           RowBox[{"\[Xi] ", 
+             SuperscriptBox[
+              StyleBox["e", "TI"], 
+              SubscriptBox[
+               StyleBox["s", "TI"], 
+               StyleBox["i", "TI"]]], " ", 
+             SubsuperscriptBox[
+              StyleBox["l", "TI"], 
+              StyleBox["i", "TI"], "2"], "-", "\[Alpha] ", "sign", 
+             RowBox[{"(", 
+               SubscriptBox[
+                StyleBox["H", "TI"], 
+                RowBox[{
+                  StyleBox["i", "TI"], 
+                  StyleBox["i", "TI"]}]], ")"}], " ", 
+             SuperscriptBox[
+              StyleBox["e", "TI"], 
+              SubscriptBox[
+               StyleBox["s", "TI"], 
+               StyleBox["i", "TI"]]], " ", "|", 
+             SubscriptBox[
+              StyleBox["l", "TI"], 
+              StyleBox["i", "TI"]], 
+             SuperscriptBox["|", "2"]}], "]"}], "-", "\[Mu] ", 
+         SubscriptBox["\[Lambda]", 
+          StyleBox["s", "TI"]], " ", 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i \\leftarrow s_i + \\mu\\left[\\xi\\, e^{s_i}\\, l_i^2 - \\alpha\\, \
+\\text{sign}(H_{ii})\\, e^{s_i}\\, |l_i|^2\\right] - \\mu\\,\\lambda_s\\, \
+s_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "471c8b99-6475-49bb-9a62-9e3430f14f78"],
+ "The key insight: the update must ",
+ StyleBox["distinguish directions by their curvature sign",
+  FontWeight->Bold],
+ ", not just by gradient magnitude. The term ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"-", "\[Alpha] ", "sign", 
+         RowBox[{"(", 
+           SubscriptBox[
+            StyleBox["H", "TI"], 
+            RowBox[{
+              StyleBox["i", "TI"], 
+              StyleBox["i", "TI"]}]], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "-\\alpha\\,\\text{sign}(H_{ii})", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "df00fea6-65ad-4d04-96d1-c2b8482a8876"],
+ " creates the anti-correlation that the current rule lacks. "
+}], "Text",ExpressionUUID->"93c317e9-ec28-40fe-81b6-a4eb4e110789"],
+
+Cell["Quantitative Benchmarks", "Subsection",ExpressionUUID->"a1a47201-668a-43e5-a514-fbf76a068be1"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"Scenario\"\>",
+          HoldForm], 
+         TagBox["\<\"No correction\"\>",
+          HoldForm], 
+         TagBox["\<\"Current rule (best lambda_s)\"\>",
+          HoldForm], 
+         TagBox["\<\"Optimal (R=5)\"\>",
+          HoldForm]},
+        {"\<\"Saddle at (1,1)\"\>", "\<\"-0.222\"\>", "\<\"-0.074\"\>", 
+         StyleBox[
+          RowBox[{"+", "0.360"}],
+          FontWeight->Bold]},
+        {"\<\"Asym saddle at (1,1)\"\>", "\<\"-0.146\"\>", "\<\"+0.045 \
+(lucky)\"\>", 
+         StyleBox[
+          RowBox[{"+", "0.182"}],
+          FontWeight->Bold]},
+        {"\<\"Monkey saddle at (1,0)\"\>", "\<\"-0.600\"\>", "\<\"-0.600\"\>", 
+         StyleBox[
+          RowBox[{"+", "0.150"}],
+          FontWeight->Bold]},
+        {"\<\"Monkey saddle at (1,1)\"\>", "\<\"-0.229\"\>", "\<\"-0.051\"\>", 
+         StyleBox[
+          RowBox[{"+", "0.207"}],
+          FontWeight->Bold]}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, Center, Center, {Center}}, 
+         "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[
+      BoxForm`e$, 
+       TableHeadings -> {
+        None, {"Scenario", "No correction", "Current rule (best lambda_s)", 
+          "Optimal (R=5)"}}]]], "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"773d8fdf-c9b2-46ed-a5fb-9a3541d147fb"]
+},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"e81a128d-6f6d-4cff-85a9-624730e63a98"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 105, 0, 70, "Title",ExpressionUUID->"60648578-2c5f-4e5c-853b-f2f87c01232c"],
+Cell[662, 22, 117, 0, 70, "Section",ExpressionUUID->"c88495c2-8964-4856-b35f-58d9842e39a8"],
+Cell[782, 24, 3393, 92, 70, "Text",ExpressionUUID->"986932aa-ba6a-4d8e-a759-b2627f0a798a"],
+Cell[4178, 118, 5495, 140, 70, "Text",ExpressionUUID->"2452cb16-431a-43ed-abf3-80f934e76e99"],
+Cell[9676, 260, 4409, 127, 70, "Input",ExpressionUUID->"09ad8710-e434-485b-8d1a-7cfde9eafeb2"],
+Cell[14088, 389, 88, 0, 70, "Section",ExpressionUUID->"20142df6-980a-4807-915b-72f9b30fd535"],
+Cell[14179, 391, 3344, 106, 70, "Input",ExpressionUUID->"e9148bbe-89ea-428b-8661-41e28425c20c"],
+Cell[17526, 499, 145, 2, 70, "Section",ExpressionUUID->"f2a5d910-38c8-43c6-83cc-96a63d28ac72"],
+Cell[17674, 503, 1277, 33, 70, "Text",ExpressionUUID->"cc3fe987-a096-4dd3-af08-021ff97da5c2"],
+Cell[18954, 538, 3400, 82, 70, "Input",ExpressionUUID->"b489ff46-b718-48c2-8417-867bd485ae08"],
+Cell[22357, 622, 579, 15, 70, "Subsection",ExpressionUUID->"b5135573-c85c-4d49-87d0-93e54d2aa9d5"],
+Cell[22939, 639, 1200, 31, 70, "Text",ExpressionUUID->"a5f0882b-4d4b-4489-aad8-5af9cff2f07b"],
+Cell[24142, 672, 4354, 104, 70, "Input",ExpressionUUID->"ba68777c-b933-4e65-aa47-7791147aff96"],
+Cell[28499, 778, 80, 0, 70, "Text",ExpressionUUID->"8180dac0-50cb-462f-a3f6-67f46560f452"],
+Cell[28582, 780, 2319, 60, 70, "TextTableForm",ExpressionUUID->"5987e09b-ca41-4192-aded-ba2bfd79e64f"],
+Cell[30904, 842, 611, 14, 70, "Text",ExpressionUUID->"e1885275-e843-4c5c-8f8f-7026a6ed7f9b"],
+Cell[31518, 858, 114, 0, 70, "Subsection",ExpressionUUID->"185172a7-2f40-48fc-b8bf-1e4dc22b2ec0"],
+Cell[31635, 860, 1925, 53, 70, "Text",ExpressionUUID->"ba271f69-fc16-4f02-a957-157a63f01fd1"],
+Cell[33563, 915, 716, 18, 70, "Text",ExpressionUUID->"b4279c99-84c0-4dca-827c-435b0f5acd45"],
+Cell[34282, 935, 1750, 52, 70, "Input",ExpressionUUID->"e5f5529d-6b05-4c24-afcf-b5c6ac66c94d"],
+Cell[36035, 989, 119, 0, 70, "Subsection",ExpressionUUID->"341b6731-dfba-435d-9b2e-e2dbb18d5d34"],
+Cell[36157, 991, 2909, 87, 70, "Input",ExpressionUUID->"3431aa8f-a26f-4162-ba30-d0a8dc10e5f5"],
+Cell[39069, 1080, 2184, 55, 70, "TextTableForm",ExpressionUUID->"98bf4460-fa40-4f13-a4bb-ae457b2a5bc9"],
+Cell[41256, 1137, 126, 0, 70, "Section",ExpressionUUID->"10eacf54-16a6-4df5-bb2d-db4f28dcde72"],
+Cell[41385, 1139, 1546, 44, 70, "Input",ExpressionUUID->"42e9e96a-c02c-4ae4-8768-84b7469a7846"],
+Cell[42934, 1185, 5223, 143, 70, "Text",ExpressionUUID->"560a20d0-1c96-4fc2-8b0f-99168c237674"],
+Cell[48160, 1330, 2117, 56, 70, "Text",ExpressionUUID->"1fba77a4-2c7a-4fc3-8e2d-4bdfd374daa1"],
+Cell[50280, 1388, 111, 0, 70, "Section",ExpressionUUID->"4f86de6f-710d-41f5-a803-24194dc8114e"],
+Cell[50394, 1390, 1104, 30, 70, "Text",ExpressionUUID->"fbd1e985-b0d6-4489-b398-375f6edfa6bf"],
+Cell[51501, 1422, 1672, 44, 70, "Text",ExpressionUUID->"e6ff1be2-9cc9-478a-9f0e-07a3e20c8b30"],
+Cell[53176, 1468, 5416, 135, 70, "Input",ExpressionUUID->"8969cef7-b9b4-4c53-955c-d9d57011c00c"],
+Cell[58595, 1605, 1660, 46, 70, "TextTableForm",ExpressionUUID->"61ee6ec8-fa44-40bd-b6a7-60214030d80c"],
+Cell[60258, 1653, 534, 14, 70, "Text",ExpressionUUID->"cb51a081-aa7b-438e-a9a3-d3f56cd3ed22"],
+Cell[60795, 1669, 87, 0, 70, "Subsection",ExpressionUUID->"2eed20ac-fdfc-47fe-ade9-c691804b58e4"],
+Cell[60885, 1671, 1943, 51, 70, "Text",ExpressionUUID->"c6034313-7740-472e-b80a-b002a1657f8e"],
+Cell[62831, 1724, 2308, 57, 70, "Text",ExpressionUUID->"c908868c-bd05-4b8f-98ed-67132449118a"],
+Cell[65142, 1783, 861, 21, 70, "Text",ExpressionUUID->"f750fe9c-3936-44a9-b437-2aa22a85a0d1"],
+Cell[66006, 1806, 115, 0, 70, "Section",ExpressionUUID->"294e6ce1-62f2-41be-ab69-21c1f1df39af"],
+Cell[66124, 1808, 84, 0, 70, "Subsection",ExpressionUUID->"6246a324-b848-4a67-8fe0-a774d0768108"],
+Cell[66211, 1810, 1355, 36, 70, "Text",ExpressionUUID->"7b27aa61-9c34-45d3-b817-368e74804f8a"],
+Cell[67569, 1848, 1049, 30, 70, "Text",ExpressionUUID->"b310bfb5-5541-4716-afa4-50bfde9c60ec"],
+Cell[68621, 1880, 722, 20, 70, "Text",ExpressionUUID->"42f8b3a7-ffbb-4f2d-aefd-359a590164a6"],
+Cell[69346, 1902, 678, 18, 70, "Text",ExpressionUUID->"982aed93-f73d-4e40-9347-9d38ab23a9db"],
+Cell[70027, 1922, 228, 5, 70, "Subitem",ExpressionUUID->"ecaa1359-cd94-4382-ab54-5f8f48002edd"],
+Cell[70258, 1929, 226, 5, 70, "Subitem",ExpressionUUID->"94c47e9a-969b-4bad-afbf-e457933e3f00"],
+Cell[70487, 1936, 100, 0, 70, "Subsection",ExpressionUUID->"90ef5fe5-ede6-455f-a414-07f630558078"],
+Cell[70590, 1938, 886, 19, 70, "Text",ExpressionUUID->"4f0429bc-83d5-49c9-93b2-459fc7520203"],
+Cell[71479, 1959, 101, 0, 70, "Section",ExpressionUUID->"d9a2d9d7-8630-4052-9bd9-1b94dd6cf25b"],
+Cell[71583, 1961, 118, 0, 70, "Subsection",ExpressionUUID->"4c1af736-f393-4472-9db9-90c6853bf26b"],
+Cell[71704, 1963, 2199, 57, 70, "Text",ExpressionUUID->"52e51482-a089-4ce9-a63a-bce133ed1999"],
+Cell[73906, 2022, 124, 0, 70, "Subsection",ExpressionUUID->"1e0ac9cb-7533-48fe-8fa1-dd6a0b9ecf98"],
+Cell[74033, 2024, 1925, 53, 70, "Text",ExpressionUUID->"022bdea2-e220-4952-b0fa-eeafe8833545"],
+Cell[75961, 2079, 139, 1, 70, "Subsection",ExpressionUUID->"c61f9147-3c9e-4d6b-b193-8c75ba8efca6"],
+Cell[76103, 2082, 840, 17, 70, "Text",ExpressionUUID->"c30a1c95-16e8-4523-b8d6-8045d0415521"],
+Cell[76946, 2101, 149, 2, 70, "Subsection",ExpressionUUID->"4d9ec338-1f5b-4d9d-9777-4da15ad256bc"],
+Cell[77098, 2105, 3796, 99, 70, "Text",ExpressionUUID->"93c317e9-ec28-40fe-81b6-a4eb4e110789"],
+Cell[80897, 2206, 100, 0, 70, "Subsection",ExpressionUUID->"a1a47201-668a-43e5-a514-fbf76a068be1"],
+Cell[81000, 2208, 1959, 56, 70, "TextTableForm",ExpressionUUID->"773d8fdf-c9b2-46ed-a5fb-9a3541d147fb"]
+}
+]
+*)
+
+(* End of internal cache information *)

@@ -23,7 +23,7 @@ parameters/          # Hyperparameter sweep scripts and shared utilities
 analysis/            # Analysis notebooks for visualising results
 results/             # Local sweep results (JSON format)
 documents/           # Additional notebooks and notes
-images/              # Figures
+images/              # Figures and figure-generation scripts
 ```
 
 ## Setup
