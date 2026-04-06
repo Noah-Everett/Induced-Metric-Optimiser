@@ -26,6 +26,10 @@ from optimisers.jax_learnable_diag import (
     custom_sgd_learnable_diag,
     custom_sgd_log_learnable_diag,
 )
+from optimisers.jax_learnable_diag_curv import (
+    custom_sgd_learnable_diag_curv,
+    custom_sgd_log_learnable_diag_curv,
+)
 from optimisers.jax_offdiag import custom_sgd_offdiag
 
 
@@ -45,6 +49,8 @@ ALL_OPTIMIZERS = [
     "sgd_learn_scalar_log",
     "sgd_learn_diag",
     "sgd_learn_diag_log",
+    "sgd_learn_diag_curv",
+    "sgd_learn_diag_curv_log",
     "sgd_offdiag_0_l",
     "sgd_offdiag_0_m",
     "sgd_offdiag_0_theta",
@@ -66,6 +72,7 @@ LOG_OPTIMIZERS = frozenset({
     "sgd_log_metric",
     "sgd_learn_scalar_log",
     "sgd_learn_diag_log",
+    "sgd_learn_diag_curv_log",
 })
 
 # Off-diagonal mode shorthand -> full mode name
@@ -104,6 +111,9 @@ _PARAM_BOUNDS = {
     "metric_lr": (1e-5, 1.0, True),
     "metric_reg": (1e-6, 1e-2, True),
     "metric_clip": (1.0, 5.0, False),
+    # Curvature-aware parameters
+    "curv_beta": (0.001, 1.0, True),
+    "curv_tau": (0.1, 100.0, True),
     # Off-diagonal parameters
     "gamma": (1e-4, 10.0, True),
 }
@@ -301,6 +311,34 @@ def create_optimizer(name, config):
             metric_clip=config.get("metric_clip", 4.0),
         )
 
+    if name == "sgd_learn_diag_curv":
+        return custom_sgd_learnable_diag_curv(
+            learning_rate=config["learning_rate"],
+            momentum=config.get("momentum", 0.9),
+            xi=config.get("xi", 0.1),
+            beta=config.get("beta", 0.8),
+            weight_decay=config.get("weight_decay", 0.0),
+            metric_lr=config.get("metric_lr", 1e-3),
+            metric_reg=config.get("metric_reg", 1e-4),
+            metric_clip=config.get("metric_clip", 4.0),
+            curv_beta=config.get("curv_beta", 0.05),
+            curv_tau=config.get("curv_tau", 1.0),
+        )
+
+    if name == "sgd_learn_diag_curv_log":
+        return custom_sgd_log_learnable_diag_curv(
+            learning_rate=config["learning_rate"],
+            momentum=config.get("momentum", 0.9),
+            xi=config.get("xi", 0.1),
+            beta=config.get("beta", 0.8),
+            weight_decay=config.get("weight_decay", 0.0),
+            metric_lr=config.get("metric_lr", 1e-3),
+            metric_reg=config.get("metric_reg", 1e-4),
+            metric_clip=config.get("metric_clip", 4.0),
+            curv_beta=config.get("curv_beta", 0.05),
+            curv_tau=config.get("curv_tau", 1.0),
+        )
+
     if name.startswith("sgd_offdiag_"):
         parts = name.split("_")
         a_short, b_short = parts[2], parts[3]
@@ -437,6 +475,20 @@ def get_sweep_parameters(name, overrides=None):
             "metric_clip": _param("metric_clip"),
         }
 
+    if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
+        return {
+            "learning_rate": _param("learning_rate"),
+            "momentum": _param("momentum"),
+            "xi": _param("xi"),
+            "beta": _param("beta"),
+            "weight_decay": _param("weight_decay"),
+            "metric_lr": _param("metric_lr"),
+            "metric_reg": _param("metric_reg"),
+            "metric_clip": _param("metric_clip"),
+            "curv_beta": _param("curv_beta"),
+            "curv_tau": _param("curv_tau"),
+        }
+
     if name.startswith("sgd_offdiag_"):
         return {
             "learning_rate": _param("learning_rate"),
@@ -562,6 +614,20 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "metric_clip": _suggest("metric_clip"),
         }
 
+    if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
+        return {
+            "learning_rate": _suggest("learning_rate"),
+            "momentum": _suggest("momentum"),
+            "xi": _suggest("xi"),
+            "beta": _suggest("beta"),
+            "weight_decay": _suggest("weight_decay"),
+            "metric_lr": _suggest("metric_lr"),
+            "metric_reg": _suggest("metric_reg"),
+            "metric_clip": _suggest("metric_clip"),
+            "curv_beta": _suggest("curv_beta"),
+            "curv_tau": _suggest("curv_tau"),
+        }
+
     if name.startswith("sgd_offdiag_"):
         return {
             "learning_rate": _suggest("learning_rate"),
@@ -594,6 +660,8 @@ _OPTIMIZER_COLORS = {
     "sgd_learn_scalar_log": "#ff9896",
     "sgd_learn_diag": "#17becf",
     "sgd_learn_diag_log": "#aec7e8",
+    "sgd_learn_diag_curv": "#e6550d",
+    "sgd_learn_diag_curv_log": "#fdae6b",
     "sgd_offdiag_0_l": "#bcbd22",
     "sgd_offdiag_0_m": "#dbdb8d",
     "sgd_offdiag_0_theta": "#98df8a",
