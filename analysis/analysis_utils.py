@@ -231,6 +231,9 @@ _SUMMARY_KEYS = frozenset({
     "train_loss", "val_loss", "test_loss", "train_acc", "val_acc", "test_acc",
     "best_val_acc", "best_val_loss", "best_test_acc",
     "n_epochs", "epoch",
+    # best-epoch / best-metric keys used by 2D histograms
+    "final_max_acc_epoch", "final_max_val_acc",
+    "final_min_perp_epoch", "final_min_val_perplexity",
 })
 
 
