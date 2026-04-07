@@ -105,7 +105,7 @@ _PARAM_BOUNDS = {
     "muon_beta": (0.5, 0.999, False),  # muon's momentum parameter
     # Custom SGD metric parameters
     "xi": (1e-3, 1e1, True),
-    "beta": (0.8, 0.99, False),        # IMO-48: narrowed from 0.5; CV(v_hat) > 45% below 0.8
+    "beta": (0.5, 0.99, False),
     "beta_rms": (0.8, 0.9999, False),
     # Learnable metric parameters
     "metric_lr": (1e-5, 1.0, True),
@@ -486,7 +486,7 @@ def get_sweep_parameters(name, overrides=None):
             "weight_decay": _param("weight_decay"),
             "metric_lr": _param("metric_lr"),
             "metric_reg": _param("metric_reg"),
-            "metric_clip": _param("metric_clip", default_fixed=4.0),  # IMO-48: never binds with mean-centering
+            "metric_clip": _param("metric_clip"),
             "curv_beta": _param("curv_beta"),  # WandB can't do dependent params; Optuna uses curv_ratio
             "curv_tau": _param("curv_tau"),
         }
@@ -624,7 +624,8 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             curv_beta_val = _suggest("curv_beta")
         else:
             curv_ratio = _suggest("curv_ratio")
-            curv_beta_val = xi_val * curv_ratio
+            cb_lo, cb_hi, _ = _PARAM_BOUNDS["curv_beta"]
+            curv_beta_val = max(cb_lo, min(cb_hi, xi_val * curv_ratio))
         return {
             "learning_rate": _suggest("learning_rate"),
             "momentum": _suggest("momentum"),
@@ -633,7 +634,7 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "weight_decay": _suggest("weight_decay"),
             "metric_lr": _suggest("metric_lr"),
             "metric_reg": _suggest("metric_reg"),
-            "metric_clip": _suggest("metric_clip", default_fixed=4.0),
+            "metric_clip": _suggest("metric_clip"),
             "curv_beta": curv_beta_val,
             "curv_tau": _suggest("curv_tau"),
         }
