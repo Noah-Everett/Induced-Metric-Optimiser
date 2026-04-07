@@ -105,7 +105,7 @@ _PARAM_BOUNDS = {
     "muon_beta": (0.5, 0.999, False),  # muon's momentum parameter
     # Custom SGD metric parameters
     "xi": (1e-3, 1e1, True),
-    "beta": (0.5, 0.99, False),
+    "beta": (0.8, 0.99, False),        # IMO-48: narrowed from 0.5; CV(v_hat) > 45% below 0.8
     "beta_rms": (0.8, 0.9999, False),
     # Learnable metric parameters
     "metric_lr": (1e-5, 1.0, True),
@@ -113,7 +113,9 @@ _PARAM_BOUNDS = {
     "metric_clip": (1.0, 5.0, False),
     # Curvature-aware parameters
     "curv_beta": (0.001, 1.0, True),
-    "curv_tau": (0.1, 100.0, True),
+    "curv_tau": (0.5, 10.0, True),     # IMO-48: narrowed from [0.1,100]; sensitivity peaks at tau~|H|
+    # Curvature ratio (curv_beta/xi): sign-flip transition at coth(H/tau) ~ 1
+    "curv_ratio": (0.2, 5.0, True),    # IMO-48: replaces independent curv_beta in Optuna sweeps
     # Off-diagonal parameters
     "gamma": (1e-4, 10.0, True),
 }
@@ -484,8 +486,8 @@ def get_sweep_parameters(name, overrides=None):
             "weight_decay": _param("weight_decay"),
             "metric_lr": _param("metric_lr"),
             "metric_reg": _param("metric_reg"),
-            "metric_clip": _param("metric_clip"),
-            "curv_beta": _param("curv_beta"),
+            "metric_clip": _param("metric_clip", default_fixed=4.0),  # IMO-48: never binds with mean-centering
+            "curv_beta": _param("curv_beta"),  # WandB can't do dependent params; Optuna uses curv_ratio
             "curv_tau": _param("curv_tau"),
         }
 
@@ -615,16 +617,24 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
         }
 
     if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
+        xi_val = _suggest("xi")
+        # IMO-48: tie curv_beta to xi via curv_ratio. Sign-flip transition
+        # at coth(H/tau) ~ 1; useful range [0.2, 5.0].
+        if "curv_beta" in overrides:
+            curv_beta_val = _suggest("curv_beta")
+        else:
+            curv_ratio = _suggest("curv_ratio")
+            curv_beta_val = xi_val * curv_ratio
         return {
             "learning_rate": _suggest("learning_rate"),
             "momentum": _suggest("momentum"),
-            "xi": _suggest("xi"),
+            "xi": xi_val,
             "beta": _suggest("beta"),
             "weight_decay": _suggest("weight_decay"),
             "metric_lr": _suggest("metric_lr"),
             "metric_reg": _suggest("metric_reg"),
-            "metric_clip": _suggest("metric_clip"),
-            "curv_beta": _suggest("curv_beta"),
+            "metric_clip": _suggest("metric_clip", default_fixed=4.0),
+            "curv_beta": curv_beta_val,
             "curv_tau": _suggest("curv_tau"),
         }
 
