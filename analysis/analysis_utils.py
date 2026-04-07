@@ -237,11 +237,15 @@ _SUMMARY_KEYS = frozenset({
 })
 
 
-def _load_local_runs_parquet(itr_dir: Path) -> list[dict]:
+def _load_local_runs_parquet(itr_dir: Path, skip_history: bool = False) -> list[dict]:
     """Load runs from consolidated Parquet files (fast path).
 
     Reconstructs the same run-dict format as _load_csv_run so all
     downstream code works without modification.
+
+    When *skip_history* is True, trajectory data is not loaded — only
+    summary and config.  This dramatically reduces memory for analyses
+    that only need per-run metrics (e.g. HP sensitivity).
     """
     summary_path = itr_dir / "summary.parquet"
     traj_path = itr_dir / "trajectories.parquet"
@@ -250,7 +254,7 @@ def _load_local_runs_parquet(itr_dir: Path) -> list[dict]:
 
     # Load trajectories grouped by run_id (only if file exists)
     traj_by_run: dict = {}
-    if traj_path.exists():
+    if not skip_history and traj_path.exists():
         traj_df = pd.read_parquet(traj_path)
         for run_id, group in traj_df.groupby("run_id"):
             traj_by_run[run_id] = group.drop(columns="run_id")
@@ -287,7 +291,8 @@ def _load_local_runs_parquet(itr_dir: Path) -> list[dict]:
     return runs
 
 
-def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
+def _load_local_runs(results_dir, task_tag, optimizer, iteration=0,
+                     skip_history=False):
     """Load all runs for an optimizer from local Parquet or CSV/JSON files.
 
     Prefers consolidated Parquet files (written by consolidate_results.py)
@@ -298,6 +303,7 @@ def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
         task_tag: Task identifier (e.g., "mnist_mlp")
         optimizer: Optimizer name
         iteration: Iteration/batch number (default: 0)
+        skip_history: If True, skip loading trajectory data (saves memory)
 
     Returns:
         list: List of run data dicts, or empty list if no files found
@@ -309,7 +315,7 @@ def _load_local_runs(results_dir, task_tag, optimizer, iteration=0):
 
     # Fast path: consolidated Parquet files
     if (itr_dir / "summary.parquet").exists():
-        return _load_local_runs_parquet(itr_dir)
+        return _load_local_runs_parquet(itr_dir, skip_history=skip_history)
 
     # Fallback: scan individual CSV/JSON files
     runs = []
@@ -603,7 +609,8 @@ def load_all_runs(
     all_runs = {}
     for optimizer in optimizers:
         print(f"Loading all runs for {optimizer}...")
-        runs = _load_local_runs(results_dir, task_tag, optimizer, iteration=iteration)
+        runs = _load_local_runs(results_dir, task_tag, optimizer,
+                                iteration=iteration, skip_history=True)
         all_runs[optimizer] = runs
         print(f"  {optimizer}: {len(runs)} runs")
 
@@ -832,6 +839,7 @@ def plot_training_curves(
     marker="o-",
     log_scale=False,
     ylim=None,
+    highlight=None,
 ):
     """
     Plot training curves for multiple optimizers.
@@ -900,9 +908,15 @@ def plot_training_curves(
                 if len(x) > 0 and len(y) > 0:
                     min_len = min(len(x), len(y))
                     plot_fn = ax.loglog if log_scale else (ax.semilogy if n_opt > 10 else ax.plot)
+                    if highlight is not None:
+                        is_hl = opt in highlight
+                        _lw = lw * 2.0 if is_hl else lw
+                        _zo = 5 if is_hl else 1
+                    else:
+                        _lw, _zo = lw, 1
                     plot_fn(x[:min_len], y[:min_len], fmt,
-                            linewidth=lw, markersize=ms, color=colors.get(opt),
-                            label=opt, alpha=0.8)
+                            linewidth=_lw, markersize=ms, color=colors.get(opt),
+                            label=opt, alpha=0.8, zorder=_zo)
 
             if ylim is not None:
                 if isinstance(ylim, dict):
@@ -941,6 +955,7 @@ def plot_convergence_curves(
     x_labels=None,
     x_scales=None,
     figsize=None,
+    highlight=None,
     linewidth=2,
     alpha=0.8,
 ):
@@ -1081,8 +1096,15 @@ def plot_convergence_curves(
                         if best_ep is not None:
                             label = f"{opt} (best @ {int(best_ep)})"
 
+                if highlight is not None:
+                    is_hl = opt in highlight
+                    lw = linewidth * 2.0 if is_hl else linewidth
+                    zo = 5 if is_hl else 1
+                else:
+                    lw, zo = linewidth, 1
+
                 plot_fn(x_plot, y_plot, label=label,
-                        color=colors.get(opt), linewidth=linewidth, alpha=alpha)
+                        color=colors.get(opt), linewidth=lw, alpha=alpha, zorder=zo)
 
                 # Mark best / convergence point
                 if (mark_best and best_runs and opt in best_runs
@@ -1860,17 +1882,7 @@ def plot_performance_summary(
     if colors is None:
         colors = get_optimizer_colors(optimizers)
 
-    fig, axes = plt.subplots(1, 3, figsize=figsize)
-
-    plot_convergence_heatmap(
-        optimizer_data=optimizer_data,
-        targets=targets,
-        metric_key=metric_key,
-        direction=direction,
-        optimizers=optimizers,
-        ax=axes[0],
-        annotation_fmt="check",
-    )
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
 
     plot_efficiency_scatter(
         best_runs=best_runs,
@@ -1878,7 +1890,7 @@ def plot_performance_summary(
         epoch_key=epoch_key,
         optimizers=optimizers,
         colors=colors,
-        ax=axes[1],
+        ax=axes[0],
     )
 
     plot_ranking_bar(
@@ -1886,7 +1898,7 @@ def plot_performance_summary(
         metric_key=ranking_metric_key,
         optimizers=optimizers,
         colors=colors,
-        ax=axes[2],
+        ax=axes[1],
         title="Optimizer Rankings by Final Accuracy",
         xlabel="Best Test Accuracy",
     )
