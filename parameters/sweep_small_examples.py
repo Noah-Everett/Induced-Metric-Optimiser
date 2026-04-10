@@ -24,6 +24,7 @@ import optax
 
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepLogger, SweepRunner, setup_argparser
+from optimizer_diagnostics import collect_diagnostics
 
 # Enable 64-bit precision for small-scale optimisation
 jax.config.update("jax_enable_x64", True)
@@ -163,7 +164,7 @@ def get_param_overrides(optimizer_name):
 # Training function
 # ---------------------------------------------------------------------------
 
-def train(config, seed, logger, optimizer_name, function_name):
+def train(config, seed, logger, optimizer_name, function_name, diagnostics=False):
     """Run gradient descent on a single test function.
 
     Returns
@@ -202,6 +203,8 @@ def train(config, seed, logger, optimizer_name, function_name):
     pruned = False
     iterations = 0
     runtime = 0.0
+    prev_diag_loss = None
+    do_diag = diagnostics
 
     for i in range(MAX_ITERATIONS):
         start = time.time()
@@ -212,10 +215,27 @@ def train(config, seed, logger, optimizer_name, function_name):
         current_value = float(func(params))
         iterations = i + 1
 
+        # Diagnostics (2D functions — full tensor mode)
+        diag_metrics = {}
+        if do_diag:
+            dg = grad_func(params)
+            dl = func(params)
+            if use_loss:
+                du, _ = optimizer.update(dg, opt_state, dl, params)
+            else:
+                du, _ = optimizer.update(dg, opt_state, params)
+            diag_metrics = collect_diagnostics(
+                optimizer_name, opt_state, params,
+                grads=dg, updates=du, loss=dl,
+                config=config, prev_loss=prev_diag_loss,
+            )
+            prev_diag_loss = dl
+
         logger.log({
             "iteration": i,
             "function_value": current_value,
             "runtime_seconds": runtime,
+            **diag_metrics,
         })
 
         if current_value <= tolerance:
@@ -273,7 +293,8 @@ def main():
 
         def make_train_fn(fn_name):
             def _train(config, seed, logger):
-                return train(config, seed, logger, args.optimiser, fn_name)
+                return train(config, seed, logger, args.optimiser, fn_name,
+                             diagnostics=getattr(args, 'diagnostics', False))
             return _train
 
         runner = SweepRunner(

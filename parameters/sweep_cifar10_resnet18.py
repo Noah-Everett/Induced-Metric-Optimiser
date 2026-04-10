@@ -30,6 +30,7 @@ import optax
 from shared_models import ResNet18
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
+from optimizer_diagnostics import collect_diagnostics
 
 # Parse CLI
 parser = setup_argparser("CIFAR-10 ResNet18 Hyperparameter Sweep")
@@ -182,6 +183,7 @@ def train(config, seed, logger):
     max_acc_epoch = 0
     train_time = 0.0
     pruned = False
+    prev_diag_loss = None
 
     for epoch in range(n_epochs):
         # Shuffle and reshape training data for this epoch
@@ -205,6 +207,27 @@ def train(config, seed, logger):
         if epoch == 0 and args.index == 0:
             print(f"First epoch (scan, {n_train_batches} batches): {epoch_time:.3f}s", flush=True)
 
+        # Diagnostics (one fwd/bwd on first batch, train=False to avoid batch_stats mutation)
+        diag_metrics = {}
+        if getattr(args, 'diagnostics', False):
+            def _diag_loss(p):
+                variables = {"params": p, "batch_stats": batch_stats}
+                logits = model.apply(variables, x_epoch[0], train=False)
+                return optax.softmax_cross_entropy_with_integer_labels(
+                    logits, y_epoch[0]
+                ).mean()
+            dl, dg = jax.value_and_grad(_diag_loss)(params)
+            if use_loss:
+                du, _ = optimizer.update(dg, opt_state, dl, params)
+            else:
+                du, _ = optimizer.update(dg, opt_state, params)
+            diag_metrics = collect_diagnostics(
+                args.optimiser, opt_state, params,
+                grads=dg, updates=du, loss=dl,
+                config=config, prev_loss=prev_diag_loss,
+            )
+            prev_diag_loss = dl
+
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
             n_train_samples = n_train_batches * batch_size
             n_test_samples = n_test_batches * batch_size
@@ -227,6 +250,7 @@ def train(config, seed, logger):
                 "train_acc": train_acc,
                 "test_acc": test_acc,
                 "train_time_seconds": train_time,
+                **diag_metrics,
             })
 
             # Check for pruning (minimize negative accuracy)
@@ -234,7 +258,7 @@ def train(config, seed, logger):
                 pruned = True
                 break
         else:
-            logger.log({"epoch": epoch, "train_loss": avg_loss})
+            logger.log({"epoch": epoch, "train_loss": avg_loss, **diag_metrics})
 
     return {
         "objective": -max_val_acc,

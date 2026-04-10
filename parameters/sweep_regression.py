@@ -17,6 +17,7 @@ import optax
 from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
+from optimizer_diagnostics import collect_diagnostics
 
 # Parse CLI
 parser = setup_argparser("Regression Hyperparameter Sweep")
@@ -148,6 +149,7 @@ def train(config, seed, logger):
     min_loss_epoch = 0
     train_time = 0.0
     pruned = False
+    prev_diag_loss = None
 
     for epoch in range(n_epochs):
         epoch_losses = []
@@ -159,6 +161,24 @@ def train(config, seed, logger):
         train_time += time.time() - epoch_start
 
         avg_loss = float(jnp.mean(jnp.array(epoch_losses)))
+
+        # Diagnostics (one fwd/bwd on first batch)
+        diag_metrics = {}
+        if getattr(args, 'diagnostics', False):
+            x_b0, y_b0 = train_batches[0]
+            dl, dg = jax.value_and_grad(
+                lambda p: mse_fn(p, x_b0, y_b0, model)
+            )(params)
+            if use_loss:
+                du, _ = optimizer.update(dg, opt_state, dl, params)
+            else:
+                du, _ = optimizer.update(dg, opt_state, params)
+            diag_metrics = collect_diagnostics(
+                args.optimiser, opt_state, params,
+                grads=dg, updates=du, loss=dl,
+                config=config, prev_loss=prev_diag_loss,
+            )
+            prev_diag_loss = dl
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
             train_mse = float(compute_full_mse(params, train_batches, model))
@@ -173,6 +193,7 @@ def train(config, seed, logger):
                 "train_mse": train_mse,
                 "test_mse": test_mse,
                 "train_time_seconds": train_time,
+                **diag_metrics,
             })
 
             # Check for pruning (minimize test MSE)
@@ -180,7 +201,7 @@ def train(config, seed, logger):
                 pruned = True
                 break
         else:
-            logger.log({"epoch": epoch, "train_loss": avg_loss})
+            logger.log({"epoch": epoch, "train_loss": avg_loss, **diag_metrics})
 
     return {
         "objective": min_val_loss,

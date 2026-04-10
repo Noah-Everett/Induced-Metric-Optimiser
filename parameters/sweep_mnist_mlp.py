@@ -32,6 +32,7 @@ import tensorflow as tf
 from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
+from optimizer_diagnostics import collect_diagnostics
 
 # Parse CLI
 parser = setup_argparser("MNIST MLP Hyperparameter Sweep")
@@ -142,6 +143,7 @@ def train(config, seed, logger):
     train_time = 0.0
     val_time = 0.0
     pruned = False
+    prev_diag_loss = None
 
     for epoch in range(n_epochs):
         epoch_start = time.time()
@@ -154,6 +156,23 @@ def train(config, seed, logger):
 
         if epoch == 0 and args.index == 0:
             print(f"First epoch (scan, {n_train_batches} batches): {epoch_time:.3f}s", flush=True)
+
+        # Diagnostics (one extra fwd/bwd on first batch)
+        diag_metrics = {}
+        if getattr(args, 'diagnostics', False):
+            dl, dg = jax.value_and_grad(
+                lambda p: loss_fn(p, x_train_batched[0], y_train_batched[0], model)
+            )(params)
+            if use_loss:
+                du, _ = optimizer.update(dg, opt_state, dl, params)
+            else:
+                du, _ = optimizer.update(dg, opt_state, params)
+            diag_metrics = collect_diagnostics(
+                args.optimiser, opt_state, params,
+                grads=dg, updates=du, loss=dl,
+                config=config, prev_loss=prev_diag_loss,
+            )
+            prev_diag_loss = dl
 
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
             val_start = time.time()
@@ -171,6 +190,7 @@ def train(config, seed, logger):
                 "train_acc": train_acc,
                 "test_acc": test_acc,
                 "train_time_seconds": train_time,
+                **diag_metrics,
             })
 
             # Check for pruning (minimize negative accuracy)
@@ -178,7 +198,7 @@ def train(config, seed, logger):
                 pruned = True
                 break
         else:
-            logger.log({"epoch": epoch, "train_loss": avg_loss})
+            logger.log({"epoch": epoch, "train_loss": avg_loss, **diag_metrics})
 
     return {
         "objective": -max_val_acc,

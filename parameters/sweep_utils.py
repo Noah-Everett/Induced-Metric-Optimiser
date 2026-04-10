@@ -439,4 +439,8 @@ def setup_argparser(description):
         "--run_offset", type=int, default=0,
         help="Starting run index offset (for resuming partial sweeps)",
     )
+    parser.add_argument(
+        "--diagnostics", action="store_true", default=False,
+        help="Enable optimizer state diagnostic logging (off by default)",
+    )
     return parser

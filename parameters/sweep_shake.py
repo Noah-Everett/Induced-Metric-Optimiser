@@ -19,6 +19,7 @@ import requests
 from shared_models import MiniGPT
 from optimizer_registry import create_optimizer, needs_loss
 from sweep_utils import SweepRunner, setup_argparser
+from optimizer_diagnostics import collect_diagnostics
 
 # Parse CLI
 parser = setup_argparser("Tiny Shakespeare MiniGPT Hyperparameter Sweep")
@@ -208,6 +209,7 @@ def train(config, seed, logger):
     min_perp_epoch = 0
     train_time = 0.0
     pruned = False
+    prev_diag_loss = None
 
     for epoch in range(n_epochs):
         epoch_losses = []
@@ -221,6 +223,29 @@ def train(config, seed, logger):
 
         avg_train_loss = float(jnp.mean(jnp.array(epoch_losses)))
 
+        # Diagnostics (one fwd/bwd on first batch, train=False to skip dropout)
+        diag_metrics = {}
+        if getattr(args, 'diagnostics', False):
+            x_b0, y_b0 = train_batches[0]
+            def _diag_loss_shake(p):
+                logits = model.apply(p, x_b0, train=False)
+                logits_flat = logits.reshape(-1, logits.shape[-1])
+                targets_flat = y_b0.reshape(-1)
+                return optax.softmax_cross_entropy_with_integer_labels(
+                    logits_flat, targets_flat
+                ).mean()
+            dl, dg = jax.value_and_grad(_diag_loss_shake)(params)
+            if use_loss:
+                du, _ = optimizer.update(dg, opt_state, dl, params)
+            else:
+                du, _ = optimizer.update(dg, opt_state, params)
+            diag_metrics = collect_diagnostics(
+                args.optimiser, opt_state, params,
+                grads=dg, updates=du, loss=dl,
+                config=full_config, prev_loss=prev_diag_loss,
+            )
+            prev_diag_loss = dl
+
         if epoch % args.val_freq == 0 or epoch == n_epochs - 1:
             val_perplexity = float(perplexity_fn(params, val_batches, model))
             if val_perplexity < min_val_perplexity:
@@ -232,6 +257,7 @@ def train(config, seed, logger):
                 "train_loss": avg_train_loss,
                 "val_perplexity": val_perplexity,
                 "train_time_seconds": train_time,
+                **diag_metrics,
             })
 
             # Check for pruning (minimize perplexity)
@@ -239,7 +265,7 @@ def train(config, seed, logger):
                 pruned = True
                 break
         else:
-            logger.log({"epoch": epoch, "train_loss": avg_train_loss})
+            logger.log({"epoch": epoch, "train_loss": avg_train_loss, **diag_metrics})
 
     return {
         "objective": min_val_perplexity,
