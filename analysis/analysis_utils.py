@@ -2833,6 +2833,219 @@ def save_best_hyperparameters(best_runs, filename, optimizers=None):
 
 
 # ---------------------------------------------------------------------------
+# Diagnostic visualisation
+# ---------------------------------------------------------------------------
+
+def _has_diag_columns(history_data):
+    """Check whether any optimizer in history_data has diag/ columns."""
+    for opt_data in history_data.values():
+        if any(k.startswith("diag/") for k in opt_data):
+            return True
+    return False
+
+
+def plot_diagnostic_curves(
+    history_data,
+    metric_keys,
+    title="Optimizer Diagnostics",
+    xlabel="Epoch",
+    ncols=2,
+    figsize_per_plot=(6, 3.5),
+    log_y=False,
+    colors=None,
+):
+    """Plot diagnostic metric curves for multiple optimizers.
+
+    Gracefully skips if no diagnostic data is present (returns None).
+
+    Parameters
+    ----------
+    history_data : dict
+        Output of ``extract_history()`` — maps optimizer name to dict of
+        numpy arrays, including ``"epoch"`` and any ``diag/`` keys.
+    metric_keys : list[str]
+        List of ``diag/`` metric keys to plot.
+    title : str
+        Overall figure title.
+    xlabel : str
+        X-axis label.
+    ncols : int
+        Columns in subplot grid.
+    figsize_per_plot : tuple
+        (width, height) per subplot.
+    log_y : bool
+        Use log scale for y-axis.
+    colors : dict, optional
+        Optimizer name -> color. Uses registry colors if None.
+
+    Returns
+    -------
+    fig or None
+        The matplotlib figure, or None if no data available.
+    """
+    if not history_data or not _has_diag_columns(history_data):
+        print(f"  [skip] No diagnostic data for: {title}")
+        return None
+
+    if colors is None:
+        colors = get_optimizer_colors(list(history_data.keys()))
+
+    # Filter to keys that actually have data
+    available_keys = []
+    for key in metric_keys:
+        for opt_data in history_data.values():
+            arr = opt_data.get(key)
+            if arr is not None and not np.all(np.isnan(arr)):
+                available_keys.append(key)
+                break
+
+    if not available_keys:
+        print(f"  [skip] No data for requested keys in: {title}")
+        return None
+
+    nrows = max(1, (len(available_keys) + ncols - 1) // ncols)
+    fig, axes = plt.subplots(
+        nrows, ncols,
+        figsize=(figsize_per_plot[0] * ncols, figsize_per_plot[1] * nrows),
+        squeeze=False,
+    )
+
+    for idx, key in enumerate(available_keys):
+        ax = axes[idx // ncols][idx % ncols]
+        short_name = key.replace("diag/", "")
+        for opt_name, opt_data in history_data.items():
+            epochs = opt_data.get("epoch", opt_data.get("iteration"))
+            vals = opt_data.get(key)
+            if epochs is None or vals is None:
+                continue
+            mask = ~np.isnan(vals)
+            if not np.any(mask):
+                continue
+            ax.plot(epochs[mask], vals[mask], label=opt_name,
+                    color=colors.get(opt_name, None), alpha=0.8, linewidth=1.2)
+        ax.set_title(short_name, fontsize=10)
+        ax.set_xlabel(xlabel, fontsize=8)
+        if log_y:
+            ax.set_yscale("log")
+        ax.tick_params(labelsize=8)
+
+    # Hide unused axes
+    for idx in range(len(available_keys), nrows * ncols):
+        axes[idx // ncols][idx % ncols].set_visible(False)
+
+    # Single legend for entire figure
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc="upper center",
+                   ncol=min(len(labels), 6), fontsize=8,
+                   bbox_to_anchor=(0.5, 1.02))
+
+    fig.suptitle(title, fontsize=12, y=1.05)
+    fig.tight_layout()
+    return fig
+
+
+def plot_effective_lr_comparison(
+    history_data,
+    title="Effective Learning Rate Comparison",
+    xlabel="Epoch",
+    figsize=(10, 5),
+    colors=None,
+):
+    """Plot Adam's effective LR vs our eta*r*exp(s_i) side by side.
+
+    Gracefully skips if no diagnostic data is present (returns None).
+    """
+    if not history_data or not _has_diag_columns(history_data):
+        print(f"  [skip] No diagnostic data for: {title}")
+        return None
+
+    if colors is None:
+        colors = get_optimizer_colors(list(history_data.keys()))
+
+    # Collect optimizers that have effective LR data
+    adam_like = {}   # diag/eff_lr/mean from Adam/AdamW
+    ours = {}        # diag/eff_lr/mean from our learnable optimizers
+
+    for opt_name, opt_data in history_data.items():
+        eff_mean = opt_data.get("diag/eff_lr/mean")
+        if eff_mean is None or np.all(np.isnan(eff_mean)):
+            continue
+        if opt_name in ("adam", "adamw"):
+            adam_like[opt_name] = opt_data
+        elif opt_name.startswith("sgd_learn"):
+            ours[opt_name] = opt_data
+
+    if not adam_like and not ours:
+        print(f"  [skip] No effective LR data for: {title}")
+        return None
+
+    fig, axes = plt.subplots(1, 2, figsize=figsize, sharey=True)
+
+    for opt_name, opt_data in adam_like.items():
+        epochs = opt_data.get("epoch", opt_data.get("iteration"))
+        mean = opt_data.get("diag/eff_lr/mean")
+        if epochs is None or mean is None:
+            continue
+        mask = ~np.isnan(mean)
+        c = colors.get(opt_name)
+        axes[0].plot(epochs[mask], mean[mask], label=opt_name, color=c)
+        lo = opt_data.get("diag/eff_lr/min")
+        hi = opt_data.get("diag/eff_lr/max")
+        if lo is not None and hi is not None:
+            axes[0].fill_between(epochs[mask], lo[mask], hi[mask],
+                                  alpha=0.15, color=c)
+    axes[0].set_title(r"Adam: $\eta / (\sqrt{\hat{v}_i} + \varepsilon)$")
+    axes[0].set_xlabel(xlabel)
+    axes[0].set_ylabel("Effective LR")
+    axes[0].set_yscale("log")
+    axes[0].legend(fontsize=8)
+
+    for opt_name, opt_data in ours.items():
+        epochs = opt_data.get("epoch", opt_data.get("iteration"))
+        mean = opt_data.get("diag/eff_lr/mean")
+        if epochs is None or mean is None:
+            continue
+        mask = ~np.isnan(mean)
+        c = colors.get(opt_name)
+        axes[1].plot(epochs[mask], mean[mask], label=opt_name, color=c)
+        lo = opt_data.get("diag/eff_lr/min")
+        hi = opt_data.get("diag/eff_lr/max")
+        if lo is not None and hi is not None:
+            axes[1].fill_between(epochs[mask], lo[mask], hi[mask],
+                                  alpha=0.15, color=c)
+    axes[1].set_title(r"Ours: $\eta \cdot r \cdot e^{s_i}$")
+    axes[1].set_xlabel(xlabel)
+    axes[1].set_yscale("log")
+    axes[1].legend(fontsize=8)
+
+    fig.suptitle(title, fontsize=12)
+    fig.tight_layout()
+    return fig
+
+
+# Predefined diagnostic metric groups for quick access
+DIAG_KEYS_METRIC_SCALE = [
+    "diag/r", "diag/v_hat", "diag/metric_ema",
+]
+DIAG_KEYS_LEARNABLE = [
+    "diag/eff_lr/mean", "diag/metric_condition", "diag/clipped_frac",
+    "diag/metric_entropy_norm", "diag/mean_center_offset",
+]
+DIAG_KEYS_CURVATURE = [
+    "diag/H_hat/mean", "diag/positive_curv_frac",
+    "diag/curv_corr_ratio", "diag/curv_sign/mean",
+]
+DIAG_KEYS_TRAINING = [
+    "diag/grad_norm", "diag/update_norm", "diag/relative_step",
+    "diag/eff_lr_empirical", "diag/mom_grad_cos",
+]
+DIAG_KEYS_OFFDIAG = [
+    "diag/woodbury_det", "diag/M00", "diag/M11",
+    "diag/cramer_w0", "diag/cramer_w1",
+]
+
+# ---------------------------------------------------------------------------
 # Re-export optimizer utilities
 # ---------------------------------------------------------------------------
 
@@ -2869,4 +3082,11 @@ __all__ = [
     "print_cross_task_summary",
     "get_optimizer_colors",
     "ALL_OPTIMIZERS",
+    "plot_diagnostic_curves",
+    "plot_effective_lr_comparison",
+    "DIAG_KEYS_METRIC_SCALE",
+    "DIAG_KEYS_LEARNABLE",
+    "DIAG_KEYS_CURVATURE",
+    "DIAG_KEYS_TRAINING",
+    "DIAG_KEYS_OFFDIAG",
 ]
