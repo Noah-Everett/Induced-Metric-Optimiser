@@ -162,4 +162,9 @@ __all__ = [
     "print_hp_sensitivity_table",
     "print_offdiag_ranking",
     "print_cross_task_summary",
+    # stats
+    "bootstrap_best_run_ci",
+    "print_topk_comparison",
+    "print_robustness_table",
+    "plot_best_of_budget",
 ]
