@@ -281,10 +281,51 @@ def _sort_runs(runs, metric_key, direction):
     return sorted(runs, key=key_fn, reverse=(direction == "maximize"))
 
 
+def _reload_run_history(run, results_dir, task_tag, optimizer, iteration):
+    """Reload a single run's history data (used after summary-only loading).
+
+    If the run already has non-empty history, returns it as-is.
+    Otherwise, reloads from the original file (Parquet or CSV/JSON).
+    """
+    if run.get("history"):
+        return run
+
+    itr_dir = Path(results_dir) / task_tag / optimizer / f"itr_{iteration}"
+    run_file = run.get("_file", "")
+
+    # Try Parquet: load just this run's trajectory
+    traj_path = itr_dir / "trajectories.parquet"
+    if traj_path.exists() and "run_" in run_file:
+        try:
+            run_id = int(Path(run_file).stem.replace("run_", ""))
+            traj_df = pd.read_parquet(traj_path)
+            group = traj_df[traj_df["run_id"] == run_id].drop(columns="run_id")
+            if len(group) > 0:
+                run["history"] = {col: group[col].tolist() for col in group.columns}
+                return run
+        except (ValueError, KeyError):
+            pass
+
+    # Fallback: re-read the individual file
+    if os.path.exists(run_file):
+        if run_file.endswith(".csv"):
+            full = _load_csv_run(run_file)
+        else:
+            full = _load_json_run(run_file)
+        run["history"] = full.get("history", {})
+
+    return run
+
+
 def _load_best_runs_local(results_dir, task_tag, optimizers,
                           metric_key="sweep_metric", direction="minimize",
                           iteration=0):
-    """Load best runs from local JSON files.
+    """Load best runs from local files.
+
+    Loads summaries first (skip_history=True) to find the best run,
+    then reloads only the selected run's history.  This avoids loading
+    hundreds of full training trajectories into memory just to discard
+    all but one.
 
     Args:
         results_dir: Base results directory
@@ -299,16 +340,21 @@ def _load_best_runs_local(results_dir, task_tag, optimizers,
     for optimizer in optimizers:
         print(f"Finding best run for {optimizer}...")
 
-        runs = _load_local_runs(results_dir, task_tag, optimizer, iteration=iteration)
+        # Phase 1: load summaries only (fast, low memory)
+        runs = _load_local_runs(results_dir, task_tag, optimizer,
+                                iteration=iteration, skip_history=True)
 
         if runs:
             runs_sorted = _sort_runs(runs, metric_key, direction)
             best = runs_sorted[0]
 
+            # Phase 2: reload history for the single best run
+            best = _reload_run_history(best, results_dir, task_tag, optimizer, iteration)
+
             best_runs[optimizer] = {
                 "config": best["config"],
                 "summary": best["summary"],
-                "history": best["history"],
+                "history": best.get("history", {}),
                 "name": Path(best["_file"]).stem,
             }
             print(f"  {optimizer}: {best_runs[optimizer]['name']}")
@@ -321,7 +367,10 @@ def _load_best_runs_local(results_dir, task_tag, optimizers,
 def _load_top_n_runs_local(results_dir, task_tag, optimizers,
                            n=50, metric_key="sweep_metric", direction="minimize",
                            iteration=0):
-    """Load top N runs for each optimizer from local JSON files.
+    """Load top N runs for each optimizer from local files.
+
+    Loads summaries first (skip_history=True) to find the top N runs,
+    then reloads only their histories.
 
     Args:
         results_dir: Base results directory
@@ -337,12 +386,22 @@ def _load_top_n_runs_local(results_dir, task_tag, optimizers,
     for optimizer in optimizers:
         print(f"Loading top {n} runs for {optimizer}...")
 
-        runs = _load_local_runs(results_dir, task_tag, optimizer, iteration=iteration)
+        # Phase 1: load summaries only
+        runs = _load_local_runs(results_dir, task_tag, optimizer,
+                                iteration=iteration, skip_history=True)
 
         if runs:
             runs_sorted = _sort_runs(runs, metric_key, direction)
-            top_n_runs[optimizer] = runs_sorted[:n]
-            print(f"  {optimizer}: {len(top_n_runs[optimizer])} runs")
+            selected = runs_sorted[:n]
+
+            # Phase 2: reload histories for selected runs
+            for i, run in enumerate(selected):
+                selected[i] = _reload_run_history(
+                    run, results_dir, task_tag, optimizer, iteration
+                )
+
+            top_n_runs[optimizer] = selected
+            print(f"  {optimizer}: {len(selected)} runs")
         else:
             top_n_runs[optimizer] = []
             print(f"  {optimizer}: No runs found")
