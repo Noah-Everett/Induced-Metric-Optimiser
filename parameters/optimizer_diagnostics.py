@@ -14,6 +14,18 @@ import numpy as np
 from typing import Any, Dict, Optional
 
 
+def _sigma(metric_param, s):
+    """Apply the metric parameterization function to s (array or scalar).
+
+    Returns sigma(s) where sigma is determined by metric_param:
+      "exp" / "exp_matched_reg" / "exp_norm_grad" / "exp_adaptive_clip" -> exp(s)
+      "softplus" -> softplus(s)
+    """
+    if metric_param == "softplus":
+        return jax.nn.softplus(s)
+    return jnp.exp(s)
+
+
 # ---------------------------------------------------------------------------
 # Pytree helpers
 # ---------------------------------------------------------------------------
@@ -238,21 +250,29 @@ def _extract_learnable_scalar(opt_state, config, is_log=False, grads=None):
     m = _metric_common(step_val, opt_state.metric_ema,
                         opt_state.momentum, config, is_log)
 
+    mp = config.get('metric_param', 'exp')
     s = _scalar(opt_state.log_scale)
-    alpha = float(np.exp(np.clip(s, -20, 20)))
+    s_arr = jnp.array(s)
+    alpha = _scalar(_sigma(mp, s_arr))
     m['log_scale'] = s
     m['alpha'] = alpha
+    m['metric_param'] = mp
 
     lr = config.get('learning_rate', 0.1)
     if 'r' in m:
         m['eff_lr'] = lr * m['r'] * alpha
 
-    # grad_s = xi * exp(s) * sum(g^2)
     if grads is not None:
         xi = config.get('xi', 0.1)
         g_sq_sum = sum(_scalar(jnp.sum(g ** 2))
                        for g in jax.tree_util.tree_leaves(grads))
-        m['grad_s'] = xi * alpha * g_sq_sum
+        if mp == "exp_norm_grad":
+            m['grad_s'] = xi * g_sq_sum
+        elif mp == "softplus":
+            sigmoid_s = _scalar(jax.nn.sigmoid(s_arr))
+            m['grad_s'] = xi * alpha * sigmoid_s * g_sq_sum
+        else:
+            m['grad_s'] = xi * alpha * g_sq_sum
 
     return m
 
@@ -262,6 +282,9 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
     step_val = _scalar(opt_state.step)
     m = _metric_common(step_val, opt_state.metric_ema,
                         opt_state.momentum, config, is_log)
+
+    mp = config.get('metric_param', 'exp')
+    m['metric_param'] = mp
 
     # --- log_diag stats ---
     m.update(_global_stats(opt_state.log_diag, 'log_diag'))
@@ -275,25 +298,25 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
 
     diag_leaves = jax.tree_util.tree_leaves(opt_state.log_diag)
     all_s = jnp.concatenate([l.ravel() for l in diag_leaves])
-    all_exp_s = jnp.exp(all_s)
+    all_sigma_s = _sigma(mp, all_s)
 
-    # Effective LR per parameter: lr * r * exp(s_i)
+    # Effective LR per parameter: lr * r * sigma(s_i)
     if 'r' in m:
-        eff_lr = lr * m['r'] * all_exp_s
+        eff_lr = lr * m['r'] * all_sigma_s
         m['eff_lr/mean'] = _scalar(jnp.mean(eff_lr))
         m['eff_lr/std']  = _scalar(jnp.std(eff_lr))
         m['eff_lr/min']  = _scalar(jnp.min(eff_lr))
         m['eff_lr/max']  = _scalar(jnp.max(eff_lr))
 
     # Metric condition number
-    m['metric_condition'] = (_scalar(jnp.max(all_exp_s))
-                             / max(_scalar(jnp.min(all_exp_s)), 1e-30))
+    m['metric_condition'] = (_scalar(jnp.max(all_sigma_s))
+                             / max(_scalar(jnp.min(all_sigma_s)), 1e-30))
 
     # Per-layer condition numbers
     try:
         kl, _ = jax.tree_util.tree_flatten_with_path(opt_state.log_diag)
         for kp, leaf in kl:
-            es = jnp.exp(leaf.ravel())
+            es = _sigma(mp, leaf.ravel())
             m[f'metric_condition/{_path_str(kp)}'] = (
                 _scalar(jnp.max(es)) / max(_scalar(jnp.min(es)), 1e-30)
             )
@@ -307,7 +330,7 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
     # Metric entropy
     n = all_s.size
     if n > 1:
-        p = all_exp_s / jnp.sum(all_exp_s)
+        p = all_sigma_s / jnp.sum(all_sigma_s)
         entropy = _scalar(-jnp.sum(p * jnp.log(p + 1e-30)))
         m['metric_entropy'] = entropy
         m['metric_entropy_norm'] = entropy / float(np.log(n))
@@ -317,25 +340,33 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
         g_leaves = jax.tree_util.tree_leaves(grads)
         s_leaves = diag_leaves
 
-        # g_tilde = exp(s) * g  (preconditioned gradient)
-        g_tilde_parts = [jnp.exp(s) * g for s, g in zip(s_leaves, g_leaves)]
+        # g_tilde = sigma(s) * g  (preconditioned gradient)
+        g_tilde_parts = [_sigma(mp, s) * g for s, g in zip(s_leaves, g_leaves)]
         m.update(_global_stats(g_tilde_parts, 'g_tilde'))
 
-        # grad_s = xi * exp(s) * g^2  (metric learning gradient)
-        grad_s_parts = [xi * jnp.exp(s) * (g ** 2)
-                        for s, g in zip(s_leaves, g_leaves)]
+        # grad_s: depends on metric_param
+        if mp == "exp_norm_grad":
+            grad_s_parts = [xi * (g ** 2) for g in g_leaves]
+        elif mp == "softplus":
+            grad_s_parts = [xi * jax.nn.softplus(s) * jax.nn.sigmoid(s) * (g ** 2)
+                            for s, g in zip(s_leaves, g_leaves)]
+        else:
+            grad_s_parts = [xi * jnp.exp(s) * (g ** 2)
+                            for s, g in zip(s_leaves, g_leaves)]
         all_grad_s = jnp.concatenate([gs.ravel() for gs in grad_s_parts])
         m['grad_s/mean'] = _scalar(jnp.mean(all_grad_s))
         m['grad_s/std']  = _scalar(jnp.std(all_grad_s))
         m['grad_s/min']  = _scalar(jnp.min(all_grad_s))
         m['grad_s/max']  = _scalar(jnp.max(all_grad_s))
 
-        # Mean-centering offset:
-        # After s_new = s + mu*grad_s - mu*reg*s, centering removes mean(s_new).
-        # offset ≈ mu * mean(grad_s) - mu * reg * mean(s)
+        # Mean-centering offset
+        if mp == "exp_matched_reg":
+            reg_term = metric_reg * _scalar(jnp.mean(jnp.exp(all_s)))
+        else:
+            reg_term = metric_reg * _scalar(jnp.mean(all_s))
         m['mean_center_offset'] = (
             metric_lr * _scalar(jnp.mean(all_grad_s))
-            - metric_lr * metric_reg * _scalar(jnp.mean(all_s))
+            - metric_lr * reg_term
         )
 
     return m
@@ -361,6 +392,8 @@ def _extract_learnable_diag_curv(opt_state, config, is_log=False,
     pp_leaves = jax.tree_util.tree_leaves(opt_state.prev_params)
     s_leaves  = jax.tree_util.tree_leaves(opt_state.log_diag)
 
+    mp = config.get('metric_param', 'exp')
+
     all_h, all_cs, all_cc, all_bsg = [], [], [], []
 
     for g, pg, p, pp, s in zip(g_leaves, pg_leaves, p_leaves, pp_leaves, s_leaves):
@@ -374,10 +407,17 @@ def _extract_learnable_diag_curv(opt_state, config, is_log=False,
         curv_sign = jnp.tanh(h_hat / curv_tau)
         all_cs.append(curv_sign.ravel())
 
-        cc = curv_beta * curv_sign * jnp.exp(s) * (g ** 2)
+        if mp == "softplus":
+            drive = jax.nn.softplus(s) * jax.nn.sigmoid(s)
+        elif mp == "exp_norm_grad":
+            drive = jnp.ones_like(s)
+        else:
+            drive = jnp.exp(s)
+
+        cc = curv_beta * curv_sign * drive * (g ** 2)
         all_cc.append(cc.ravel())
 
-        bsg = xi * jnp.exp(s) * (g ** 2)
+        bsg = xi * drive * (g ** 2)
         all_bsg.append(bsg.ravel())
 
     all_h   = jnp.concatenate(all_h)

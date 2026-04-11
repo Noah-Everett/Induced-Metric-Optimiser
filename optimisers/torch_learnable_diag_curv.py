@@ -11,12 +11,13 @@ sign. Setting curv_beta=0 recovers the original diagonal learnable rule exactly.
                          f(L)=log L (Alg. 2) when log_loss=True
 
 The curvature-aware metric update is:
-  s_i <- s_i + mu * [xi * exp(s_i) * g_i^2
-                      - curv_beta * tanh(H_hat_ii / curv_tau) * exp(s_i) * g_i^2]
-                - mu * lambda_s * s_i
+  s_i <- s_i + mu * [xi * sigma(s_i) * dsigma * g_i^2
+                      - curv_beta * tanh(H_hat_ii / curv_tau) * sigma(s_i) * dsigma * g_i^2]
+                - mu * reg_term(s_i)
 
-where H_hat_ii is estimated via secant differences:
-  H_hat_ii ≈ (g_i^{(t)} - g_i^{(t-1)}) / (theta_i^{(t)} - theta_i^{(t-1)})
+where sigma and dsigma depend on metric_param, and H_hat_ii is estimated via secant
+differences:
+  H_hat_ii ~ (g_i^{(t)} - g_i^{(t-1)}) / (theta_i^{(t)} - theta_i^{(t-1)})
 
 Reference: Phiacta entry "Optimal Curvature Correction and Proposed Update Rule"
            (1998d606-92de-4a33-9345-bcf7809f9a6c)
@@ -26,7 +27,21 @@ from __future__ import annotations
 from typing import Iterable, Optional
 import math
 import torch
+import torch.nn.functional as F
 from torch.optim import Optimizer
+
+_VALID_METRIC_PARAMS = frozenset({
+    "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
+})
+
+_SOFTPLUS_IDENTITY_INIT = float(torch.log(torch.exp(torch.ones(())) - 1.0))
+
+
+def _torch_sigma(metric_param, s):
+    """Apply metric parameterization: exp(s) or softplus(s)."""
+    if metric_param == "softplus":
+        return F.softplus(s)
+    return torch.exp(s)
 
 
 class SGDLearnableDiagCurv(Optimizer):
@@ -45,7 +60,12 @@ class SGDLearnableDiagCurv(Optimizer):
         curv_beta: float = 0.05,
         curv_tau: float = 1.0,
         secant_eps: float = 1e-5,
+        metric_param: str = "exp",
+        max_condition_number: Optional[float] = None,
     ):
+        if metric_param not in _VALID_METRIC_PARAMS:
+            raise ValueError(f"Unknown metric_param={metric_param!r}. "
+                             f"Valid: {sorted(_VALID_METRIC_PARAMS)}")
         defaults = dict(
             lr=lr,
             momentum=momentum,
@@ -59,8 +79,12 @@ class SGDLearnableDiagCurv(Optimizer):
             curv_beta=curv_beta,
             curv_tau=curv_tau,
             secant_eps=secant_eps,
+            metric_param=metric_param,
+            max_condition_number=max_condition_number if max_condition_number is not None else 1000.0,
         )
         super().__init__(params, defaults)
+
+        use_softplus = metric_param == "softplus"
 
         for group in self.param_groups:
             params_list = [p for p in group['params'] if p.requires_grad]
@@ -73,7 +97,10 @@ class SGDLearnableDiagCurv(Optimizer):
             for p in params_list:
                 st = self.state[p]
                 st.setdefault('momentum_buffer', torch.zeros_like(p.data))
-                st.setdefault('log_diag', torch.zeros_like(p.data))
+                if use_softplus:
+                    st.setdefault('log_diag', torch.full_like(p.data, _SOFTPLUS_IDENTITY_INIT))
+                else:
+                    st.setdefault('log_diag', torch.zeros_like(p.data))
                 st.setdefault('prev_grad', torch.zeros_like(p.data))
                 st.setdefault('prev_param', p.data.clone())
 
@@ -100,6 +127,9 @@ class SGDLearnableDiagCurv(Optimizer):
             curv_beta = group['curv_beta']
             curv_tau = group['curv_tau']
             secant_eps = group['secant_eps']
+            mp = group['metric_param']
+            max_cond = group['max_condition_number']
+            use_adaptive_clip = mp == "exp_adaptive_clip"
 
             params_list = [p for p in group['params'] if p.requires_grad]
             if not params_list:
@@ -110,7 +140,7 @@ class SGDLearnableDiagCurv(Optimizer):
             step = gstate['step']
             metric_ema = gstate['metric_ema']
 
-            # Compute v = xi * sum g * (gamma^{-1} g)
+            # Compute v = xi * sum g * (sigma(s) * g)
             v_accum = 0.0
             for p in params_list:
                 if p.grad is None:
@@ -118,7 +148,7 @@ class SGDLearnableDiagCurv(Optimizer):
                 st = self.state[p]
                 s = st['log_diag']
                 g = p.grad
-                g_tilde = torch.exp(s) * g
+                g_tilde = _torch_sigma(mp, s) * g
                 v_accum = v_accum + torch.sum(g * g_tilde)
 
             v = xi * v_accum
@@ -145,7 +175,7 @@ class SGDLearnableDiagCurv(Optimizer):
 
                 buf.mul_(mom).add_((1.0 - mom) * p.grad)
                 m_corr = buf / (1.0 - (mom ** step))
-                m_tilde = torch.exp(s) * m_corr
+                m_tilde = _torch_sigma(mp, s) * m_corr
 
                 p.add_(-lr * r * m_tilde)
                 if weight_decay != 0.0:
@@ -161,36 +191,61 @@ class SGDLearnableDiagCurv(Optimizer):
                 s = st['log_diag']
                 g = p.grad
                 g2 = g * g
-                exp_s = torch.exp(s)
+
+                # Compute drive factor based on metric_param
+                if mp == "softplus":
+                    drive = F.softplus(s) * torch.sigmoid(s)
+                elif mp == "exp_norm_grad":
+                    drive = torch.ones_like(s)
+                else:
+                    drive = torch.exp(s)
 
                 # Base adaptive term
-                grad_s = xi * exp_s * g2
+                grad_s = xi * drive * g2
 
-                # Curvature correction (skip step 1 — no valid secant)
+                # Curvature correction (skip step 1 -- no valid secant)
                 if have_prev and curv_beta > 0.0:
                     prev_g = st['prev_grad']
                     prev_p = st['prev_param']
                     delta_theta = p.data - prev_p
                     delta_grad = g - prev_g
 
-                    # Guard against small denominators
                     safe = delta_theta.abs() > secant_eps
                     denom = torch.where(safe, delta_theta, torch.ones_like(delta_theta))
                     h_hat = torch.where(safe, delta_grad / denom, torch.zeros_like(g))
 
-                    # Smoothed sign
                     curv_sign = torch.tanh(h_hat / curv_tau)
+                    grad_s = grad_s - curv_beta * curv_sign * drive * g2
 
-                    # Subtract correction: shrink s where H>0, grow where H<0
-                    grad_s = grad_s - curv_beta * curv_sign * exp_s * g2
+                # Regularization
+                if mp == "exp_matched_reg":
+                    s.add_(metric_lr * grad_s - metric_lr * metric_reg * torch.exp(s))
+                else:
+                    s.add_(metric_lr * grad_s - metric_lr * metric_reg * s)
 
-                s.add_(metric_lr * grad_s - metric_lr * metric_reg * s)
                 # Mean-centre per tensor
                 s.add_(-s.mean())
-                s.clamp_(min=-metric_clip, max=metric_clip)
 
                 # Store current grad and param for next step's secant
                 st['prev_grad'].copy_(g)
                 st['prev_param'].copy_(p.data)
+
+            # Clip: adaptive or fixed
+            if use_adaptive_clip:
+                all_s = torch.cat([self.state[p]['log_diag'].ravel()
+                                   for p in params_list if p.grad is not None])
+                s_median = all_s.median()
+                half_log_cond = 0.5 * math.log(max_cond)
+                lo = s_median - half_log_cond
+                hi = s_median + half_log_cond
+                for p in params_list:
+                    if p.grad is None:
+                        continue
+                    self.state[p]['log_diag'].clamp_(min=float(lo), max=float(hi))
+            else:
+                for p in params_list:
+                    if p.grad is None:
+                        continue
+                    self.state[p]['log_diag'].clamp_(min=-metric_clip, max=metric_clip)
 
         return loss_val

@@ -111,6 +111,7 @@ _PARAM_BOUNDS = {
     "metric_lr": (1e-5, 1.0, True),
     "metric_reg": (1e-6, 1e-2, True),
     "metric_clip": (1.0, 5.0, False),
+    "max_condition_number": (10.0, 10000.0, True),
     # Curvature-aware parameters
     "curv_beta": (0.001, 1.0, True),
     "curv_tau": (0.5, 10.0, True),     # IMO-48: narrowed from [0.1,100]; sensitivity peaks at tau~|H|
@@ -275,6 +276,8 @@ def create_optimizer(name, config):
             metric_lr=config.get("metric_lr", 1e-3),
             metric_reg=config.get("metric_reg", 1e-4),
             metric_clip=config.get("metric_clip", 4.0),
+            metric_param=config.get("metric_param", "exp"),
+            max_condition_number=config.get("max_condition_number", None),
         )
 
     if name == "sgd_learn_scalar_log":
@@ -287,6 +290,8 @@ def create_optimizer(name, config):
             metric_lr=config.get("metric_lr", 1e-3),
             metric_reg=config.get("metric_reg", 1e-4),
             metric_clip=config.get("metric_clip", 4.0),
+            metric_param=config.get("metric_param", "exp"),
+            max_condition_number=config.get("max_condition_number", None),
         )
 
     if name == "sgd_learn_diag":
@@ -299,6 +304,8 @@ def create_optimizer(name, config):
             metric_lr=config.get("metric_lr", 1e-3),
             metric_reg=config.get("metric_reg", 1e-4),
             metric_clip=config.get("metric_clip", 4.0),
+            metric_param=config.get("metric_param", "exp"),
+            max_condition_number=config.get("max_condition_number", None),
         )
 
     if name == "sgd_learn_diag_log":
@@ -311,6 +318,8 @@ def create_optimizer(name, config):
             metric_lr=config.get("metric_lr", 1e-3),
             metric_reg=config.get("metric_reg", 1e-4),
             metric_clip=config.get("metric_clip", 4.0),
+            metric_param=config.get("metric_param", "exp"),
+            max_condition_number=config.get("max_condition_number", None),
         )
 
     if name == "sgd_learn_diag_curv":
@@ -325,6 +334,8 @@ def create_optimizer(name, config):
             metric_clip=config.get("metric_clip", 4.0),
             curv_beta=config.get("curv_beta", 0.05),
             curv_tau=config.get("curv_tau", 1.0),
+            metric_param=config.get("metric_param", "exp"),
+            max_condition_number=config.get("max_condition_number", None),
         )
 
     if name == "sgd_learn_diag_curv_log":
@@ -339,6 +350,8 @@ def create_optimizer(name, config):
             metric_clip=config.get("metric_clip", 4.0),
             curv_beta=config.get("curv_beta", 0.05),
             curv_tau=config.get("curv_tau", 1.0),
+            metric_param=config.get("metric_param", "exp"),
+            max_condition_number=config.get("max_condition_number", None),
         )
 
     if name.startswith("sgd_offdiag_"):
@@ -475,6 +488,10 @@ def get_sweep_parameters(name, overrides=None):
             "metric_lr": _param("metric_lr"),
             "metric_reg": _param("metric_reg"),
             "metric_clip": _param("metric_clip"),
+            "metric_param": _param("metric_param", default_categorical=[
+                "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
+            ]),
+            "max_condition_number": _param("max_condition_number"),
         }
 
     if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
@@ -489,6 +506,10 @@ def get_sweep_parameters(name, overrides=None):
             "metric_clip": _param("metric_clip"),
             "curv_beta": _param("curv_beta"),  # WandB can't do dependent params; Optuna uses curv_ratio
             "curv_tau": _param("curv_tau"),
+            "metric_param": _param("metric_param", default_categorical=[
+                "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
+            ]),
+            "max_condition_number": _param("max_condition_number"),
         }
 
     if name.startswith("sgd_offdiag_"):
@@ -605,7 +626,10 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
 
     if name in ("sgd_learn_scalar", "sgd_learn_scalar_log",
                  "sgd_learn_diag", "sgd_learn_diag_log"):
-        return {
+        mp = _suggest("metric_param", default_categorical=[
+            "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
+        ])
+        config = {
             "learning_rate": _suggest("learning_rate"),
             "momentum": _suggest("momentum"),
             "xi": _suggest("xi"),
@@ -614,7 +638,11 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "metric_lr": _suggest("metric_lr"),
             "metric_reg": _suggest("metric_reg"),
             "metric_clip": _suggest("metric_clip"),
+            "metric_param": mp,
         }
+        if mp == "exp_adaptive_clip":
+            config["max_condition_number"] = _suggest("max_condition_number")
+        return config
 
     if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
         xi_val = _suggest("xi")
@@ -626,7 +654,10 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             curv_ratio = _suggest("curv_ratio")
             cb_lo, cb_hi, _ = _PARAM_BOUNDS["curv_beta"]
             curv_beta_val = max(cb_lo, min(cb_hi, xi_val * curv_ratio))
-        return {
+        mp = _suggest("metric_param", default_categorical=[
+            "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
+        ])
+        config = {
             "learning_rate": _suggest("learning_rate"),
             "momentum": _suggest("momentum"),
             "xi": xi_val,
@@ -637,7 +668,11 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "metric_clip": _suggest("metric_clip"),
             "curv_beta": curv_beta_val,
             "curv_tau": _suggest("curv_tau"),
+            "metric_param": mp,
         }
+        if mp == "exp_adaptive_clip":
+            config["max_condition_number"] = _suggest("max_condition_number")
+        return config
 
     if name.startswith("sgd_offdiag_"):
         return {

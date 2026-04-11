@@ -5,9 +5,8 @@ PyTorch implementation of induced-metric SGD with a learnable diagonal inverse m
 - SGDLearnableDiag: f(L)=L (Alg. 1) when log_loss=False
                      f(L)=log L (Alg. 2) when log_loss=True (requires passing loss to step())
 
-The inverse metric is parameterised as gamma^{-1}_phi = diag(exp(s)).
-We update 's' online by ascending on v = xi * sum_i g_i * (gamma^{-1} g)_i with a small LR,
-apply L2 regularisation on s, mean-centre s per tensor, and clip s to a window.
+The inverse metric is parameterised as gamma^{-1}_phi = diag(sigma(s)), where sigma
+is controlled by ``metric_param`` (see jax_learnable_diag.py for details).
 
 Usage:
     opt = SGDLearnableDiag(model.parameters(), lr=..., momentum=..., xi=..., beta=..., ...)
@@ -25,7 +24,23 @@ from __future__ import annotations
 from typing import Iterable, Optional
 import math
 import torch
+import torch.nn.functional as F
 from torch.optim import Optimizer
+
+_VALID_METRIC_PARAMS = frozenset({
+    "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
+})
+
+# softplus(s) = 1  =>  s = log(e - 1)
+_SOFTPLUS_IDENTITY_INIT = float(torch.log(torch.exp(torch.ones(())) - 1.0))
+
+
+def _torch_sigma(metric_param, s):
+    """Apply metric parameterization: exp(s) or softplus(s)."""
+    if metric_param == "softplus":
+        return F.softplus(s)
+    return torch.exp(s)
+
 
 class SGDLearnableDiag(Optimizer):
     def __init__(
@@ -40,7 +55,12 @@ class SGDLearnableDiag(Optimizer):
         metric_reg: float = 1e-4,
         metric_clip: float = 4.0,
         log_loss: bool = False,
+        metric_param: str = "exp",
+        max_condition_number: Optional[float] = None,
     ):
+        if metric_param not in _VALID_METRIC_PARAMS:
+            raise ValueError(f"Unknown metric_param={metric_param!r}. "
+                             f"Valid: {sorted(_VALID_METRIC_PARAMS)}")
         defaults = dict(
             lr=lr,
             momentum=momentum,
@@ -51,8 +71,12 @@ class SGDLearnableDiag(Optimizer):
             metric_reg=metric_reg,
             metric_clip=metric_clip,
             log_loss=log_loss,
+            metric_param=metric_param,
+            max_condition_number=max_condition_number if max_condition_number is not None else 1000.0,
         )
         super().__init__(params, defaults)
+
+        use_softplus = metric_param == "softplus"
 
         # We store a scalar EMA and a step counter on the first param of each group.
         for group in self.param_groups:
@@ -67,7 +91,10 @@ class SGDLearnableDiag(Optimizer):
             for p in params:
                 st = self.state[p]
                 st.setdefault('momentum_buffer', torch.zeros_like(p.data))
-                st.setdefault('log_diag', torch.zeros_like(p.data))
+                if use_softplus:
+                    st.setdefault('log_diag', torch.full_like(p.data, _SOFTPLUS_IDENTITY_INIT))
+                else:
+                    st.setdefault('log_diag', torch.zeros_like(p.data))
 
     @torch.no_grad()
     def step(self, closure: Optional[callable] = None, loss: Optional[float] = None):
@@ -90,6 +117,9 @@ class SGDLearnableDiag(Optimizer):
             metric_reg = group['metric_reg']
             metric_clip = abs(group['metric_clip'])
             log_loss_mode = group['log_loss']
+            mp = group['metric_param']
+            max_cond = group['max_condition_number']
+            use_adaptive_clip = mp == "exp_adaptive_clip"
 
             # Anchor state for scalar EMA + step
             params = [p for p in group['params'] if p.requires_grad]
@@ -101,7 +131,7 @@ class SGDLearnableDiag(Optimizer):
             step = gstate['step']
             metric_ema = gstate['metric_ema']
 
-            # Compute v = xi * sum g * (gamma^{-1} g) with diag(exp(s))
+            # Compute v = xi * sum g * (sigma(s) * g)
             v_accum = 0.0
             for p in params:
                 if p.grad is None:
@@ -109,7 +139,7 @@ class SGDLearnableDiag(Optimizer):
                 st = self.state[p]
                 s = st['log_diag']
                 g = p.grad
-                g_tilde = torch.exp(s) * g
+                g_tilde = _torch_sigma(mp, s) * g
                 v_accum = v_accum + torch.sum(g * g_tilde)
 
             v = xi * v_accum
@@ -141,7 +171,7 @@ class SGDLearnableDiag(Optimizer):
                 # Bias-corrected momentum
                 m_corr = buf / (1.0 - (momentum ** step))
                 # Apply inverse metric
-                m_tilde = torch.exp(s) * m_corr
+                m_tilde = _torch_sigma(mp, s) * m_corr
 
                 # Parameter update (decoupled weight decay)
                 p.add_( -lr * r * m_tilde )
@@ -155,12 +185,40 @@ class SGDLearnableDiag(Optimizer):
                 st = self.state[p]
                 s = st['log_diag']
                 g2 = p.grad * p.grad
-                # grad_s = xi * exp(s) * g^2
-                grad_s = xi * torch.exp(s) * g2
-                s.add_( metric_lr * grad_s - metric_lr * metric_reg * s )
+
+                if mp == "softplus":
+                    grad_s = xi * F.softplus(s) * torch.sigmoid(s) * g2
+                    s.add_(metric_lr * grad_s - metric_lr * metric_reg * s)
+                elif mp == "exp_matched_reg":
+                    grad_s = xi * torch.exp(s) * g2
+                    s.add_(metric_lr * grad_s - metric_lr * metric_reg * torch.exp(s))
+                elif mp == "exp_norm_grad":
+                    grad_s = xi * g2
+                    s.add_(metric_lr * grad_s - metric_lr * metric_reg * s)
+                else:
+                    # "exp" and "exp_adaptive_clip"
+                    grad_s = xi * torch.exp(s) * g2
+                    s.add_(metric_lr * grad_s - metric_lr * metric_reg * s)
+
                 # mean-centre per tensor
                 s.add_( -s.mean() )
-                # clip eigenwindow in log-domain
-                s.clamp_(min=-metric_clip, max=metric_clip)
+
+            # Clip: adaptive or fixed
+            if use_adaptive_clip:
+                all_s = torch.cat([self.state[p]['log_diag'].ravel()
+                                   for p in params if p.grad is not None])
+                s_median = all_s.median()
+                half_log_cond = 0.5 * math.log(max_cond)
+                lo = s_median - half_log_cond
+                hi = s_median + half_log_cond
+                for p in params:
+                    if p.grad is None:
+                        continue
+                    self.state[p]['log_diag'].clamp_(min=float(lo), max=float(hi))
+            else:
+                for p in params:
+                    if p.grad is None:
+                        continue
+                    self.state[p]['log_diag'].clamp_(min=-metric_clip, max=metric_clip)
 
         return loss_val
