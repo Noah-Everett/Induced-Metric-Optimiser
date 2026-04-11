@@ -680,6 +680,35 @@ def collect_diagnostics(
         if params is not None:
             metrics.update(_full_tensor(params, 'full/param'))
 
+        # Curv-specific full tensors: per-component H_hat and curv_sign
+        if (family in ('curv', 'curv_log')
+                and hasattr(opt_state, 'prev_grads')
+                and hasattr(opt_state, 'prev_params')
+                and grads is not None and params is not None):
+            step_val = _scalar(opt_state.step)
+            if step_val > 1:
+                secant_eps = config.get('secant_eps', 1e-5)
+                curv_tau = config.get('curv_tau', 1.0)
+                g_leaves = jax.tree_util.tree_leaves(grads)
+                pg_leaves = jax.tree_util.tree_leaves(opt_state.prev_grads)
+                p_leaves = jax.tree_util.tree_leaves(params)
+                pp_leaves = jax.tree_util.tree_leaves(opt_state.prev_params)
+                h_parts, cs_parts = [], []
+                for g, pg, p, pp in zip(g_leaves, pg_leaves, p_leaves, pp_leaves):
+                    dt = p - pp
+                    dg = g - pg
+                    safe = jnp.abs(dt) > secant_eps
+                    denom = jnp.where(safe, dt, jnp.ones_like(dt))
+                    h = jnp.where(safe, dg / denom, jnp.zeros_like(g))
+                    h_parts.append(h.ravel())
+                    cs_parts.append(jnp.tanh(h / curv_tau).ravel())
+                all_h = jnp.concatenate(h_parts)
+                all_cs = jnp.concatenate(cs_parts)
+                for i, v in enumerate(all_h.tolist()):
+                    metrics[f'full/H_hat/{i}'] = v
+                for i, v in enumerate(all_cs.tolist()):
+                    metrics[f'full/curv_sign/{i}'] = v
+
     return {f'diag/{k}': v for k, v in metrics.items()}
 
 
