@@ -1700,11 +1700,11 @@ This may explain why \texttt{sgd\_learn\_diag}
 outperforms all other variants in the benchmarks,
 including Adam.
 
-\paragraph{Open direction: log-loss embedding.}
-The variant $f(\theta)=\log\loss(\theta)$ changes the gradient
-from $l_i$ to $l_i/\loss$ and modifies the Hessian structure,
-potentially yielding further curvature properties.
-This remains to be analysed.
+\paragraph{Embedding choice: resolved.}
+The interaction between the embedding~$f$ and Newton-targeted preconditioning
+is analysed in Section~\ref{sec:embedding-choice}.
+The plain embedding $f=\loss$ is the unique non-interfering choice;
+$f=\log\loss$ permanently caps the effective step size.
 
 Figures~\ref{fig:geodesic-eigenvalue}--\ref{fig:geodesic-saddle}
 illustrate the eigenvalue scaling and curvature damping
@@ -1750,6 +1750,164 @@ on the Rosenbrock and saddle functions.
     but never change sign.}
     \label{fig:geodesic-saddle}
 \end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Optimal Embedding with Newton-Targeted Metric}\label{sec:embedding-choice}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The framework offers three embedding choices:
+plain ($f=\loss$), log-loss ($f=\log\loss$), and identity ($\xi=0$, no embedding).
+Each produces a different scalar damping factor $r_t$.
+With Newton-targeted diagonal scaling $s_i$
+(Section~\ref{sec:geodesic-learnable}),
+which embedding cooperates best with the learned metric?
+
+\subsection{Damping on the Newton Quadratic}
+
+Consider the diagonal quadratic $\loss = \tfrac{1}{2}\theta^\top\!\operatorname{diag}(\vecb{h})\,\theta$.
+At Newton equilibrium, $e^{s_i} = h_\mathrm{geo}/h_i$
+where $h_\mathrm{geo} = \exp\!\bigl(\tfrac{1}{N}\sum_k \log h_k\bigr)$
+is the geometric mean eigenvalue.
+The trace statistic becomes
+\begin{equation}\label{eq:embed-v}
+    v = \xi\sum_k e^{s_k}\,l_k^2
+      = \xi\,h_\mathrm{geo}\sum_k h_k\,\theta_k^2
+      = 2\,\xi\,h_\mathrm{geo}\,\loss.
+\end{equation}
+Substituting into the damping factor for each embedding:
+\begin{align}
+    r_{\text{plain}} &= \frac{1}{1 + 2\xi\,h_\mathrm{geo}\,\loss},
+    \label{eq:r-plain}\\[4pt]
+    r_{\text{log}} &= \frac{\loss}{\loss^2 + 2\xi\,h_\mathrm{geo}\,\loss}
+                    = \frac{1}{\loss + 2\xi\,h_\mathrm{geo}},
+    \label{eq:r-log}\\[4pt]
+    r_{\text{id}} &= 1.
+    \label{eq:r-id}
+\end{align}
+
+\subsection{Non-Interference Condition}
+
+The preconditioned update at Newton equilibrium is
+$\delta\theta^i = -\eta\,r_t\,h_\mathrm{geo}\,\theta^i$,
+with contraction factor $\rho = |1 - \eta\,r_t\,h_\mathrm{geo}|$.
+For Newton preconditioning to work, the effective learning rate
+$\eta_\mathrm{eff} = \eta\,r_t\,h_\mathrm{geo}$
+must be tunable to~1.
+This requires $r_t$ to have a finite, nonzero limit as $\loss\to 0$:
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+    \toprule
+    \textbf{Embedding} & $\lim_{\loss\to 0} r_t$ & $\eta_\mathrm{eff}$ (asymptotic) & \textbf{Newton-compatible?} \\
+    \midrule
+    Plain ($f=\loss$)         & $1$                        & $\eta\,h_\mathrm{geo}$ & Yes \\
+    Log ($f=\log\loss$)       & $1/(2\xi\,h_\mathrm{geo})$ & $\eta/(2\xi)$          & No \\
+    Identity ($\xi=0$)        & $1$                        & $\eta\,h_\mathrm{geo}$ & Yes \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The log-loss embedding's asymptotic $\eta_\mathrm{eff}$ depends on $\xi$ alone,
+not on $h_\mathrm{geo}$.
+The Newton metric's equalization of preconditioned eigenvalues is
+\emph{invisible} to the log-loss damping:
+its permanent cap $r\to 1/(2\xi\,h_\mathrm{geo})$
+rescales $\eta$ in a way that cannot be compensated without knowing the geometry.
+
+\begin{tcolorbox}[colback=blue!4, colframe=blue!25, breakable,
+  title=\textbf{Non-Interference Theorem},
+  coltitle=black]
+Among the one-parameter family $f(\loss) = \loss^p$, only $p=1$
+(plain embedding) gives $\lim_{\loss\to 0} r_t = 1$.
+More generally, non-interference requires $f'(0)$ to be finite and nonzero,
+selecting $f(\loss) \sim c\,\loss + \mathrm{const}$ near $\loss=0$.
+\end{tcolorbox}
+
+\subsection{Stability During the Metric Transient}\label{sec:embed-transient}
+
+Before the Newton metric converges
+(timescale $\sim 1/(\mu\lambda_s)$ steps),
+the metric entries $e^{s_i}$ are near~1 and the preconditioned eigenvalues
+span the full range $[h_\mathrm{min},\, h_\mathrm{max}]$.
+Stability requires
+$\eta\,r_t\,\max_i(e^{s_i}\,h_i) < 2$.
+\begin{itemize}[leftmargin=1.8em]
+    \item \textbf{Identity ($\xi=0$):} $r_t=1$ always, so $\eta < 2/h_\mathrm{max}$.
+    For condition number $\kappa=100$ this gives $\eta < 0.02$---very restrictive.
+    \item \textbf{Plain ($f=\loss$):} Large initial gradients make $v_t$ large,
+    so $r_t \ll 1$.
+    The geometric clipping is \emph{self-stabilising}:
+    the maximum stable $\eta$ is orders of magnitude larger.
+    \item \textbf{Log ($f=\log\loss$):}
+    Also self-stabilising via the $\loss^2$ term in the denominator.
+\end{itemize}
+
+\noindent
+Numerical experiments confirm: on a 10D quadratic with $\kappa=100$,
+the identity embedding diverges at $\eta \gtrsim 0.03$,
+while the plain and log embeddings remain stable for $\eta$ up to $\sim\!1$.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/embedding_damping.png}
+    \caption{Scalar damping factor $r_t$ during training on a 10D quadratic ($\kappa=100$).
+    The plain embedding (blue) starts near $10^{-3}$ (heavy clipping)
+    and rises to~1 as gradients shrink.
+    The log-loss embedding (orange) overshoots $r=1$ during the transient
+    (amplification), then decays to $1/(2\xi\,h_\mathrm{geo})=0.5$.
+    The identity (green) is constant at~1.}
+    \label{fig:embed-damping}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.75\textwidth]{../images/embedding_eta_sweep.png}
+    \caption{Final loss (at step 10\,000) as a function of learning rate $\eta$
+    on a 10D quadratic ($\kappa=100$) with Newton-targeted metric.
+    The identity embedding (green) diverges at $\eta\approx 0.03$,
+    while both the plain and log embeddings remain stable up to $\eta\sim 1$,
+    demonstrating the geometric clipping safety net.}
+    \label{fig:embed-eta-sweep}
+\end{figure}
+
+\subsection{Recommendation}\label{sec:embed-recommendation}
+
+\begin{tcolorbox}[colback=gray!8, colframe=gray!22, breakable,
+  title=\textbf{Embedding Choice Summary},
+  coltitle=black]
+\begin{center}
+\small
+\begin{tabular}{@{}lccc@{}}
+    \toprule
+    \textbf{Property} & \textbf{Plain} ($f=\loss$) & \textbf{Log} ($f=\log\loss$) & \textbf{Identity} ($\xi=0$) \\
+    \midrule
+    $\lim r_t$ as $\loss\to 0$ & $\mathbf{1}$ & $1/(2\xi h_\mathrm{geo})$ & $1$ \\
+    Optimal $\eta$ (asymptotic) & $1/h_\mathrm{geo}$ & $2\xi$ & $1/h_\mathrm{geo}$ \\
+    $\eta$ depends on curvature? & Yes & \textbf{No} & Yes \\
+    Newton-compatible? & \textbf{Yes} & No & \textbf{Yes} \\
+    Self-stabilising? & \textbf{Yes} & Yes & \textbf{No} \\
+    \bottomrule
+\end{tabular}
+\end{center}
+
+\medskip\noindent
+\textbf{Recommendation:} use the plain embedding $f=\loss$.
+It is the unique embedding in the $\loss^p$ family that
+(a) does not interfere with Newton preconditioning near convergence ($r\to 1$), and
+(b) provides geometric clipping as a safety net during the metric transient.
+The identity ($\xi=0$) is theoretically optimal on clean quadratics but
+loses stability during the transient;
+$f=\log\loss$ permanently caps the effective step size.
+\end{tcolorbox}
+
+\noindent
+Companion analysis:
+\href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/notebooks/hp-optimal-embedding-analysis.nb}{\texttt{notebooks/hp-optimal-embedding-analysis.nb}} (Mathematica),
+\href{https://github.com/Noah-Everett/Induced-Metric-Optimiser/blob/main/notebooks/hp-optimal-embedding-numerical.py}{\texttt{notebooks/hp-optimal-embedding-numerical.py}} (Python).
+
 
 \begin{thebibliography}{1}
 \bibitem{harvey2025}
