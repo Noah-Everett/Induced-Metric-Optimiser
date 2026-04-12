@@ -85,6 +85,12 @@ def hutchinson_hvp_diag(loss_fn, params, rng_key):
     -------
     h_diag : pytree
         Estimated Hessian diagonal (same structure as params).
+
+    Note
+    ----
+    This function performs AD tracing.  For best performance, call it
+    inside a ``@jax.jit``-compiled training step rather than from plain
+    Python.
     """
     v = _rademacher_like(rng_key, params)
     _, hvp = jax.jvp(jax.grad(loss_fn), (params,), (v,))
@@ -150,7 +156,9 @@ def derived_newton_diag(
         step = state.step + 1
 
         # --- Metric EMA towards Newton target ---
-        # s_target_i = -log(max(h_diag_i, eps))
+        # s_target_i = -log(max(h_diag_i, eps)).  Negative h_diag (negative
+        # curvature) clamps to eps, yielding large s → aggressive steps to
+        # escape saddle regions.  See IMO-84/85 robustness analysis.
         new_log_diag = jax.tree.map(
             lambda s, h: one_minus_beta_s * s
                          + beta_s * (-jnp.log(jnp.maximum(h, hess_eps))),

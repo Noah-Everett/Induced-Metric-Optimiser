@@ -91,8 +91,10 @@ def test_hutchinson_accuracy():
     h_mean = h_sum / n_samples
 
     err = jnp.max(jnp.abs(h_mean - true_diag))
-    print(f"[Hutchinson accuracy] mean={h_mean}, true={true_diag}, max_err={float(err):.4f}")
-    assert float(err) < 1.0, f"Hutchinson mean too far from truth: err={float(err)}"
+    print(f"[Hutchinson accuracy] mean={h_mean}, true={true_diag}, max_err={float(err):.2e}")
+    # For a purely diagonal quadratic, each Rademacher sample is exact
+    # (v_i * H_ii * v_i = H_ii), so the mean should match to float precision.
+    assert float(err) < 1e-10, f"Hutchinson mean too far from truth: err={float(err)}"
     print("PASS: Hutchinson accuracy")
 
 
@@ -172,10 +174,58 @@ def test_rosenbrock_convergence():
 
     final_loss = float(loss_fn(params))
     print(f"[Rosenbrock] initial={initial_loss:.4f}, final={final_loss:.6f}")
-    assert final_loss < initial_loss, (
-        f"Should converge: final={final_loss} >= initial={initial_loss}"
+    # Sanity check: should make meaningful progress, not just epsilon improvement
+    assert final_loss < 0.9 * initial_loss, (
+        f"Should converge meaningfully: final={final_loss}, initial={initial_loss}"
     )
     print("PASS: Rosenbrock convergence")
+
+
+# ---- Test 6: Weight decay produces different trajectory ----
+
+def test_weight_decay():
+    """With weight_decay > 0 and params passed, trajectory should differ from wd=0."""
+    loss_fn = jax.jit(lambda p: p[0]**2 + p[1]**2)
+    grad_fn = jax.jit(jax.grad(loss_fn))
+    h_diag_fn = lambda p: jnp.array([2.0, 2.0])
+    p0 = jnp.array([1.0, 1.0])
+
+    hparams = dict(learning_rate=0.01, momentum=0.9, beta_s=0.1, metric_clip=4.0)
+
+    state_nowd, params_nowd = run_optimizer_hvp(
+        derived_newton_diag(**hparams, weight_decay=0.0),
+        p0, grad_fn, h_diag_fn, 50, needs_params=True,
+    )
+    state_wd, params_wd = run_optimizer_hvp(
+        derived_newton_diag(**hparams, weight_decay=0.1),
+        p0, grad_fn, h_diag_fn, 50, needs_params=True,
+    )
+
+    diff = float(jnp.max(jnp.abs(params_nowd - params_wd)))
+    print(f"[Weight decay] param diff (wd=0 vs wd=0.1): {diff:.6f}")
+    assert diff > 1e-4, f"Weight decay should change trajectory, got diff={diff}"
+    print("PASS: weight decay")
+
+
+# ---- Test 7: params=None path works without error ----
+
+def test_params_none():
+    """Calling update without params keyword should work (no weight decay)."""
+    loss_fn = jax.jit(lambda p: p[0]**2 + p[1]**2)
+    grad_fn = jax.jit(jax.grad(loss_fn))
+    h_diag_fn = lambda p: jnp.array([2.0, 2.0])
+    p0 = jnp.array([1.0, 1.0])
+
+    opt = derived_newton_diag(learning_rate=0.01, momentum=0.9, beta_s=0.1)
+    state, params = run_optimizer_hvp(
+        opt, p0, grad_fn, h_diag_fn, 20, needs_params=False,
+    )
+
+    final_loss = float(loss_fn(params))
+    print(f"[params=None] final loss={final_loss:.6f}")
+    assert final_loss < 2.0, f"Should still converge: final_loss={final_loss}"
+    assert jnp.all(jnp.isfinite(params)), "Params should be finite"
+    print("PASS: params=None path")
 
 
 if __name__ == "__main__":
@@ -190,6 +240,10 @@ if __name__ == "__main__":
     test_beta_s_zero()
     print()
     test_saddle_differentiation()
+    print()
+    test_weight_decay()
+    print()
+    test_params_none()
     print()
     test_rosenbrock_convergence()
     print()

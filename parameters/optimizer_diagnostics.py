@@ -453,6 +453,10 @@ def _extract_newton_diag(opt_state, config, grads=None):
     step_val = _scalar(opt_state.step)
     m = {'step': step_val}
 
+    # Momentum stats
+    m.update(_global_stats(opt_state.momentum, 'mom'))
+    m.update(_per_leaf_stats(opt_state.momentum, 'mom'))
+
     lr = config.get('learning_rate', 0.1)
     metric_clip = config.get('metric_clip', 4.0)
 
@@ -813,14 +817,20 @@ def diagnostic_step(
     loss: Any = None,
     config: Optional[Dict] = None,
     use_loss: bool = False,
+    h_diag: Any = None,
     prev_loss: Any = None,
 ) -> Dict[str, float]:
     """Compute updates from grads/state and collect all diagnostics.
 
     Convenience wrapper: calls ``optimizer.update()`` to get updates
     (without stepping), then ``collect_diagnostics()``.
+
+    For HVP-based optimizers (e.g. ``sgd_newton_diag``), pass the
+    Hutchinson Hessian diagonal estimate as ``h_diag``.
     """
-    if use_loss and loss is not None:
+    if h_diag is not None:
+        updates, _ = optimizer.update(grads, opt_state, h_diag, params)
+    elif use_loss and loss is not None:
         updates, _ = optimizer.update(grads, opt_state, loss, params)
     else:
         updates, _ = optimizer.update(grads, opt_state, params)
