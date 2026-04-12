@@ -1,0 +1,1063 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     41237,       1054]
+NotebookOptionsPosition[     38307,       1014]
+NotebookOutlinePosition[     38624,       1028]
+CellTagsIndexPosition[     38581,       1025]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell["IMO-86: Role of \[Xi] with Newton-Targeted Metric", "Title",ExpressionUUID->"cbc0dc96-0ef2-4ea7-a8ae-b64ea5036f24"],
+
+Cell[TextData[{
+ "Companion analysis to ",
+ Cell[BoxData[Cell["notes/xi-role-newton-metric.md",
+   Background->None,ExpressionUUID->"ea8d23f0-2769-4d81-9493-5e271fca203f"]], 
+  "InlineCode",ExpressionUUID->"e0e33ca5-3f97-43d3-9155-a91a5de7f83c"],
+ ". "
+}], "Text",ExpressionUUID->"32e5772d-17c0-4f7b-b116-4955622410ae"],
+
+Cell["1. Setup: Quadratic with Newton-targeted s_i", "Section",ExpressionUUID->"978c7e8f-37ac-4823-b5e5-d326ffd94dc6"],
+
+Cell[TextData[{
+ "Loss ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["L", "TI"], "\[LongEqual]", 
+         FractionBox["1", "2"], 
+         UnderscriptBox["\[Sum]", 
+          StyleBox["i", "TI"], LimitsPositioning -> True], 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]], 
+         SubsuperscriptBox["\[Theta]", 
+          StyleBox["i", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "L = \\frac{1}{2}\\sum_i h_i \\theta_i^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d575bf81-cebc-44cc-82d3-392acc401f3a"],
+ " with diagonal Hessian ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["H", "TI"], "\[LongEqual]", "diag", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["h", "TI"], "1"], ",", "\[Ellipsis]", ",", 
+             SubscriptBox[
+              StyleBox["h", "TI"], 
+              StyleBox["N", "TI"]]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "H = \\text{diag}(h_1,\\ldots,h_N)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "127a1c65-b441-4b45-b235-b406658219c6"],
+ "."
+}], "Text",ExpressionUUID->"fe6b2dfd-0c41-418e-bf49-07adf52532a4"],
+
+Cell[TextData[{
+ "Newton-targeted metric: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          SubscriptBox[
+           StyleBox["s", "TI"], 
+           StyleBox["i", "TI"]]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], "/", 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "e^{s_i} = h_{\\text{geo}}/h_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "eb06a681-812e-4e10-986d-ac542534bd1c"],
+ " where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], "\[LongEqual]", 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{"\[Product]", 
+              SubscriptBox[
+               StyleBox["h", "TI"], 
+               StyleBox["i", "TI"]]}], ")"}], 
+          RowBox[{"1", "/", 
+            StyleBox["N", "TI"]}]]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "h_{\\text{geo}} = (\\prod h_i)^{1/N}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "456d7d54-7ff5-4cc5-b711-a19e9c42a443"],
+ ".",
+ StyleBox["Verify",
+  FontWeight->Bold],
+ ": the trace statistic ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["v", "TI"], "\[LongEqual]", "\[Xi]", 
+         UnderscriptBox["\[Sum]", 
+          StyleBox["i", "TI"], LimitsPositioning -> True], 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          SubscriptBox[
+           StyleBox["s", "TI"], 
+           StyleBox["i", "TI"]]], 
+         SubsuperscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["i", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "v = \\xi\\sum_i e^{s_i} g_i^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "575d1d40-d1af-4884-b99a-404342db937a"],
+ " simplifies to ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["v", "TI"], "\[LongEqual]", "2", "\[Xi]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         StyleBox["L", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "v = 2\\xi h_{\\text{geo}} L", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d9394be5-bb9e-4a85-b381-893b373cf68d"],
+ ". "
+}], "Text",ExpressionUUID->"fd33ef51-4b50-4e74-bc7f-337453c24848"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Symbolic", " ", "verification", " ", "for", " ", "N"}], "=", 
+    "4"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"Module", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"n", "=", "4"}], ",", "h", ",", "\[Theta]", ",", "si", ",", 
+      "esi", ",", "g", ",", "v", ",", "loss", ",", "ratio", ",", "hgeo"}], 
+     "}"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"h", "=", 
+      RowBox[{"Table", "[", 
+       RowBox[{
+        RowBox[{"Subscript", "[", 
+         RowBox[{"hh", ",", "i"}], "]"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"i", ",", "n"}], "}"}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"\[Theta]", "=", 
+      RowBox[{"Table", "[", 
+       RowBox[{
+        RowBox[{"Subscript", "[", 
+         RowBox[{"\[Theta]\[Theta]", ",", "i"}], "]"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"i", ",", "n"}], "}"}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"si", "=", 
+      RowBox[{"Table", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"-", 
+          RowBox[{"Log", "[", 
+           RowBox[{"h", "[", 
+            RowBox[{"[", "i", "]"}], "]"}], "]"}]}], "+", 
+         RowBox[{"Mean", "[", 
+          RowBox[{"Log", "[", "h", "]"}], "]"}]}], ",", 
+        RowBox[{"{", 
+         RowBox[{"i", ",", "n"}], "}"}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"esi", "=", 
+      RowBox[{"Exp", " ", "/@", " ", "si"}]}], ";", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"g", "=", 
+      RowBox[{"h", "*", "\[Theta]"}]}], ";", "\[IndentingNewLine]", "  ", 
+     RowBox[{"v", "=", 
+      RowBox[{"\[Xi]", "*", 
+       RowBox[{"Total", "[", 
+        RowBox[{"esi", "*", 
+         RowBox[{"g", "^", "2"}]}], "]"}]}]}], ";", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"loss", "=", 
+      RowBox[{
+       RowBox[{"Total", "[", 
+        RowBox[{"h", "*", 
+         RowBox[{"\[Theta]", "^", "2"}]}], "]"}], "/", "2"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"hgeo", "=", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"Times", " ", "@@", " ", "h"}], ")"}], "^", 
+       RowBox[{"(", 
+        RowBox[{"1", "/", "n"}], ")"}]}]}], ";", "\[IndentingNewLine]", "  ", 
+     
+     RowBox[{"ratio", "=", 
+      RowBox[{"FullSimplify", "[", 
+       RowBox[{
+        RowBox[{"v", "/", 
+         RowBox[{"(", 
+          RowBox[{"2", " ", "\[Xi]", "*", "loss"}], ")"}]}], ",", 
+        RowBox[{"Assumptions", "->", 
+         RowBox[{
+          RowBox[{"Thread", "[", 
+           RowBox[{"h", ">", "0"}], "]"}], "&&", 
+          RowBox[{"Thread", "[", 
+           RowBox[{"\[Theta]", ">", "0"}], "]"}]}]}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Column", "[", 
+      RowBox[{"{", "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"Row", "[", 
+         RowBox[{"{", 
+          RowBox[{"\"\<v / (2\[Xi]L) = \>\"", ",", "ratio"}], "}"}], "]"}], ",",
+         "\[IndentingNewLine]", "    ", 
+        RowBox[{"Row", "[", 
+         RowBox[{"{", 
+          RowBox[{"\"\<h_geo = \>\"", ",", "hgeo"}], "}"}], "]"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"Row", "[", 
+         RowBox[{"{", 
+          RowBox[{"\"\<Equal? \>\"", ",", 
+           RowBox[{"FullSimplify", "[", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"ratio", "-", "hgeo"}], "==", "0"}], ",", 
+             RowBox[{"Assumptions", "->", 
+              RowBox[{"Thread", "[", 
+               RowBox[{"h", ">", "0"}], "]"}]}]}], "]"}]}], "}"}], "]"}]}], 
+       "\[IndentingNewLine]", "  ", "}"}], "]"}]}]}], "\[IndentingNewLine]", 
+   "]"}]}]], "Input",ExpressionUUID->"422358db-1db3-439f-8ea6-2cf2b398f0b4"],
+
+Cell[TextData[{
+ StyleBox["Result",
+  FontWeight->Bold],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["v", "TI"], "\[LongEqual]", "2", "\[Xi]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         StyleBox["L", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "v = 2\\xi h_{\\text{geo}} L", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "28e781a2-a6a1-4276-99b5-3c5248bb3dc7"],
+ ". The trace statistic is proportional to the loss times the geometric mean \
+eigenvalue. "
+}], "Text",ExpressionUUID->"edf9794d-e94f-4ba4-b04a-06f47b7c65b4"],
+
+Cell["2. Plain Embedding: r = 1/(1 + |v\:0302|)", "Section",ExpressionUUID->"d46d2b9e-2a54-4919-8a11-ab5e5a1d9656"],
+
+Cell[TextData[{
+ "With the Newton metric at equilibrium, ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         OverscriptBox[
+          StyleBox["v", "TI"], "^"], "\[LongEqual]", 
+         StyleBox["v", "TI"], "\[LongEqual]", "2", "\[Xi]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         StyleBox["L", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\hat{v} = v = 2\\xi h_{\\text{geo}} L", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cd15a8d1-ad6e-448f-b56e-a9d0afe706cb"],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["r", "TI"], "\[LongEqual]", 
+         FractionBox["1", 
+          RowBox[{"1", "+", "2", "\[Xi]", 
+            SubscriptBox[
+             StyleBox["h", "TI"], "geo"], 
+            StyleBox["L", "TI"]}]]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "r = \\frac{1}{1 + 2\\xi h_{\\text{geo}} L}", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f3fccf66-ee78-4f88-9ef0-4b696d22c955"],
+ "The parameter update (all coordinates contract uniformly): ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox["\[Theta]", 
+          StyleBox["i", "TI"], "new"], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{"1", "-", 
+             FractionBox[
+              RowBox[{"\[Eta]", 
+                SubscriptBox[
+                 StyleBox["h", "TI"], "geo"]}], 
+              RowBox[{"1", "+", "2", "\[Xi]", 
+                SubscriptBox[
+                 StyleBox["h", "TI"], "geo"], 
+                StyleBox["L", "TI"]}]]}], ")"}], 
+         SubscriptBox["\[Theta]", 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\theta_i^{\\text{new}} = \\left(1 - \\frac{\\eta h_{\\text{geo}}}{1 + \
+2\\xi h_{\\text{geo}} L}\\right) \\theta_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "054cfb35-4d9a-42d0-8c6f-c67a01ed9fb9"]
+}], "Text",ExpressionUUID->"507a81c9-f1a4-4513-8243-70bed07c274a"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Contraction", " ", "factor", " ", "and", " ", "convergence", " ", 
+    "rate"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"ClearAll", "[", 
+     RowBox[{"\[Xi]", ",", "\[Eta]", ",", "hgeo", ",", "LL"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"\[Rho]Plain", "[", 
+      RowBox[{"\[Eta]_", ",", "\[Xi]_", ",", "hgeo_", ",", "LL_"}], "]"}], ":=", 
+     RowBox[{"1", "-", 
+      RowBox[{"\[Eta]", " ", 
+       RowBox[{"hgeo", "/", 
+        RowBox[{"(", 
+         RowBox[{"1", "+", 
+          RowBox[{"2", " ", "\[Xi]", " ", "hgeo", " ", "LL"}]}], 
+         ")"}]}]}]}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"Column", "[", 
+    RowBox[{"{", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Row", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<\[Rho](L) = \>\"", ",", 
+         RowBox[{"\[Rho]Plain", "[", 
+          RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}]}], 
+        "}"}], "]"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"Row", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<L\[RightArrow]0: \[Rho] \[RightArrow] \>\"", ",", 
+         RowBox[{"Limit", "[", 
+          RowBox[{
+           RowBox[{"\[Rho]Plain", "[", 
+            RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}], ",", 
+           RowBox[{"LL", "->", "0"}]}], "]"}]}], "}"}], "]"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Row", "[", 
+       RowBox[{"{", 
+        RowBox[{"\"\<L\[RightArrow]\[Infinity]: \[Rho] \[RightArrow] \>\"", ",", 
+         RowBox[{"Limit", "[", 
+          RowBox[{
+           RowBox[{"\[Rho]Plain", "[", 
+            RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}], ",", 
+           RowBox[{"LL", "->", "Infinity"}]}], "]"}]}], "}"}], "]"}]}], 
+     "\[IndentingNewLine]", "}"}], "]"}]}]}]], "Input",ExpressionUUID->\
+"d67acf04-920b-4089-b170-8b6935ff18ef"],
+
+Cell[TextData[{
+ StyleBox["Key result",
+  FontWeight->Bold],
+ ": The local convergence rate at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["L", "TI"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "L=0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "fb963987-1e58-42bc-a144-555908b9e3ae"],
+ " is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SuperscriptBox[
+        RowBox[{"(", 
+          RowBox[{"1", "-", "\[Eta]", 
+            SubscriptBox[
+             StyleBox["h", "TI"], "geo"]}], ")"}], "2"], TraditionalForm], 
+     "errors" -> {}, "input" -> "(1-\\eta h_{\\text{geo}})^2", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ee12a28c-7eca-40bd-9150-bcf383e96617"],
+ ", ",
+ StyleBox["independent of \[Xi]",
+  FontWeight->Bold],
+ ". "
+}], "Text",ExpressionUUID->"076c27fd-b984-4734-9ea5-c585c514f9ce"],
+
+Cell["Convergence trajectories", "Subsection",ExpressionUUID->"6fb234d4-3621-43e0-babd-85f5bf3d62e9"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Compare", " ", "\[Xi]", " ", "values", " ", "on", " ", "the", " ", "loss",
+     " ", "map"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"hgeoVal", "=", "1.0"}], ";", " ", 
+    RowBox[{"\[Eta]Val", "=", "0.8"}], ";", " ", 
+    RowBox[{"L0val", "=", "100.0"}], ";", " ", 
+    RowBox[{"nSteps", "=", "50"}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"trajectoryPlain", "[", "\[Xi]val_", "]"}], ":=", 
+     RowBox[{"Module", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"LL", "=", "L0val"}], ",", 
+         RowBox[{"traj", "=", 
+          RowBox[{"{", "L0val", "}"}]}]}], "}"}], ",", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{
+        RowBox[{"Do", "[", 
+         RowBox[{
+          RowBox[{"Module", "[", 
+           RowBox[{
+            RowBox[{"{", 
+             RowBox[{"r", "=", 
+              RowBox[{"1", "/", 
+               RowBox[{"(", 
+                RowBox[{"1", "+", 
+                 RowBox[{"2", " ", "\[Xi]val", " ", "hgeoVal", " ", "LL"}]}], 
+                ")"}]}]}], "}"}], ",", "\[IndentingNewLine]", "    ", 
+            RowBox[{
+             RowBox[{"LL", "=", 
+              RowBox[{
+               RowBox[{
+                RowBox[{"(", 
+                 RowBox[{"1", "-", 
+                  RowBox[{"\[Eta]Val", " ", "hgeoVal", " ", "r"}]}], ")"}], "^",
+                 "2"}], " ", "LL"}]}], ";", "\[IndentingNewLine]", "    ", 
+             RowBox[{"AppendTo", "[", 
+              RowBox[{"traj", ",", "LL"}], "]"}]}]}], "]"}], ",", 
+          RowBox[{"{", "nSteps", "}"}]}], "]"}], ";", " ", "traj"}]}], 
+      "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"ListLogPlot", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"trajectoryPlain", "[", "0", "]"}], ",", 
+       RowBox[{"trajectoryPlain", "[", "0.1", "]"}], ",", 
+       RowBox[{"trajectoryPlain", "[", "1.0", "]"}], ",", 
+       RowBox[{"trajectoryPlain", "[", "10.0", "]"}]}], "}"}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"PlotLegends", "->", 
+      RowBox[{"{", 
+       RowBox[{"\"\<\[Xi]=0\>\"", ",", "\"\<\[Xi]=0.1\>\"", 
+        ",", "\"\<\[Xi]=1\>\"", ",", "\"\<\[Xi]=10\>\""}], "}"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"AxesLabel", "->", 
+      RowBox[{"{", 
+       RowBox[{"\"\<Step\>\"", ",", "\"\<Loss\>\""}], "}"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+     "PlotLabel", 
+      "->", "\"\<Plain embedding: \[Eta]=0.8, h_geo=1, L\:2080=100\>\""}], ",",
+      "\[IndentingNewLine]", "  ", 
+     RowBox[{"PlotRange", "->", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"10", "^", 
+         RowBox[{"-", "30"}]}], ",", "200"}], "}"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"ImageSize", "->", "600"}]}], "\[IndentingNewLine]", 
+    "]"}]}]}]], "Input",ExpressionUUID->"ed1f750e-166f-4d44-860e-\
+a8ce618f43d0"],
+
+Cell[TextData[{
+ StyleBox["Result",
+  FontWeight->Bold],
+ ": \[Xi]=0 converges fastest. \[Xi]>0 slows convergence by damping the \
+Newton step. "
+}], "Text",ExpressionUUID->"45d840df-490f-4233-a64b-26793ef03b9a"],
+
+Cell["3. Log-Loss Embedding: r = L/(L\.b2 + |v\:0302|)", "Section",ExpressionUUID->"056ec550-ddab-44a2-b7f2-bf76c5eacaea"],
+
+Cell[TextData[Cell[BoxData[
+ FormBox[
+  TemplateBox[<|"boxes" -> FormBox[
+      RowBox[{
+        StyleBox["r", "TI"], "\[LongEqual]", 
+        FractionBox[
+         StyleBox["L", "TI"], 
+         RowBox[{
+           SuperscriptBox[
+            StyleBox["L", "TI"], "2"], "+", "2", "\[Xi]", 
+           SubscriptBox[
+            StyleBox["h", "TI"], "geo"], 
+           StyleBox["L", "TI"]}]], "\[LongEqual]", 
+        FractionBox["1", 
+         RowBox[{
+           StyleBox["L", "TI"], "+", "2", "\[Xi]", 
+           SubscriptBox[
+            StyleBox["h", "TI"], "geo"]}]]}], TraditionalForm], 
+    "errors" -> {}, "input" -> 
+    "r = \\frac{L}{L^2 + 2\\xi h_{\\text{geo}} L} = \\frac{1}{L + 2\\xi \
+h_{\\text{geo}}}", "state" -> "Boxes"|>,
+   "TeXAssistantTemplate"], 
+  TraditionalForm]],ExpressionUUID->"6c17f07a-3ff6-4530-9827-8e7c16d407c8"]], \
+"Text",ExpressionUUID->"ba3acee7-77dc-4058-830d-6db6aab0cd19"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"ClearAll", "[", 
+   RowBox[{"\[Xi]", ",", "\[Eta]", ",", "hgeo", ",", "LL"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"\[Rho]Log", "[", 
+     RowBox[{"\[Eta]_", ",", "\[Xi]_", ",", "hgeo_", ",", "LL_"}], "]"}], ":=", 
+    RowBox[{"1", "-", 
+     RowBox[{"\[Eta]", " ", 
+      RowBox[{"hgeo", "/", 
+       RowBox[{"(", 
+        RowBox[{"LL", "+", 
+         RowBox[{"2", " ", "\[Xi]", " ", "hgeo"}]}], ")"}]}]}]}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Column", "[", 
+  RowBox[{"{", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{"Row", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<\[Rho](L) = \>\"", ",", 
+       RowBox[{"\[Rho]Log", "[", 
+        RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}]}], 
+      "}"}], "]"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Row", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<L\[RightArrow]0: \[Rho] \[RightArrow] \>\"", ",", 
+       RowBox[{"Limit", "[", 
+        RowBox[{
+         RowBox[{"\[Rho]Log", "[", 
+          RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}], ",", 
+         RowBox[{"LL", "->", "0"}], ",", 
+         RowBox[{"Assumptions", "->", 
+          RowBox[{"{", 
+           RowBox[{"\[Xi]", ">", "0"}], "}"}]}]}], "]"}]}], "}"}], "]"}], ",",
+     "\[IndentingNewLine]", "  ", 
+    RowBox[{"Row", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<L\[RightArrow]\[Infinity]: \[Rho] \[RightArrow] \>\"", ",", 
+       RowBox[{"Limit", "[", 
+        RowBox[{
+         RowBox[{"\[Rho]Log", "[", 
+          RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}], ",", 
+         RowBox[{"LL", "->", "Infinity"}]}], "]"}]}], "}"}], "]"}], ",", 
+    "\[IndentingNewLine]", "  ", "\"\<\>\"", ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Row", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<\[Xi]=0, L\[RightArrow]0: \[Rho] \[RightArrow] \>\"", ",", 
+       
+       RowBox[{"Limit", "[", 
+        RowBox[{
+         RowBox[{"1", "-", 
+          RowBox[{"\[Eta]", " ", 
+           RowBox[{"hgeo", "/", "LL"}]}]}], ",", 
+         RowBox[{"LL", "->", "0"}]}], "]"}]}], "}"}], "]"}], ",", 
+    "\[IndentingNewLine]", 
+    "  ", "\"\<\[Xi]=0 is SINGULAR \[LongDash] r diverges as L\[RightArrow]0!\
+\>\""}], "\[IndentingNewLine]", "}"}], "]"}]}], "Input",ExpressionUUID->\
+"6f04aa0b-1fe4-476b-adb7-e088c783cb4a"],
+
+Cell[TextData[{
+ StyleBox["Key results",
+  FontWeight->Bold],
+ ": "
+}], "Text",ExpressionUUID->"e7a06278-3b52-4e10-9e9b-f731dd60e5c2"],
+
+Cell[TextData[{
+ "Near minimum: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Rho]", "\[Rule]", "1", "-", "\[Eta]", "/", 
+         RowBox[{"(", 
+           RowBox[{"2", "\[Xi]"}], ")"}]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\rho \\to 1 - \\eta/(2\\xi)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5fc2cc53-4caf-4a52-b9f4-de0a617607e4"],
+ ", ",
+ "independent of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox[
+        StyleBox["h", "TI"], "geo"], TraditionalForm], "errors" -> {}, 
+     "input" -> "h_{\\text{geo}}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "946c3796-f95f-4e49-b035-9caa7b8293d1"]
+}], "Item",ExpressionUUID->"8906916c-2975-474e-9878-a2ef77ffbf63"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3ff0ec4d-8291-4eff-95a3-602a6d0594e2"],
+ " directly controls the effective learning rate: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[Eta]", "eff"], "\[LongEqual]", "\[Eta]", "/", 
+         RowBox[{"(", 
+           RowBox[{"2", "\[Xi]"}], ")"}]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\eta_{\\text{eff}} = \\eta/(2\\xi)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "1175974d-82c1-4588-83ca-d38139b99d96"]
+}], "Item",ExpressionUUID->"4d1434cb-bd21-47ca-a7e7-5e32409c3544"],
+
+Cell[TextData[{
+ "Optimal: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Eta]", "\[LongEqual]", "2", "\[Xi]"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\eta = 2\\xi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5c9bf464-67a5-4f5a-acf2-370b6c9f957f"],
+ " gives one-step convergence near minimum"
+}], "Item",ExpressionUUID->"be2d25cb-c5b1-4abd-a14e-90fe9f66b343"],
+
+Cell[TextData[{
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Xi]", "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\xi=0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "faa53633-fc32-4c3a-8efe-490e13a4383e"],
+ " is ",
+ StyleBox["singular",
+  FontWeight->Bold],
+ " \[LongDash] ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["r", "TI"], "\[Rule]", "\[Infinity]"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "r \\to \\infty", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "9c4f6d44-1942-42bf-9740-ac4dc41e67c0"],
+ " as ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["L", "TI"], "\[Rule]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "L \\to 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3bec504f-566b-418b-8009-204ea6ca7221"]
+}], "Item",ExpressionUUID->"5da2fd7f-494e-4704-8021-23b6b101cbda"],
+
+Cell["4. Fixed Point Analysis", "Section",ExpressionUUID->"8b9fbaf6-26e2-471b-b0f1-3077e36f43c3"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{"\[Xi]", ",", "\[Eta]", ",", "hgeo", ",", "LL"}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Loss", " ", "map", " ", "derivatives", " ", "at", " ", "L"}], "=",
+     "0"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"fPlain", "[", 
+    RowBox[{"\[Eta]_", ",", "\[Xi]_", ",", "hgeo_", ",", "LL_"}], "]"}], ":=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"1", "-", 
+       RowBox[{"\[Eta]", " ", 
+        RowBox[{"hgeo", "/", 
+         RowBox[{"(", 
+          RowBox[{"1", "+", 
+           RowBox[{"2", " ", "\[Xi]", " ", "hgeo", " ", "LL"}]}], ")"}]}]}]}],
+       ")"}], "^", "2"}], " ", "LL"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"fLog", "[", 
+     RowBox[{"\[Eta]_", ",", "\[Xi]_", ",", "hgeo_", ",", "LL_"}], "]"}], ":=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "-", 
+        RowBox[{"\[Eta]", " ", 
+         RowBox[{"hgeo", "/", 
+          RowBox[{"(", 
+           RowBox[{"LL", "+", 
+            RowBox[{"2", " ", "\[Xi]", " ", "hgeo"}]}], ")"}]}]}]}], ")"}], "^",
+       "2"}], " ", "LL"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Column", "[", 
+  RowBox[{"{", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{"Row", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Plain f'(0) = \>\"", ",", 
+       RowBox[{
+        RowBox[{"Limit", "[", 
+         RowBox[{
+          RowBox[{"D", "[", 
+           RowBox[{
+            RowBox[{"fPlain", "[", 
+             RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}], 
+            ",", "LL"}], "]"}], ",", 
+          RowBox[{"LL", "->", "0"}]}], "]"}], " ", "//", " ", "Simplify"}]}], 
+      "}"}], "]"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Row", "[", 
+     RowBox[{"{", 
+      RowBox[{"\"\<Log   f'(0) = \>\"", ",", 
+       RowBox[{
+        RowBox[{"Limit", "[", 
+         RowBox[{
+          RowBox[{"D", "[", 
+           RowBox[{
+            RowBox[{"fLog", "[", 
+             RowBox[{"\[Eta]", ",", "\[Xi]", ",", "hgeo", ",", "LL"}], "]"}], 
+            ",", "LL"}], "]"}], ",", 
+          RowBox[{"LL", "->", "0"}], ",", "\[IndentingNewLine]", "    ", 
+          RowBox[{"Assumptions", "->", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"\[Xi]", ">", "0"}], ",", 
+             RowBox[{"\[Eta]", ">", "0"}], ",", 
+             RowBox[{"hgeo", ">", "0"}]}], "}"}]}]}], "]"}], " ", "//", " ", 
+        "Simplify"}]}], "}"}], "]"}]}], "\[IndentingNewLine]", "}"}], 
+  "]"}]}], "Input",ExpressionUUID->"d321fd0f-64b1-45a9-bbdc-079d1e0e6a7c"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"\"\>",
+          HoldForm], 
+         TagBox["\<\"Plain\"\>",
+          HoldForm], 
+         TagBox["\<\"Log-loss\"\>",
+          HoldForm]},
+        {Cell[TextData[{
+          "Local rate at ",
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{
+                  StyleBox["L", "TI"], "\[LongEqual]", "0"}], 
+                TraditionalForm], "errors" -> {}, "input" -> "L=0", "state" -> 
+              "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "1d8162ab-eec3-4055-beca-30ce8fe20db6"]
+         }],ExpressionUUID->"9692686d-b403-4049-aaa9-9e09f62d1d02"], Cell[
+         BoxData[
+          FormBox[
+           TemplateBox[<|"boxes" -> FormBox[
+               SuperscriptBox[
+                RowBox[{"(", 
+                  RowBox[{"1", "-", "\[Eta]", 
+                    SubscriptBox[
+                    StyleBox["h", "TI"], "geo"]}], ")"}], "2"], 
+               TraditionalForm], "errors" -> {}, "input" -> 
+             "(1 - \\eta h_{\\text{geo}})^2", "state" -> "Boxes"|>,
+            "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+          "f671c30a-39c9-4118-b5ba-62fc893dcc1f"], Cell[BoxData[
+          FormBox[
+           TemplateBox[<|"boxes" -> FormBox[
+               SuperscriptBox[
+                RowBox[{"(", 
+                  RowBox[{"1", "-", "\[Eta]", "/", 
+                    RowBox[{"(", 
+                    RowBox[{"2", "\[Xi]"}], ")"}]}], ")"}], "2"], 
+               TraditionalForm], "errors" -> {}, "input" -> 
+             "(1 - \\eta/(2\\xi))^2", "state" -> "Boxes"|>,
+            "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+          "fdbfabc2-4431-43d6-a695-ab0952231b9e"]},
+        {Cell[TextData[{
+          "Optimal ",
+          Cell[BoxData[
+           FormBox[
+            
+            TemplateBox[<|
+             "boxes" -> FormBox["\[Eta]", TraditionalForm], "errors" -> {}, 
+              "input" -> "\\eta", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "6b50f4e8-c82d-4ca6-923a-45f7fad9f445"]
+         }],ExpressionUUID->"475d0b3d-4218-4e3e-b327-7204c5db00bd"], Cell[
+         BoxData[
+          FormBox[
+           TemplateBox[<|"boxes" -> FormBox[
+               RowBox[{"1", "/", 
+                 SubscriptBox[
+                  StyleBox["h", "TI"], "geo"]}], TraditionalForm], 
+             "errors" -> {}, "input" -> "1/h_{\\text{geo}}", "state" -> 
+             "Boxes"|>,
+            "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+          "6936a21d-127f-41ac-9710-a928618d8b1a"], Cell[BoxData[
+          FormBox[
+           TemplateBox[<|"boxes" -> FormBox[
+               RowBox[{"2", "\[Xi]"}], TraditionalForm], "errors" -> {}, 
+             "input" -> "2\\xi", "state" -> "Boxes"|>,
+            "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+          "3a2d11b1-5b9a-4a86-8bb7-390db60553a8"]},
+        {Cell[TextData[{
+          "Depends on ",
+          Cell[BoxData[
+           FormBox[
+            
+            TemplateBox[<|
+             "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, 
+              "input" -> "\\xi", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "4a46e3c3-6be3-4249-bdca-a0625d405e66"],
+          "?"
+         }],ExpressionUUID->"8cfc07d3-2ffd-45c9-aec8-76762eca32be"], 
+         StyleBox["No",
+          FontWeight->Bold], Cell[TextData[{
+          StyleBox["Yes",
+           FontWeight->Bold],
+          " (critical)"
+         }],ExpressionUUID->"691598b5-4346-4166-b66c-cb03ef8cafe4"]},
+        {Cell[TextData[{
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{"\[Xi]", "\[LongEqual]", "0"}], TraditionalForm], 
+              "errors" -> {}, "input" -> "\\xi=0", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "c3da08e0-afdf-476c-9a35-343f186aabd5"],
+          " viable?"
+         }],ExpressionUUID->"300123ad-104f-4309-a09a-31e277301698"], 
+         StyleBox["Yes",
+          FontWeight->Bold], Cell[TextData[{
+          StyleBox["No",
+           FontWeight->Bold],
+          " (singular)"
+         }],ExpressionUUID->"ce6e4790-3af3-445f-9fe0-a3dc0c6b6ba6"]},
+        {Cell[TextData[{
+          "Role of ",
+          Cell[BoxData[
+           FormBox[
+            
+            TemplateBox[<|
+             "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, 
+              "input" -> "\\xi", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "cd2a5d44-e565-4a28-8a19-44f56aa5f1bc"]
+         }],ExpressionUUID->
+          "d7679472-9788-48b6-be18-c7fb0b2c7086"], "\<\"Trust region \
+only\"\>", "\<\"Sets effective LR\"\>"}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, Center, {Center}}, "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[
+      BoxForm`e$, TableHeadings -> {None, {"", "Plain", "Log-loss"}}]]], 
+    "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"f70c0dd1-7a08-4c98-8b17-e361dbc52d33"],
+
+Cell["5. Stochastic Effects", "Section",ExpressionUUID->"04a0aa9e-836c-4e6d-9179-782252e6ccc7"],
+
+Cell[TextData[{
+ "With noisy gradients ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]], 
+         SubscriptBox["\[Theta]", 
+          StyleBox["i", "TI"]], "+", 
+         SubscriptBox["\[Sigma]", 
+          StyleBox["i", "TI"]], 
+         SubscriptBox["\[Epsilon]", 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "g_i = h_i\\theta_i + \\sigma_i\\epsilon_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7cfc5bbd-ae80-4b1f-87ee-c23b042a7e8f"],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["E", FontSlant -> "Plain"], 
+         RowBox[{"[", 
+           StyleBox["v", "TI"], "]"}], "\[LongEqual]", "2", "\[Xi]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         StyleBox["L", "TI"], "+", "\[Xi]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         UnderscriptBox["\[Sum]", 
+          StyleBox["i", "TI"], LimitsPositioning -> True], 
+         SubsuperscriptBox["\[Sigma]", 
+          StyleBox["i", "TI"], "2"], "/", 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\mathbb{E}[v] = 2\\xi h_{\\text{geo}} L + \\xi h_{\\text{geo}} \\sum_i \
+\\sigma_i^2/h_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "82837996-1b3c-4fe7-9214-feca53c2704c"],
+ "The noise term ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Xi]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         StyleBox["S", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi h_{\\text{geo}} S", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2e6c1532-5161-4c50-9886-533c50d48e92"],
+ " adds unwanted extra damping that reduces the effective learning rate even \
+when ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["L", "TI"], TraditionalForm], "errors" -> {}, "input" -> "L", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5fea61ce-626c-4493-b359-a9e46e2ec23a"],
+ " is small. For the plain embedding, this is strictly harmful. "
+}], "Text",ExpressionUUID->"bafe4126-9163-4285-8158-a5cd39e8f8ec"],
+
+Cell["6. Conclusion", "Section",ExpressionUUID->"251fc81a-0e4f-4bc7-9040-5cd2fe2e3a09"],
+
+Cell[TextData[{
+ "With Newton-targeted $s_i$, ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "89360f83-875c-4b09-aa1b-a7779a310f0b"],
+ " was the coupling constant between loss landscape and metric. \
+Newton-targeting decouples them: the metric learns from Hessian information \
+directly, not from the gradient outer product.",
+ StyleBox["Plain embedding",
+  FontWeight->Bold],
+ ": Set ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Xi]", "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\xi=0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "66cff384-6a8a-411a-9a4a-ba905e840807"],
+ ". The optimizer reduces to diagonal Newton preconditioner + momentum + \
+learning rate.",
+ StyleBox["Log-loss embedding",
+  FontWeight->Bold],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "8ea93cd1-d627-4372-9b6e-4a82418949e2"],
+ " is structurally required. Set ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Eta]", "\[LongEqual]", "2", "\[Xi]"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\eta = 2\\xi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "35f19897-9092-40bf-bf64-7b30fa09316a"],
+ " for optimal convergence near minima."
+}], "Text",ExpressionUUID->"96529ef8-df4d-4bce-af9c-c058b3d266d2"]
+},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"146100b5-572c-4375-b7d7-0c2cad9216f1"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 121, 0, 70, "Title",ExpressionUUID->"cbc0dc96-0ef2-4ea7-a8ae-b64ea5036f24"],
+Cell[678, 22, 319, 6, 70, "Text",ExpressionUUID->"32e5772d-17c0-4f7b-b116-4955622410ae"],
+Cell[1000, 30, 118, 0, 70, "Section",ExpressionUUID->"978c7e8f-37ac-4823-b5e5-d326ffd94dc6"],
+Cell[1121, 32, 1373, 36, 70, "Text",ExpressionUUID->"fe6b2dfd-0c41-418e-bf49-07adf52532a4"],
+Cell[2497, 70, 2615, 72, 70, "Text",ExpressionUUID->"fd33ef51-4b50-4e74-bc7f-337453c24848"],
+Cell[5115, 144, 3765, 102, 70, "Input",ExpressionUUID->"422358db-1db3-439f-8ea6-2cf2b398f0b4"],
+Cell[8883, 248, 669, 17, 70, "Text",ExpressionUUID->"edf9794d-e94f-4ba4-b04a-06f47b7c65b4"],
+Cell[9555, 267, 115, 0, 70, "Section",ExpressionUUID->"d46d2b9e-2a54-4919-8a11-ab5e5a1d9656"],
+Cell[9673, 269, 2174, 53, 70, "Text",ExpressionUUID->"507a81c9-f1a4-4513-8243-70bed07c274a"],
+Cell[11850, 324, 1995, 48, 70, "Input",ExpressionUUID->"d67acf04-920b-4089-b170-8b6935ff18ef"],
+Cell[13848, 374, 1007, 29, 70, "Text",ExpressionUUID->"076c27fd-b984-4734-9ea5-c585c514f9ce"],
+Cell[14858, 405, 101, 0, 70, "Subsection",ExpressionUUID->"6fb234d4-3621-43e0-babd-85f5bf3d62e9"],
+Cell[14962, 407, 3042, 77, 70, "Input",ExpressionUUID->"ed1f750e-166f-4d44-860e-a8ce618f43d0"],
+Cell[18007, 486, 212, 5, 70, "Text",ExpressionUUID->"45d840df-490f-4233-a64b-26793ef03b9a"],
+Cell[18222, 493, 122, 0, 70, "Section",ExpressionUUID->"056ec550-ddab-44a2-b7f2-bf76c5eacaea"],
+Cell[18347, 495, 914, 23, 70, "Text",ExpressionUUID->"ba3acee7-77dc-4058-830d-6db6aab0cd19"],
+Cell[19264, 520, 2404, 59, 70, "Input",ExpressionUUID->"6f04aa0b-1fe4-476b-adb7-e088c783cb4a"],
+Cell[21671, 581, 134, 4, 70, "Text",ExpressionUUID->"e7a06278-3b52-4e10-9e9b-f731dd60e5c2"],
+Cell[21808, 587, 851, 21, 70, "Item",ExpressionUUID->"8906916c-2975-474e-9878-a2ef77ffbf63"],
+Cell[22662, 610, 835, 19, 70, "Item",ExpressionUUID->"4d1434cb-bd21-47ca-a7e7-5e32409c3544"],
+Cell[23500, 631, 457, 10, 70, "Item",ExpressionUUID->"be2d25cb-c5b1-4abd-a14e-90fe9f66b343"],
+Cell[23960, 643, 1114, 29, 70, "Item",ExpressionUUID->"5da2fd7f-494e-4704-8021-23b6b101cbda"],
+Cell[25077, 674, 97, 0, 70, "Section",ExpressionUUID->"8b9fbaf6-26e2-471b-b0f1-3077e36f43c3"],
+Cell[25177, 676, 2722, 74, 70, "Input",ExpressionUUID->"d321fd0f-64b1-45a9-bbdc-079d1e0e6a7c"],
+Cell[27902, 752, 5873, 143, 70, "TextTableForm",ExpressionUUID->"f70c0dd1-7a08-4c98-8b17-e361dbc52d33"],
+Cell[33778, 897, 95, 0, 70, "Section",ExpressionUUID->"04a0aa9e-836c-4e6d-9179-782252e6ccc7"],
+Cell[33876, 899, 2591, 66, 70, "Text",ExpressionUUID->"bafe4126-9163-4285-8158-a5cd39e8f8ec"],
+Cell[36470, 967, 87, 0, 70, "Section",ExpressionUUID->"251fc81a-0e4f-4bc7-9040-5cd2fe2e3a09"],
+Cell[36560, 969, 1743, 43, 70, "Text",ExpressionUUID->"96529ef8-df4d-4bce-af9c-c058b3d266d2"]
+}
+]
+*)
+
+(* End of internal cache information *)
