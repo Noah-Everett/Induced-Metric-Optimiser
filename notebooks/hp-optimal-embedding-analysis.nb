@@ -1,0 +1,808 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     30548,        799]
+NotebookOptionsPosition[     27346,        756]
+NotebookOutlinePosition[     27663,        770]
+CellTagsIndexPosition[     27620,        767]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell["\<\
+IMO-87: Optimal Embedding Function with Newton-Targeted Metric\
+\>", "Title",ExpressionUUID->"60468e61-4d4e-449b-aa4a-839106773105"],
+
+Cell[TextData[{
+ "Determines which embedding f (plain L, log L, or identity \[Xi]=0) \
+cooperates best with Newton-targeted diagonal scaling s",
+ StyleBox["i* = -log h",
+  FontSlant->Italic],
+ "i + mean(log h). "
+}], "Text",ExpressionUUID->"ed3e0239-cbeb-4ab2-a5c6-ba31b13dfa06"],
+
+Cell["Part I: General Embedding Damping Factor", "Section",ExpressionUUID->"8b7aa526-f49c-413c-8d09-4918faeab216"],
+
+Cell[TextData[{
+ "On a quadratic L = (1/2) \[Theta]\:1d40 diag(h) \[Theta] with \
+Newton-targeted metric e^{s",
+ StyleBox["i} = h",
+  FontSlant->Italic],
+ "geo/h",
+ StyleBox["i, the trace statistic is v = 2\[Xi] h",
+  FontSlant->Italic],
+ "geo L."
+}], "Text",ExpressionUUID->"afe1d52f-903c-468b-8d7a-8605c430cd29"],
+
+Cell[TextData[{
+ "For a general embedding f(L), the geometric update gives damping: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> InterpretationBox["", 
+       Failure[
+       "TeXAssistantError", <|
+        "MessageTemplate" -> "Errors: `Errors`", 
+         "MessageParameters" -> <|"Errors" -> {}|>, "Input" -> 
+         "r_t = \\frac{f'(L)}{1 + \\xi f'(L)^2 \\cdot 2 h_\\text{geo} L}"|>]],
+      "errors" -> {}, "input" -> 
+     "r_t = \\frac{f'(L)}{1 + \\xi f'(L)^2 \\cdot 2 h_\\text{geo} L}", 
+     "state" -> "Error"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "476e288c-bb49-42d4-8178-a4ea8ab5ebb9"]
+}], "Text",ExpressionUUID->"58273beb-fa75-4126-aeb8-52b5b45355c7"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"Clear", "[", "\"\<Global`*\>\"", "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Damping", " ", "factor", " ", "for", " ", "each", " ", "embedding"}], " ",
+    "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rPlain", "[", 
+    RowBox[{"L_", ",", "xi_", ",", "hGeo_"}], "]"}], ":=", 
+   RowBox[{"1", "/", 
+    RowBox[{"(", 
+     RowBox[{"1", "+", 
+      RowBox[{"2", " ", "xi", " ", "hGeo", " ", "L"}]}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rLog", "[", 
+    RowBox[{"L_", ",", "xi_", ",", "hGeo_"}], "]"}], ":=", 
+   RowBox[{"L", "/", 
+    RowBox[{"(", 
+     RowBox[{
+      RowBox[{"L", "^", "2"}], "+", 
+      RowBox[{"2", " ", "xi", " ", "hGeo", " ", "L"}]}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"rIdentity", "[", 
+     RowBox[{"L_", ",", "xi_", ",", "hGeo_"}], "]"}], ":=", "1"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Log-loss simplifies: L/(L^2 + 2 xi h_geo L) = \>\"", ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Simplify", "[", 
+      RowBox[{"L", "/", 
+       RowBox[{"(", 
+        RowBox[{"L", " ", 
+         RowBox[{"(", 
+          RowBox[{"L", "+", 
+           RowBox[{"2", " ", "xi", " ", "hGeo"}]}], ")"}]}], ")"}]}], "]"}]}],
+     "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\n--- Limits as L -> 0 (near convergence) ---\>\"", 
+   "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Plain:    \>\"", ",", 
+    RowBox[{"Limit", "[", 
+     RowBox[{
+      RowBox[{"rPlain", "[", 
+       RowBox[{"L", ",", "xi", ",", "hGeo"}], "]"}], ",", 
+      RowBox[{"L", "->", "0"}]}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Log-loss: \>\"", ",", 
+    RowBox[{"Limit", "[", 
+     RowBox[{
+      RowBox[{"rLog", "[", 
+       RowBox[{"L", ",", "xi", ",", "hGeo"}], "]"}], ",", 
+      RowBox[{"L", "->", "0"}]}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Identity: \>\"", ",", 
+     RowBox[{"rIdentity", "[", 
+      RowBox[{"L", ",", "xi", ",", "hGeo"}], "]"}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<\\n--- Limits as L -> Infinity ---\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Plain:    \>\"", ",", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Series", "[", 
+       RowBox[{
+        RowBox[{"rPlain", "[", 
+         RowBox[{"L", ",", "xi", ",", "hGeo"}], "]"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"L", ",", "Infinity", ",", "1"}], "}"}]}], "]"}], " ", "//", 
+      " ", "Normal"}], " ", "//", " ", "Simplify"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Log-loss: \>\"", ",", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Series", "[", 
+       RowBox[{
+        RowBox[{"rLog", "[", 
+         RowBox[{"L", ",", "xi", ",", "hGeo"}], "]"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"L", ",", "Infinity", ",", "1"}], "}"}]}], "]"}], " ", "//", 
+      " ", "Normal"}], " ", "//", " ", "Simplify"}]}], "]"}], ";"}]}], "Input",\
+ExpressionUUID->"1b4cf396-8507-416a-9c6a-144bf93a4093"],
+
+Cell["Part II: Effective Step Size at Newton Equilibrium", "Section",ExpressionUUID->"7c7796d0-c9cc-46de-93c5-62f3cfbdf468"],
+
+Cell[TextData[{
+ "The preconditioned update is \[Delta]\[Theta]",
+ StyleBox["i = -\[Eta] r",
+  FontSlant->Italic],
+ "t h",
+ StyleBox["geo \[Theta]",
+  FontSlant->Italic],
+ "i. The effective learning rate is \[Eta]",
+ StyleBox["eff = \[Eta] r",
+  FontSlant->Italic],
+ "t h_geo. "
+}], "Text",ExpressionUUID->"cb5e1e57-29c1-4a54-b4e7-a9623ad0d702"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<--- Effective learning rate as L -> 0 ---\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<Plain:    eta_eff -> eta * h_geo\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<Log-loss: eta_eff -> eta / (2 xi)\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", "\"\<Identity: eta_eff = eta * h_geo\>\"", "]"}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\n--- Optimal eta for one-step convergence (eta_eff = \
+1) ---\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<Plain:    eta* = 1/h_geo\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<Log-loss: eta* = 2*xi  (INDEPENDENT of h_geo!)\>\"", 
+   "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", "\"\<Identity: eta* = 1/h_geo\>\"", "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\nCRITICAL: Log-loss decouples eta from curvature.\>\"",
+    "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<The Newton metric's equalization is invisible to \
+log-loss damping.\>\"", "]"}], ";"}]}], "Input",ExpressionUUID->"792d951d-\
+b0ba-4380-b3ca-d5f3526981cc"],
+
+Cell["Part III: Non-Interference Theorem for f = L^p", "Section",ExpressionUUID->"439e19b2-f956-46e9-884b-f2d877aa041d"],
+
+Cell[TextData[{
+ StyleBox["Theorem:",
+  FontWeight->Bold],
+ " Among the family f(L) = L^p, only p = 1 (plain embedding) gives finite, \
+nonzero lim",
+ StyleBox["{L\[RightArrow]0} r",
+  FontSlant->Italic],
+ "t."
+}], "Text",ExpressionUUID->"e676b94d-4f66-40bf-a0c3-fedbb6d0e546"],
+
+Cell["\<\
+More generally: non-interference \[DoubleLongLeftRightArrow] f'(0) is finite \
+and nonzero, selecting f(L) ~ c\[CenterDot]L + const near L = 0. \
+\>", "Text",ExpressionUUID->"5e6f9746-663e-4c8c-bdcf-93a1884a7d3b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"rGeneral", "[", 
+     RowBox[{"L_", ",", "p_", ",", "xi_", ",", "hGeo_"}], "]"}], ":=", 
+    RowBox[{"p", " ", 
+     RowBox[{
+      RowBox[{"L", "^", 
+       RowBox[{"(", 
+        RowBox[{"p", "-", "1"}], ")"}]}], "/", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"2", " ", "xi", " ", "hGeo", " ", 
+         RowBox[{"p", "^", "2"}], " ", 
+         RowBox[{"L", "^", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"2", " ", "p"}], "-", "1"}], ")"}]}]}]}], ")"}]}]}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<f = L^p, limit of r_t as L -> 0:\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"lim", "=", 
+       RowBox[{"Limit", "[", 
+        RowBox[{
+         RowBox[{"rGeneral", "[", 
+          RowBox[{"L", ",", "p", ",", "xi", ",", "hGeo"}], "]"}], ",", 
+         RowBox[{"L", "->", "0"}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"Assumptions", "->", 
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"xi", ">", "0"}], ",", 
+            RowBox[{"hGeo", ">", "0"}]}], "}"}]}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Print", "[", 
+       RowBox[{"\"\<  p = \>\"", ",", "p", ",", "\"\<:  lim r_t = \>\"", ",", 
+        "lim"}], "]"}], ";"}], "\[IndentingNewLine]", ",", 
+     RowBox[{"{", 
+      RowBox[{"p", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"1", "/", "2"}], ",", "1", ",", 
+         RowBox[{"3", "/", "2"}], ",", "2"}], "}"}]}], "}"}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"log", " ", 
+     RowBox[{"case", ":", " ", 
+      RowBox[{
+       RowBox[{"f", "'"}], 
+       RowBox[{"(", "L", ")"}]}]}]}], " ", "=", " ", 
+    RowBox[{"1", "/", "L"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<\\n  f = log L:  lim r_t = \>\"", ",", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"Limit", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"1", "/", "L"}], ")"}], "/", 
+       RowBox[{"(", 
+        RowBox[{"1", "+", 
+         RowBox[{"2", " ", "xi", " ", "hGeo", " ", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"1", "/", "L"}], ")"}], "^", "2"}], " ", "L"}]}], ")"}]}],
+       ",", 
+      RowBox[{"L", "->", "0"}], ",", "\[IndentingNewLine]", "    ", 
+      RowBox[{"Assumptions", "->", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"xi", ">", "0"}], ",", 
+         RowBox[{"hGeo", ">", "0"}]}], "}"}]}]}], "]"}]}], "]"}], 
+  ";"}]}], "Input",ExpressionUUID->"6c8785fb-cc91-4f7e-b903-fb6cccc3596a"],
+
+Cell["Part IV: Convergence Simulation \[LongDash] Three Embeddings", "Section",ExpressionUUID->"0ce152f7-47ac-47b2-a94e-28c087e944e1"],
+
+Cell["\<\
+Compare on a 10D diagonal quadratic (\[Kappa] = 100) with Newton-targeted \
+s_i. \
+\>", "Text",ExpressionUUID->"d785f38b-9838-4f24-970a-ac8be9e59445"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", "\"\<Global`*\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"nn", "=", "10"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hVals", "=", 
+   RowBox[{
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"10", "^", 
+       RowBox[{"(", 
+        RowBox[{"2", " ", 
+         RowBox[{
+          RowBox[{"(", 
+           RowBox[{"i", "-", "1"}], ")"}], "/", 
+          RowBox[{"(", 
+           RowBox[{"nn", "-", "1"}], ")"}]}]}], ")"}]}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "nn"}], "}"}]}], "]"}], " ", "//", " ", "N"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hGeo", "=", 
+   RowBox[{"Exp", "[", 
+    RowBox[{"Mean", "[", 
+     RowBox[{"Log", "[", "hVals", "]"}], "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<h_geo = \>\"", ",", "hGeo", ",", "\"\<, kappa = \>\"", ",", 
+     RowBox[{
+      RowBox[{"Max", "[", "hVals", "]"}], "/", 
+      RowBox[{"Min", "[", "hVals", "]"}]}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eta", "=", "0.005"}], ";", " ", 
+  RowBox[{"xi", "=", "0.1"}], ";", " ", 
+  RowBox[{"mu", "=", "0.01"}], ";", " ", 
+  RowBox[{"lam", "=", "0.01"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"clip", "=", "6.0"}], ";", " ", 
+  RowBox[{"eps", "=", "1.0*^-8"}], ";", " ", 
+  RowBox[{"nSteps", "=", "20000"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"theta0", "=", 
+   RowBox[{"ConstantArray", "[", 
+    RowBox[{"1.0", ",", "nn"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"meanCenterClip", "[", 
+     RowBox[{"s_", ",", "c_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"sc", "=", 
+        RowBox[{"s", "-", 
+         RowBox[{"Mean", "[", "s", "]"}]}]}], "}"}], ",", 
+      RowBox[{"Clip", "[", 
+       RowBox[{"sc", ",", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "c"}], ",", "c"}], "}"}]}], "]"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"simulateEmbed", "[", 
+     RowBox[{"embedding_", ",", "nSt_"}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"theta", "=", "theta0"}], ",", 
+        RowBox[{"s", "=", 
+         RowBox[{"ConstantArray", "[", 
+          RowBox[{"0.0", ",", "nn"}], "]"}]}], ",", "\[IndentingNewLine]", 
+        "   ", 
+        RowBox[{"lossH", "=", 
+         RowBox[{"Table", "[", 
+          RowBox[{"0.0", ",", "nSt"}], "]"}]}], ",", 
+        RowBox[{"rH", "=", 
+         RowBox[{"Table", "[", 
+          RowBox[{"0.0", ",", "nSt"}], "]"}]}], ",", "\[IndentingNewLine]", 
+        "   ", "g", ",", "v", ",", "r", ",", "drive", ",", "lossVal", ",", 
+        RowBox[{"n", "=", "nn"}]}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"Do", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"g", "=", 
+           RowBox[{"hVals", " ", "theta"}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"lossVal", "=", 
+           RowBox[{"Max", "[", 
+            RowBox[{
+             RowBox[{
+              RowBox[{"Total", "[", 
+               RowBox[{"hVals", " ", 
+                RowBox[{"theta", "^", "2"}]}], "]"}], "/", "2"}], ",", 
+             RowBox[{"10.0", "^", 
+              RowBox[{"-", "300"}]}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"v", "=", 
+           RowBox[{"xi", " ", 
+            RowBox[{"Total", "[", 
+             RowBox[{
+              RowBox[{"Exp", "[", "s", "]"}], " ", 
+              RowBox[{"g", "^", "2"}]}], "]"}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"r", "=", 
+           RowBox[{"Switch", "[", 
+            RowBox[{
+            "embedding", ",", "\[IndentingNewLine]", "      ", "\"\<plain\>\"",
+              ",", 
+             RowBox[{"1", "/", 
+              RowBox[{"(", 
+               RowBox[{"1", "+", 
+                RowBox[{"Abs", "[", "v", "]"}]}], ")"}]}], ",", 
+             "\[IndentingNewLine]", "      ", "\"\<log\>\"", ",", 
+             RowBox[{"lossVal", "/", 
+              RowBox[{"(", 
+               RowBox[{
+                RowBox[{"lossVal", "^", "2"}], "+", 
+                RowBox[{"Abs", "[", "v", "]"}], "+", 
+                RowBox[{"10.0", "^", 
+                 RowBox[{"-", "300"}]}]}], ")"}]}], ",", 
+             "\[IndentingNewLine]", "      ", "\"\<identity\>\"", ",", "1"}], 
+            "\[IndentingNewLine]", "    ", "]"}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"theta", "=", 
+           RowBox[{"theta", "-", 
+            RowBox[{"eta", " ", "r", " ", 
+             RowBox[{"Exp", "[", "s", "]"}], " ", "g"}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"drive", "=", 
+           RowBox[{
+            RowBox[{"-", "lam"}], " ", 
+            RowBox[{"Log", "[", 
+             RowBox[{"MapThread", "[", 
+              RowBox[{"Max", ",", 
+               RowBox[{"{", 
+                RowBox[{"hVals", ",", 
+                 RowBox[{"ConstantArray", "[", 
+                  RowBox[{"eps", ",", "n"}], "]"}]}], "}"}]}], "]"}], 
+             "]"}]}]}], ";", "\[IndentingNewLine]", "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"1", "-", 
+               RowBox[{"mu", " ", "lam"}]}], ")"}], " ", "s"}], "+", 
+            RowBox[{"mu", " ", "drive"}]}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{"meanCenterClip", "[", 
+            RowBox[{"s", ",", "clip"}], "]"}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{
+           RowBox[{"lossH", "[", 
+            RowBox[{"[", "t", "]"}], "]"}], "=", 
+           RowBox[{
+            RowBox[{"Total", "[", 
+             RowBox[{"hVals", " ", 
+              RowBox[{"theta", "^", "2"}]}], "]"}], "/", "2"}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{
+           RowBox[{"rH", "[", 
+            RowBox[{"[", "t", "]"}], "]"}], "=", "r"}], ";"}], 
+         "\[IndentingNewLine]", "  ", ",", 
+         RowBox[{"{", 
+          RowBox[{"t", ",", "nSt"}], "}"}]}], "]"}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"{", 
+        RowBox[{"lossH", ",", "rH"}], "}"}]}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"lP", ",", "rP"}], "}"}], "=", 
+   RowBox[{"simulateEmbed", "[", 
+    RowBox[{"\"\<plain\>\"", ",", "nSteps"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"lL", ",", "rL"}], "}"}], "=", 
+   RowBox[{"simulateEmbed", "[", 
+    RowBox[{"\"\<log\>\"", ",", "nSteps"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"lI", ",", "rI"}], "}"}], "=", 
+   RowBox[{"simulateEmbed", "[", 
+    RowBox[{"\"\<identity\>\"", ",", "nSteps"}], "]"}]}], ";"}]}], "Input",Exp\
+ressionUUID->"1c8c6f54-b86f-4bf6-9898-945a36009fef"],
+
+Cell["Convergence curves", "Subsection",ExpressionUUID->"c4352093-0f57-44ca-a70a-18510ae267ad"],
+
+Cell[BoxData[
+ RowBox[{"ListLogPlot", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"lP", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", " ", ";;", " ", ";;", " ", "50"}], "]"}], "]"}], ",", 
+     RowBox[{"lL", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", " ", ";;", " ", ";;", " ", "50"}], "]"}], "]"}], ",", 
+     RowBox[{"lI", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", " ", ";;", " ", ";;", " ", "50"}], "]"}], "]"}]}], "}"}], 
+   ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotLegends", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Plain (f=L)\>\"", ",", "\"\<Log (f=log L)\>\"", 
+      ",", "\"\<Identity (xi=0)\>\""}], "}"}]}], ",", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"AxesLabel", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Step (x50)\>\"", ",", "\"\<Loss\>\""}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{
+   "PlotLabel", 
+    "->", "\"\<Embedding comparison on 10D quadratic (kappa=100)\>\""}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotStyle", "->", 
+    RowBox[{"{", 
+     RowBox[{"Blue", ",", "Orange", ",", "Red"}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"ImageSize", "->", "600"}]}], "\[IndentingNewLine]", 
+  "]"}]], "Input",ExpressionUUID->"1673a909-124f-413a-baf0-7d92b5c7d22b"],
+
+Cell["Damping factor evolution", "Subsection",ExpressionUUID->"bdd68bb0-4a26-4ebb-9af6-708accbdac54"],
+
+Cell[BoxData[
+ RowBox[{"ListLogPlot", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"rP", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", " ", ";;", " ", ";;", " ", "50"}], "]"}], "]"}], ",", 
+     RowBox[{"rL", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", " ", ";;", " ", ";;", " ", "50"}], "]"}], "]"}], ",", 
+     RowBox[{"rI", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", " ", ";;", " ", ";;", " ", "50"}], "]"}], "]"}]}], "}"}], 
+   ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotLegends", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Plain\>\"", ",", "\"\<Log\>\"", ",", "\"\<Identity\>\""}], 
+     "}"}]}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"AxesLabel", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Step (x50)\>\"", ",", "\"\<r_t\>\""}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotLabel", "->", "\"\<Scalar damping factor\>\""}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotStyle", "->", 
+    RowBox[{"{", 
+     RowBox[{"Blue", ",", "Orange", ",", "Red"}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"ImageSize", "->", "600"}]}], "\[IndentingNewLine]", 
+  "]"}]], "Input",ExpressionUUID->"4587e62f-00a8-445e-b3c3-a0390375e132"],
+
+Cell["Part V: Stability During Metric Transient", "Section",ExpressionUUID->"41384c83-20d7-4514-8677-b3d4469cea60"],
+
+Cell[TextData[{
+ "Before the Newton metric converges, the preconditioned eigenvalues are the \
+raw h",
+ StyleBox["i. The identity embedding requires \[Eta] < 2/max(h",
+  FontSlant->Italic],
+ "i) for stability, while the plain embedding is self-stabilising. "
+}], "Text",ExpressionUUID->"4725d38c-0cc5-426d-94aa-8c76e52bfe9b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Identity max stable eta: \>\"", ",", 
+    RowBox[{"N", "[", 
+     RowBox[{"2", "/", 
+      RowBox[{"Max", "[", "hVals", "]"}]}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<Plain is self-stabilising: large gradients -> small r -> \
+safe step\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Initial r (plain, eta=0.1): \>\"", ",", 
+    RowBox[{"N", "[", 
+     RowBox[{"1", "/", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"0.1", " ", 
+         RowBox[{"Total", "[", 
+          RowBox[{"hVals", "^", "2"}], "]"}]}]}], ")"}]}], "]"}]}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<This allows using aggressive eta with plain embedding.\>\
+\"", "]"}], ";"}]}], "Input",ExpressionUUID->"9d4e58c7-bc1d-4351-981f-\
+42267980303e"],
+
+Cell["Part VI: Why Log-Loss Fails with Newton", "Section",ExpressionUUID->"b4995f2e-b0f8-414e-b5e8-b12ff871c4a3"],
+
+Cell[TextData[{
+ "The log-loss embedding's damping at convergence is r \[RightArrow] \
+1/(2\[Xi] h",
+ StyleBox["geo). This is a function of \[Xi] and h",
+  FontSlant->Italic],
+ "geo, meaning:"
+}], "Text",ExpressionUUID->"faae73a7-18b6-4a06-8dcd-919d98771772"],
+
+Cell["1. The optimal \[Eta] depends on \[Xi], not the curvature structure", \
+"Text",ExpressionUUID->"28fc0923-e453-4a08-ac05-c515999fd60a"],
+
+Cell["\<\
+2. The Newton metric's equalization of eigenvalues is invisible to the damping\
+\>", "Text",ExpressionUUID->"39215932-5308-4b00-a9e5-544fe6984bce"],
+
+Cell["\<\
+3. There is a permanent ceiling on the effective learning rate \
+\>", "Text",ExpressionUUID->"72e81865-9595-4db5-80e7-a96e4458e263"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<At Newton equilibrium:\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<  Plain:    r -> 1. eta_eff = eta * h_geo. Newton-aware.\
+\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<  Log-loss: r -> 1/(2 xi h_geo) = \>\"", ",", 
+    RowBox[{"N", "[", 
+     RowBox[{"1", "/", 
+      RowBox[{"(", 
+       RowBox[{"2", " ", "0.1", " ", "10"}], ")"}]}], "]"}], ",", 
+    "\[IndentingNewLine]", "  ", "\"\<. eta_eff = eta/(2 xi) = \>\"", ",", 
+    RowBox[{"N", "[", 
+     RowBox[{"0.005", "/", 
+      RowBox[{"(", 
+       RowBox[{"2", " ", "0.1"}], ")"}]}], "]"}], 
+    ",", "\"\<. Curvature-blind.\>\""}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<  Identity: r = 1. eta_eff = eta * h_geo. \
+Newton-aware.\>\"", "]"}], ";"}]}], "Input",ExpressionUUID->"b21586b6-7c8c-\
+4ada-a31e-13b59ee66ac8"],
+
+Cell["Summary", "Section",ExpressionUUID->"641da71d-ff88-4a09-9282-1e6fbd7b417f"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"Property\"\>",
+          HoldForm], 
+         TagBox["\<\"Plain (f=L)\"\>",
+          HoldForm], 
+         TagBox["\<\"Log (f=log L)\"\>",
+          HoldForm], 
+         TagBox["\<\"Identity (\[Xi]=0)\"\>",
+          HoldForm]},
+        {"\<\"lim r_t as L\[RightArrow]0\"\>", 
+         StyleBox["1",
+          FontWeight->Bold], "\<\"1/(2\[Xi]h_geo)\"\>", "\<\"1\"\>"},
+        {"\<\"Optimal \[Eta] (asymptotic)\"\>", "\<\"1/h_geo\"\>", \
+"\<\"2\[Xi]\"\>", "\<\"1/h_geo\"\>"},
+        {"\<\"\[Eta] depends on curvature?\"\>", "\<\"Yes (h_geo)\"\>", Cell[
+         TextData[{
+          StyleBox["No",
+           FontWeight->Bold],
+          " (only \[Xi])"
+         }],ExpressionUUID->
+          "a76014d2-c788-4c33-a113-92cbf905857a"], "\<\"Yes (h_geo)\"\>"},
+        {"\<\"Newton-compatible?\"\>", 
+         StyleBox["Yes",
+          FontWeight->Bold], "\<\"No\"\>", 
+         StyleBox["Yes",
+          FontWeight->Bold]},
+        {"\<\"Self-stabilising?\"\>", 
+         StyleBox["Yes",
+          FontWeight->Bold], "\<\"Yes\"\>", 
+         StyleBox["No",
+          FontWeight->Bold]},
+        {"\<\"Safety net (clipping)?\"\>", 
+         StyleBox["Yes",
+          FontWeight->Bold], "\<\"Yes\"\>", 
+         StyleBox["No",
+          FontWeight->Bold]}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, Center, Center, {Center}}, 
+         "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[
+      BoxForm`e$, 
+       TableHeadings -> {
+        None, {"Property", "Plain (f=L)", "Log (f=log L)", 
+          "Identity (\[Xi]=0)"}}]]], "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"4feb0160-33a2-4df8-8e24-b214ce0ecdfc"],
+
+Cell[TextData[{
+ StyleBox["Recommendation:",
+  FontWeight->Bold],
+ " Plain embedding (f=L). It is the unique embedding in the L^p family that \
+neither interferes with Newton preconditioning near convergence nor \
+sacrifices the geometric clipping safety net far from the minimum. The \
+identity (\[Xi]=0) is optimal on clean quadratics but loses stability during \
+the metric transient."
+}], "Text",ExpressionUUID->"9ca4b8a9-1cbf-49da-aa34-fed45076d4c4"]
+},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"a83bd6d1-c378-4ba4-8c49-4f0e587986a8"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 142, 2, 70, "Title",ExpressionUUID->"60468e61-4d4e-449b-aa4a-839106773105"],
+Cell[699, 24, 279, 6, 70, "Text",ExpressionUUID->"ed3e0239-cbeb-4ab2-a5c6-ba31b13dfa06"],
+Cell[981, 32, 114, 0, 70, "Section",ExpressionUUID->"8b7aa526-f49c-413c-8d09-4918faeab216"],
+Cell[1098, 34, 314, 9, 70, "Text",ExpressionUUID->"afe1d52f-903c-468b-8d7a-8605c430cd29"],
+Cell[1415, 45, 709, 15, 70, "Text",ExpressionUUID->"58273beb-fa75-4126-aeb8-52b5b45355c7"],
+Cell[2127, 62, 3488, 99, 70, "Input",ExpressionUUID->"1b4cf396-8507-416a-9c6a-144bf93a4093"],
+Cell[5618, 163, 124, 0, 70, "Section",ExpressionUUID->"7c7796d0-c9cc-46de-93c5-62f3cfbdf468"],
+Cell[5745, 165, 345, 11, 70, "Text",ExpressionUUID->"cb5e1e57-29c1-4a54-b4e7-a9623ad0d702"],
+Cell[6093, 178, 1424, 37, 70, "Input",ExpressionUUID->"792d951d-b0ba-4380-b3ca-d5f3526981cc"],
+Cell[7520, 217, 120, 0, 70, "Section",ExpressionUUID->"439e19b2-f956-46e9-884b-f2d877aa041d"],
+Cell[7643, 219, 277, 8, 70, "Text",ExpressionUUID->"e676b94d-4f66-40bf-a0c3-fedbb6d0e546"],
+Cell[7923, 229, 223, 3, 70, "Text",ExpressionUUID->"5e6f9746-663e-4c8c-bdcf-93a1884a7d3b"],
+Cell[8149, 234, 2823, 80, 70, "Input",ExpressionUUID->"6c8785fb-cc91-4f7e-b903-fb6cccc3596a"],
+Cell[10975, 316, 134, 0, 70, "Section",ExpressionUUID->"0ce152f7-47ac-47b2-a94e-28c087e944e1"],
+Cell[11112, 318, 160, 3, 70, "Text",ExpressionUUID->"d785f38b-9838-4f24-970a-ac8be9e59445"],
+Cell[11275, 323, 7285, 194, 70, "Input",ExpressionUUID->"1c8c6f54-b86f-4bf6-9898-945a36009fef"],
+Cell[18563, 519, 95, 0, 70, "Subsection",ExpressionUUID->"c4352093-0f57-44ca-a70a-18510ae267ad"],
+Cell[18661, 521, 1303, 33, 70, "Input",ExpressionUUID->"1673a909-124f-413a-baf0-7d92b5c7d22b"],
+Cell[19967, 556, 101, 0, 70, "Subsection",ExpressionUUID->"bdd68bb0-4a26-4ebb-9af6-708accbdac54"],
+Cell[20071, 558, 1237, 30, 70, "Input",ExpressionUUID->"4587e62f-00a8-445e-b3c3-a0390375e132"],
+Cell[21311, 590, 115, 0, 70, "Section",ExpressionUUID->"41384c83-20d7-4514-8677-b3d4469cea60"],
+Cell[21429, 592, 325, 6, 70, "Text",ExpressionUUID->"4725d38c-0cc5-426d-94aa-8c76e52bfe9b"],
+Cell[21757, 600, 938, 26, 70, "Input",ExpressionUUID->"9d4e58c7-bc1d-4351-981f-42267980303e"],
+Cell[22698, 628, 113, 0, 70, "Section",ExpressionUUID->"b4995f2e-b0f8-414e-b5e8-b12ff871c4a3"],
+Cell[22814, 630, 259, 6, 70, "Text",ExpressionUUID->"faae73a7-18b6-4a06-8dcd-919d98771772"],
+Cell[23076, 638, 140, 1, 70, "Text",ExpressionUUID->"28fc0923-e453-4a08-ac05-c515999fd60a"],
+Cell[23219, 641, 157, 2, 70, "Text",ExpressionUUID->"39215932-5308-4b00-a9e5-544fe6984bce"],
+Cell[23379, 645, 142, 2, 70, "Text",ExpressionUUID->"72e81865-9595-4db5-80e7-a96e4458e263"],
+Cell[23524, 649, 965, 25, 70, "Input",ExpressionUUID->"b21586b6-7c8c-4ada-a31e-13b59ee66ac8"],
+Cell[24492, 676, 81, 0, 70, "Section",ExpressionUUID->"641da71d-ff88-4a09-9282-1e6fbd7b417f"],
+Cell[24576, 678, 2308, 66, 70, "TextTableForm",ExpressionUUID->"4feb0160-33a2-4df8-8e24-b214ce0ecdfc"],
+Cell[26887, 746, 455, 8, 70, "Text",ExpressionUUID->"9ca4b8a9-1cbf-49da-aa34-fed45076d4c4"]
+}
+]
+*)
+
+(* End of internal cache information *)
