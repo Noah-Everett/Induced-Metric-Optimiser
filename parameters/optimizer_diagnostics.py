@@ -448,6 +448,54 @@ def _extract_learnable_diag_curv(opt_state, config, is_log=False,
     return m
 
 
+def _extract_newton_diag(opt_state, config, grads=None):
+    """DerivedNewtonDiagState — Newton-targeted diagonal metric."""
+    step_val = _scalar(opt_state.step)
+    m = {'step': step_val}
+
+    lr = config.get('learning_rate', 0.1)
+    metric_clip = config.get('metric_clip', 4.0)
+
+    # log_diag stats
+    m.update(_global_stats(opt_state.log_diag, 'log_diag'))
+    m.update(_per_leaf_stats(opt_state.log_diag, 'log_diag'))
+
+    diag_leaves = jax.tree_util.tree_leaves(opt_state.log_diag)
+    all_s = jnp.concatenate([l.ravel() for l in diag_leaves])
+    all_exp_s = jnp.exp(all_s)
+
+    # Effective LR: lr * exp(s_i) (no r factor — xi=0)
+    eff_lr = lr * all_exp_s
+    m['eff_lr/mean'] = _scalar(jnp.mean(eff_lr))
+    m['eff_lr/std']  = _scalar(jnp.std(eff_lr))
+    m['eff_lr/min']  = _scalar(jnp.min(eff_lr))
+    m['eff_lr/max']  = _scalar(jnp.max(eff_lr))
+
+    # Condition number
+    m['metric_condition'] = (_scalar(jnp.max(all_exp_s))
+                             / max(_scalar(jnp.min(all_exp_s)), 1e-30))
+
+    # Clipped fraction
+    clip_bound = abs(metric_clip) - 1e-6
+    m['clipped_frac'] = _scalar(jnp.mean(jnp.abs(all_s) >= clip_bound))
+
+    # Entropy
+    n = all_s.size
+    if n > 1:
+        p = all_exp_s / jnp.sum(all_exp_s)
+        entropy = _scalar(-jnp.sum(p * jnp.log(p + 1e-30)))
+        m['metric_entropy'] = entropy
+        m['metric_entropy_norm'] = entropy / float(np.log(n))
+
+    # Preconditioned gradient stats
+    if grads is not None:
+        g_leaves = jax.tree_util.tree_leaves(grads)
+        g_tilde_parts = [jnp.exp(s) * g for s, g in zip(diag_leaves, g_leaves)]
+        m.update(_global_stats(g_tilde_parts, 'g_tilde'))
+
+    return m
+
+
 _OFFDIAG_MODE = {'0': 'zero', 'l': 'grad', 'm': 'momentum', 'theta': 'params'}
 
 
@@ -602,6 +650,8 @@ def _get_family(name):
         return 'curv'
     if name == 'sgd_learn_diag_curv_log':
         return 'curv_log'
+    if name == 'sgd_newton_diag':
+        return 'newton_diag'
     if name.startswith('sgd_offdiag_'):
         return 'offdiag'
     return 'unknown'
@@ -690,6 +740,8 @@ def collect_diagnostics(
         metrics.update(_extract_learnable_diag_curv(
             opt_state, config, is_log=('log' in family),
             grads=grads, params=params))
+    elif family == 'newton_diag':
+        metrics.update(_extract_newton_diag(opt_state, config, grads=grads))
     elif family == 'offdiag':
         metrics.update(_extract_offdiag(
             opt_state, config, optimizer_name,
