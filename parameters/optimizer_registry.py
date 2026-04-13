@@ -519,6 +519,14 @@ def get_sweep_parameters(name, overrides=None):
         }
 
     if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
+        # Clamp curv_beta override range to _PARAM_BOUNDS (Optuna does this
+        # after the ratio transform; keep WandB consistent).
+        cb_spec = _param("curv_beta")
+        cb_lo, cb_hi, _ = _PARAM_BOUNDS["curv_beta"]
+        if "min" in cb_spec:
+            cb_spec["min"] = max(cb_lo, cb_spec["min"])
+        if "max" in cb_spec:
+            cb_spec["max"] = min(cb_hi, cb_spec["max"])
         return {
             "learning_rate": _param("learning_rate"),
             "momentum": _param("momentum"),
@@ -528,7 +536,7 @@ def get_sweep_parameters(name, overrides=None):
             "metric_lr": _param("metric_lr"),
             "metric_reg": _param("metric_reg"),
             "metric_clip": _param("metric_clip"),
-            "curv_beta": _param("curv_beta"),  # WandB can't do dependent params; Optuna uses curv_ratio
+            "curv_beta": cb_spec,
             "curv_tau": _param("curv_tau"),
             "metric_param": _param("metric_param", default_categorical=[
                 "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",

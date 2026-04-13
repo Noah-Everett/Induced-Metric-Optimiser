@@ -19,17 +19,9 @@ Usage (with explicit h_diag)::
     h_diag = hutchinson_hvp_diag_torch(lambda p: loss_fn(p), list(model.parameters()))
     opt.step(h_diag=h_diag)
 
-Usage (with closure)::
-
-    def closure():
-        opt.zero_grad()
-        loss = compute_loss(model, batch)
-        loss.backward()
-        return loss
-    opt.step(closure=closure, use_hutchinson=True)
-
 A helper function ``hutchinson_hvp_diag_torch`` is provided for computing h_diag
-from a loss function using ``torch.autograd.functional.hvp`` (~2x gradient cost).
+from a loss function using ``torch.autograd.functional.hvp`` (~3x gradient cost,
+since PyTorch uses reverse-over-reverse rather than forward-over-reverse).
 
 References:
 - IMO-84: Newton target uniqueness theorem
@@ -54,13 +46,15 @@ def hutchinson_hvp_diag_torch(
     """Estimate Hessian diagonal via Hutchinson's method with Rademacher vectors.
 
     Uses ``torch.autograd.functional.hvp`` for the Hessian-vector product.
-    Total cost is approximately 2x a single gradient evaluation.
+    Total cost is approximately 3x a single gradient evaluation (PyTorch uses
+    reverse-over-reverse, not forward-over-reverse like JAX).
 
     Parameters
     ----------
     loss_fn : callable
         Scalar loss function: ``loss_fn(*params) -> scalar``.
-        Must accept unpacked parameter tensors (not a list).
+        ``torch.autograd.functional.hvp`` unpacks the parameter tuple, so
+        ``loss_fn`` receives each parameter as a separate positional argument.
     params : list of Tensor
         Current parameters (must have requires_grad=True or be inputs to loss_fn).
     generator : torch.Generator, optional
@@ -117,6 +111,16 @@ class DerivedNewtonDiag(Optimizer):
         metric_clip: float = 4.0,
         hess_eps: float = 1e-6,
     ):
+        if not 0.0 <= momentum < 1.0:
+            raise ValueError(f"momentum must be in [0, 1), got {momentum}")
+        if not 0.0 <= beta_s <= 1.0:
+            raise ValueError(f"beta_s must be in [0, 1], got {beta_s}")
+        if lr < 0.0:
+            raise ValueError(f"lr must be non-negative, got {lr}")
+        if weight_decay < 0.0:
+            raise ValueError(f"weight_decay must be non-negative, got {weight_decay}")
+        if hess_eps <= 0.0:
+            raise ValueError(f"hess_eps must be positive, got {hess_eps}")
         defaults = dict(
             lr=lr,
             momentum=momentum,
