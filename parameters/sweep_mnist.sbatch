@@ -28,7 +28,7 @@
 
 TASK="parameters/sweep_mnist_mlp.py"
 RESULTS_DIR="results"
-ITERATION=0
+ITERATION=5
 
 NUM_RUNS=1000
 BACKEND="local"
