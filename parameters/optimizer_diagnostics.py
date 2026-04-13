@@ -448,7 +448,7 @@ def _extract_learnable_diag_curv(opt_state, config, is_log=False,
     return m
 
 
-def _extract_newton_diag(opt_state, config, grads=None):
+def _extract_newton_diag(opt_state, config, grads=None, h_diag=None):
     """DerivedNewtonDiagState — Newton-targeted diagonal metric."""
     step_val = _scalar(opt_state.step)
     m = {'step': step_val}
@@ -496,6 +496,53 @@ def _extract_newton_diag(opt_state, config, grads=None):
         g_leaves = jax.tree_util.tree_leaves(grads)
         g_tilde_parts = [jnp.exp(s) * g for s, g in zip(diag_leaves, g_leaves)]
         m.update(_global_stats(g_tilde_parts, 'g_tilde'))
+
+    # --- Hutchinson Hessian diagonal estimate ---
+    if h_diag is not None:
+        h_leaves = jax.tree_util.tree_leaves(h_diag)
+        if h_leaves:
+            all_h = jnp.concatenate([l.ravel() for l in h_leaves])
+
+            # Global summary stats
+            h_mean = _scalar(jnp.mean(all_h))
+            h_sq_mean = _scalar(jnp.mean(all_h ** 2))
+            m['h_diag/mean']    = h_mean
+            m['h_diag/std']     = _scalar(jnp.std(all_h))
+            m['h_diag/min']     = _scalar(jnp.min(all_h))
+            m['h_diag/neg_frac'] = _scalar(jnp.mean(all_h < 0))
+            m['h_diag/sq_mean'] = h_sq_mean
+
+            # Global rho: sqrt(E[h²]/E[h]² - 1)
+            if abs(h_mean) > 1e-30:
+                ratio = h_sq_mean / (h_mean ** 2)
+                if ratio > 1.0:
+                    m['h_diag/rho_global'] = float(np.sqrt(ratio - 1.0))
+                else:
+                    m['h_diag/rho_global'] = 0.0
+
+            # Per-leaf stats and rho
+            try:
+                key_leaves, _ = jax.tree_util.tree_flatten_with_path(h_diag)
+            except Exception:
+                key_leaves = []
+            for key_path, leaf in key_leaves:
+                p = f'h_diag/{_path_str(key_path)}'
+                flat = leaf.ravel()
+                leaf_mean = _scalar(jnp.mean(flat))
+                leaf_sq_mean = _scalar(jnp.mean(flat ** 2))
+                m[f'{p}/mean']     = leaf_mean
+                m[f'{p}/std']      = _scalar(jnp.std(flat))
+                m[f'{p}/min']      = _scalar(jnp.min(flat))
+                m[f'{p}/neg_frac'] = _scalar(jnp.mean(flat < 0))
+                m[f'{p}/sq_mean']  = leaf_sq_mean
+
+                if abs(leaf_mean) > 1e-30:
+                    ratio = leaf_sq_mean / (leaf_mean ** 2)
+                    if ratio > 1.0:
+                        m[f'h_diag/rho/{_path_str(key_path)}'] = float(
+                            np.sqrt(ratio - 1.0))
+                    else:
+                        m[f'h_diag/rho/{_path_str(key_path)}'] = 0.0
 
     return m
 
@@ -693,6 +740,7 @@ def collect_diagnostics(
     loss: Any = None,
     config: Optional[Dict] = None,
     prev_loss: Any = None,
+    h_diag: Any = None,
 ) -> Dict[str, float]:
     """Collect diagnostic metrics from optimizer state.
 
@@ -714,6 +762,8 @@ def collect_diagnostics(
         Hyperparameter config (needed for bias correction, etc.).
     prev_loss
         Previous diagnostic loss (for relative change).
+    h_diag
+        Hutchinson Hessian diagonal estimate (optional, for newton_diag).
 
     Returns
     -------
@@ -745,7 +795,8 @@ def collect_diagnostics(
             opt_state, config, is_log=('log' in family),
             grads=grads, params=params))
     elif family == 'newton_diag':
-        metrics.update(_extract_newton_diag(opt_state, config, grads=grads))
+        metrics.update(_extract_newton_diag(opt_state, config, grads=grads,
+                                             h_diag=h_diag))
     elif family == 'offdiag':
         metrics.update(_extract_offdiag(
             opt_state, config, optimizer_name,
@@ -838,5 +889,5 @@ def diagnostic_step(
     return collect_diagnostics(
         optimizer_name, opt_state, params,
         grads=grads, updates=updates, loss=loss,
-        config=config, prev_loss=prev_loss,
+        config=config, prev_loss=prev_loss, h_diag=h_diag,
     )
