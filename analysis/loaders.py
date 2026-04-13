@@ -125,12 +125,19 @@ def _extract_history_wandb(best_runs, metric_keys):
 # Data loading - Local backend
 # ---------------------------------------------------------------------------
 
-def _load_csv_run(filepath):
+def _load_csv_run(filepath, columns=None):
     """Load a single run from a CSV file with JSON metadata comment header.
 
     The first line is ``# {JSON}`` containing ``config`` and ``summary``.
     The remaining lines are standard CSV with the training history.
+
+    When *columns* is given, only those columns (plus ``epoch``/
+    ``iteration``) are kept from the CSV body.
     """
+    keep = None
+    if columns is not None:
+        keep = set(columns) | {"epoch", "iteration"}
+
     with open(filepath) as f:
         first_line = f.readline().strip()
         if first_line.startswith("# "):
@@ -143,6 +150,8 @@ def _load_csv_run(filepath):
         history = {}
         for row in reader:
             for key, val in row.items():
+                if keep is not None and key not in keep:
+                    continue
                 if key not in history:
                     history[key] = []
                 if val == "":
@@ -160,8 +169,12 @@ def _load_csv_run(filepath):
     }
 
 
-def _load_json_run(filepath):
+def _load_json_run(filepath, columns=None):
     """Load a single run from a legacy JSON file and normalise history."""
+    keep = None
+    if columns is not None:
+        keep = set(columns) | {"epoch", "iteration"}
+
     with open(filepath) as f:
         data = json.load(f)
 
@@ -172,6 +185,8 @@ def _load_json_run(filepath):
         for i, row in enumerate(history_list):
             all_keys = set(history.keys()) | set(row.keys())
             for key in all_keys:
+                if keep is not None and key not in keep:
+                    continue
                 if key not in history:
                     history[key] = [None] * i
                 history[key].append(row.get(key, None))
@@ -180,7 +195,8 @@ def _load_json_run(filepath):
     return data
 
 
-def _load_local_runs_parquet(itr_dir: Path, skip_history: bool = False) -> list[dict]:
+def _load_local_runs_parquet(itr_dir: Path, skip_history: bool = False,
+                             columns: list[str] | None = None) -> list[dict]:
     """Load runs from consolidated Parquet files (fast path).
 
     Reconstructs the same run-dict format as _load_csv_run so all
@@ -189,6 +205,10 @@ def _load_local_runs_parquet(itr_dir: Path, skip_history: bool = False) -> list[
     When *skip_history* is True, trajectory data is not loaded — only
     summary and config.  This dramatically reduces memory for analyses
     that only need per-run metrics (e.g. HP sensitivity).
+
+    When *columns* is given, only those columns (plus ``run_id`` and
+    ``epoch``/``iteration``) are read from trajectories.parquet.  This
+    avoids loading large diagnostic columns that aren't needed.
     """
     summary_path = itr_dir / "summary.parquet"
     traj_path = itr_dir / "trajectories.parquet"
@@ -198,7 +218,17 @@ def _load_local_runs_parquet(itr_dir: Path, skip_history: bool = False) -> list[
     # Load trajectories grouped by run_id (only if file exists)
     traj_by_run: dict = {}
     if not skip_history and traj_path.exists():
-        traj_df = pd.read_parquet(traj_path)
+        read_cols = None
+        if columns is not None:
+            # Always include run_id + epoch/iteration for grouping/alignment
+            required = {"run_id", "epoch", "iteration"}
+            read_cols = list(required | set(columns))
+            # Filter to columns that actually exist in the file
+            import pyarrow.parquet as pq
+            available = set(pq.read_schema(traj_path).names)
+            read_cols = [c for c in read_cols if c in available]
+
+        traj_df = pd.read_parquet(traj_path, columns=read_cols)
         for run_id, group in traj_df.groupby("run_id"):
             traj_by_run[run_id] = group.drop(columns="run_id")
 
@@ -235,7 +265,7 @@ def _load_local_runs_parquet(itr_dir: Path, skip_history: bool = False) -> list[
 
 
 def _load_local_runs(results_dir, task_tag, optimizer, iteration=0,
-                     skip_history=False):
+                     skip_history=False, columns=None):
     """Load all runs for an optimizer from local Parquet or CSV/JSON files.
 
     Prefers consolidated Parquet files (written by consolidate_results.py)
@@ -247,6 +277,8 @@ def _load_local_runs(results_dir, task_tag, optimizer, iteration=0,
         optimizer: Optimizer name
         iteration: Iteration/batch number (default: 0)
         skip_history: If True, skip loading trajectory data (saves memory)
+        columns: If given, only read these trajectory columns from Parquet
+                 (plus run_id/epoch/iteration). None reads all columns.
 
     Returns:
         list: List of run data dicts, or empty list if no files found
@@ -258,16 +290,28 @@ def _load_local_runs(results_dir, task_tag, optimizer, iteration=0,
 
     # Fast path: consolidated Parquet files
     if (itr_dir / "summary.parquet").exists():
-        return _load_local_runs_parquet(itr_dir, skip_history=skip_history)
+        return _load_local_runs_parquet(itr_dir, skip_history=skip_history,
+                                        columns=columns)
 
     # Fallback: scan individual CSV/JSON files
     runs = []
     result_files = sorted(itr_dir.glob("run_*.csv")) + sorted(itr_dir.glob("run_*.json"))
     for result_file in result_files:
-        if result_file.suffix == ".csv":
-            data = _load_csv_run(result_file)
+        if skip_history:
+            # Summary-only: read metadata but skip CSV body
+            with open(result_file) as f:
+                first_line = f.readline().strip()
+            if first_line.startswith("# "):
+                meta = json.loads(first_line[2:])
+            else:
+                meta = {"config": {}, "summary": {}}
+            data = {"config": meta.get("config", {}),
+                    "summary": meta.get("summary", {}),
+                    "history": {}}
+        elif result_file.suffix == ".csv":
+            data = _load_csv_run(result_file, columns=columns)
         else:
-            data = _load_json_run(result_file)
+            data = _load_json_run(result_file, columns=columns)
         data["_file"] = str(result_file)
         runs.append(data)
 
@@ -281,11 +325,15 @@ def _sort_runs(runs, metric_key, direction):
     return sorted(runs, key=key_fn, reverse=(direction == "maximize"))
 
 
-def _reload_run_history(run, results_dir, task_tag, optimizer, iteration):
+def _reload_run_history(run, results_dir, task_tag, optimizer, iteration,
+                        columns=None):
     """Reload a single run's history data (used after summary-only loading).
 
     If the run already has non-empty history, returns it as-is.
     Otherwise, reloads from the original file (Parquet or CSV/JSON).
+
+    When *columns* is given, only those columns (plus epoch/iteration)
+    are read from the Parquet file.
     """
     if run.get("history"):
         return run
@@ -298,7 +346,16 @@ def _reload_run_history(run, results_dir, task_tag, optimizer, iteration):
     if traj_path.exists() and "run_" in run_file:
         try:
             run_id = int(Path(run_file).stem.replace("run_", ""))
-            traj_df = pd.read_parquet(traj_path)
+
+            read_cols = None
+            if columns is not None:
+                required = {"run_id", "epoch", "iteration"}
+                read_cols = list(required | set(columns))
+                import pyarrow.parquet as pq
+                available = set(pq.read_schema(traj_path).names)
+                read_cols = [c for c in read_cols if c in available]
+
+            traj_df = pd.read_parquet(traj_path, columns=read_cols)
             group = traj_df[traj_df["run_id"] == run_id].drop(columns="run_id")
             if len(group) > 0:
                 run["history"] = {col: group[col].tolist() for col in group.columns}
@@ -309,9 +366,9 @@ def _reload_run_history(run, results_dir, task_tag, optimizer, iteration):
     # Fallback: re-read the individual file
     if os.path.exists(run_file):
         if run_file.endswith(".csv"):
-            full = _load_csv_run(run_file)
+            full = _load_csv_run(run_file, columns=columns)
         else:
-            full = _load_json_run(run_file)
+            full = _load_json_run(run_file, columns=columns)
         run["history"] = full.get("history", {})
 
     return run
@@ -319,7 +376,7 @@ def _reload_run_history(run, results_dir, task_tag, optimizer, iteration):
 
 def _load_best_runs_local(results_dir, task_tag, optimizers,
                           metric_key="sweep_metric", direction="minimize",
-                          iteration=0):
+                          iteration=0, columns=None):
     """Load best runs from local files.
 
     Loads summaries first (skip_history=True) to find the best run,
@@ -334,6 +391,7 @@ def _load_best_runs_local(results_dir, task_tag, optimizers,
         metric_key: Metric for sorting
         direction: "minimize" or "maximize"
         iteration: Iteration/batch number
+        columns: If given, only load these trajectory columns from Parquet
     """
     best_runs = {}
 
@@ -349,7 +407,8 @@ def _load_best_runs_local(results_dir, task_tag, optimizers,
             best = runs_sorted[0]
 
             # Phase 2: reload history for the single best run
-            best = _reload_run_history(best, results_dir, task_tag, optimizer, iteration)
+            best = _reload_run_history(best, results_dir, task_tag, optimizer,
+                                       iteration, columns=columns)
 
             best_runs[optimizer] = {
                 "config": best["config"],
@@ -366,7 +425,7 @@ def _load_best_runs_local(results_dir, task_tag, optimizers,
 
 def _load_top_n_runs_local(results_dir, task_tag, optimizers,
                            n=50, metric_key="sweep_metric", direction="minimize",
-                           iteration=0):
+                           iteration=0, columns=None):
     """Load top N runs for each optimizer from local files.
 
     Loads summaries first (skip_history=True) to find the top N runs,
@@ -380,6 +439,7 @@ def _load_top_n_runs_local(results_dir, task_tag, optimizers,
         metric_key: Metric for sorting
         direction: "minimize" or "maximize"
         iteration: Iteration/batch number
+        columns: If given, only load these trajectory columns from Parquet
     """
     top_n_runs = {}
 
@@ -397,7 +457,8 @@ def _load_top_n_runs_local(results_dir, task_tag, optimizers,
             # Phase 2: reload histories for selected runs
             for i, run in enumerate(selected):
                 selected[i] = _reload_run_history(
-                    run, results_dir, task_tag, optimizer, iteration
+                    run, results_dir, task_tag, optimizer, iteration,
+                    columns=columns,
                 )
 
             top_n_runs[optimizer] = selected
@@ -460,6 +521,7 @@ def load_best_runs(
     sort_metric=None,
     sort_order=None,
     iteration=0,
+    columns=None,
 ):
     """
     Load best runs for each optimizer.
@@ -490,6 +552,10 @@ def load_best_runs(
         Iteration/batch number (default: 0).
         For WandB: used as tag filter (run_{iteration}).
         For local: used as folder path (itr_{iteration}/).
+    columns : list[str], optional
+        Trajectory columns to load (local/Parquet only).  When given,
+        only these columns (plus run_id/epoch/iteration) are read from
+        trajectories.parquet.  ``None`` reads all columns.
 
     Returns
     -------
@@ -507,7 +573,7 @@ def load_best_runs(
     else:
         return _load_best_runs_local(
             results_dir, task_tag, optimizers, metric_key, direction,
-            iteration=iteration
+            iteration=iteration, columns=columns,
         )
 
 
@@ -524,6 +590,7 @@ def load_top_n_runs(
     sort_metric=None,
     sort_order=None,
     iteration=0,
+    columns=None,
 ):
     """
     Load top N runs for each optimizer.
@@ -556,6 +623,10 @@ def load_top_n_runs(
         Iteration/batch number (default: 0).
         For WandB: used as tag filter (run_{iteration}).
         For local: used as folder path (itr_{iteration}/).
+    columns : list[str], optional
+        Trajectory columns to load (local/Parquet only).  When given,
+        only these columns (plus run_id/epoch/iteration) are read from
+        trajectories.parquet.  ``None`` reads all columns.
 
     Returns
     -------
@@ -573,7 +644,7 @@ def load_top_n_runs(
     else:
         return _load_top_n_runs_local(
             results_dir, task_tag, optimizers, n, metric_key, direction,
-            iteration=iteration
+            iteration=iteration, columns=columns,
         )
 
 
@@ -583,6 +654,7 @@ def load_all_runs(
     task_tag=None,
     results_dir="results",
     iteration=0,
+    columns=None,
 ):
     """Load every run for each optimizer (no top-N filtering).
 
@@ -602,6 +674,8 @@ def load_all_runs(
         Base directory for local results.
     iteration : int
         Iteration/batch number (default 0).
+    columns : list[str], optional
+        Trajectory columns to load (Parquet only).  ``None`` reads all.
 
     Returns
     -------
@@ -615,7 +689,8 @@ def load_all_runs(
     for optimizer in optimizers:
         print(f"Loading all runs for {optimizer}...")
         runs = _load_local_runs(results_dir, task_tag, optimizer,
-                                iteration=iteration, skip_history=True)
+                                iteration=iteration, skip_history=True,
+                                columns=columns)
         all_runs[optimizer] = runs
         print(f"  {optimizer}: {len(runs)} runs")
 
