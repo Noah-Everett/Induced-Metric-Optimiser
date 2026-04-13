@@ -2,7 +2,8 @@
 Hyperparameter sweep for 2D test function optimisation.
 
 Runs gradient descent on classic test functions (Beale, Rosenbrock,
-Himmelblau, Ackley, Rastrigin) and records convergence metrics.
+Himmelblau, Ackley, Rastrigin, Styblinski-Tang) and records convergence
+metrics.
 
 Usage::
 
@@ -22,9 +23,10 @@ import jax
 import jax.numpy as jnp
 import optax
 
-from optimizer_registry import create_optimizer, needs_loss
+from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepLogger, SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
+from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag
 
 # Enable 64-bit precision for small-scale optimisation
 jax.config.update("jax_enable_x64", True)
@@ -63,6 +65,11 @@ def rastrigin_function(params):
     A = 10.0
     return A * 2 + (x**2 - A * jnp.cos(2 * jnp.pi * x)) + (y**2 - A * jnp.cos(2 * jnp.pi * y))
 
+@jax.jit
+def styblinski_tang_function(params):
+    """Global minimum at x=y=-2.903534..., f=-78.332... (for 2D, half the sum)."""
+    x, y = params
+    return (x**4 - 16*x**2 + 5*x + y**4 - 16*y**2 + 5*y) / 2
 
 TEST_FUNCTIONS = {
     "beale": {
@@ -94,6 +101,12 @@ TEST_FUNCTIONS = {
         "grad": jax.jit(jax.grad(rastrigin_function)),
         "initial": jnp.array([2.0, 2.0]),
         "tolerance": 1e-6,
+    },
+    "styblinski_tang": {
+        "func": styblinski_tang_function,
+        "grad": jax.jit(jax.grad(styblinski_tang_function)),
+        "initial": jnp.array([0.0, 0.0]),
+        "tolerance": -78.0,  # global min ~ -78.332; converged if below -78
     },
 }
 
@@ -181,9 +194,19 @@ def train(config, seed, logger, optimizer_name, function_name, diagnostics=False
     opt_state = optimizer.init(func_info["initial"])
     params = func_info["initial"].copy()
     use_loss = needs_loss(optimizer_name)
+    use_hvp = needs_hvp(optimizer_name)
+    hvp_key = jax.random.PRNGKey(seed + 999)
 
     # JIT-compile the training step (gradient + optimizer update + param update)
-    if use_loss:
+    if use_hvp:
+        @jax.jit
+        def train_step(params, opt_state, rng_key):
+            grads = grad_func(params)
+            h_diag = hutchinson_hvp_diag(func, params, rng_key)
+            updates, new_opt_state = optimizer.update(grads, opt_state, h_diag, params)
+            new_params = optax.apply_updates(params, updates)
+            return new_params, new_opt_state
+    elif use_loss:
         @jax.jit
         def train_step(params, opt_state):
             grads = grad_func(params)
@@ -209,7 +232,11 @@ def train(config, seed, logger, optimizer_name, function_name, diagnostics=False
     for i in range(MAX_ITERATIONS):
         start = time.time()
 
-        params, opt_state = train_step(params, opt_state)
+        if use_hvp:
+            hvp_key, step_key = jax.random.split(hvp_key)
+            params, opt_state = train_step(params, opt_state, step_key)
+        else:
+            params, opt_state = train_step(params, opt_state)
         runtime += max(time.time() - start, 0.0)
 
         current_value = float(func(params))
@@ -220,7 +247,11 @@ def train(config, seed, logger, optimizer_name, function_name, diagnostics=False
         if do_diag:
             dg = grad_func(params)
             dl = func(params)
-            if use_loss:
+            if use_hvp:
+                hvp_key, diag_key = jax.random.split(hvp_key)
+                dh = hutchinson_hvp_diag(func, params, diag_key)
+                du, _ = optimizer.update(dg, opt_state, dh, params)
+            elif use_loss:
                 du, _ = optimizer.update(dg, opt_state, dl, params)
             else:
                 du, _ = optimizer.update(dg, opt_state, params)
