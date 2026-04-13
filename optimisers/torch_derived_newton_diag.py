@@ -183,6 +183,8 @@ class DerivedNewtonDiag(Optimizer):
 
             # --- Metric EMA towards Newton target ---
             for p in grad_params:
+                if p.grad is None:
+                    continue
                 st = self.state[p]
                 s = st['log_diag']
                 if h_diag is not None:
