@@ -17,9 +17,10 @@ import optax
 import requests
 
 from shared_models import MiniGPT
-from optimizer_registry import create_optimizer, needs_loss
+from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
+from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag
 
 # Parse CLI
 parser = setup_argparser("Tiny Shakespeare MiniGPT Hyperparameter Sweep")
@@ -180,8 +181,18 @@ def train(config, seed, logger):
     optimizer = create_optimizer(args.optimiser, full_config)
     opt_state = optimizer.init(params)
     use_loss = needs_loss(args.optimiser)
+    use_hvp = needs_hvp(args.optimiser)
+    hvp_key = jax.random.PRNGKey(seed + 999)
 
-    if use_loss:
+    if use_hvp:
+        @jax.jit
+        def train_step(params, opt_state, x, y, dropout_key, rng_key):
+            batch_loss_fn = lambda p: loss_fn(p, x, y, model, dropout_key)
+            loss, grads = jax.value_and_grad(batch_loss_fn)(params)
+            h_diag = hutchinson_hvp_diag(batch_loss_fn, params, rng_key)
+            updates, opt_state_new = optimizer.update(grads, opt_state, h_diag, params)
+            return optax.apply_updates(params, updates), opt_state_new, loss
+    elif use_loss:
         @jax.jit
         def train_step(params, opt_state, x, y, dropout_key):
             def loss_grad_fn(p):
@@ -217,7 +228,11 @@ def train(config, seed, logger):
         epoch_start = time.time()
         for i, (x_batch, y_batch) in enumerate(train_batches):
             batch_key = batch_keys_per_epoch[epoch][i]
-            params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch, batch_key)
+            if use_hvp:
+                hvp_key, step_key = jax.random.split(hvp_key)
+                params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch, batch_key, step_key)
+            else:
+                params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch, batch_key)
             epoch_losses.append(loss)
         train_time += time.time() - epoch_start
 
@@ -235,7 +250,11 @@ def train(config, seed, logger):
                     logits_flat, targets_flat
                 ).mean()
             dl, dg = jax.value_and_grad(_diag_loss_shake)(params)
-            if use_loss:
+            if use_hvp:
+                hvp_key, diag_key = jax.random.split(hvp_key)
+                dh = hutchinson_hvp_diag(_diag_loss_shake, params, diag_key)
+                du, _ = optimizer.update(dg, opt_state, dh, params)
+            elif use_loss:
                 du, _ = optimizer.update(dg, opt_state, dl, params)
             else:
                 du, _ = optimizer.update(dg, opt_state, params)

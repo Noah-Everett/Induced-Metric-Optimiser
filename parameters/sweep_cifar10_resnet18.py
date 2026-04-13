@@ -28,9 +28,10 @@ import jax.numpy as jnp
 import optax
 
 from shared_models import ResNet18
-from optimizer_registry import create_optimizer, needs_loss
+from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
+from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag
 
 # Parse CLI
 parser = setup_argparser("CIFAR-10 ResNet18 Hyperparameter Sweep")
@@ -113,9 +114,39 @@ def train(config, seed, logger):
     optimizer = create_optimizer(args.optimiser, config)
     opt_state = optimizer.init(params)
     use_loss = needs_loss(args.optimiser)
+    use_hvp = needs_hvp(args.optimiser)
 
     # Use jax.lax.scan to process all batches in a single GPU dispatch per epoch
-    if use_loss:
+    if use_hvp:
+        @jax.jit
+        def train_epoch(params, batch_stats, opt_state, x_batched, y_batched, rng_key):
+            def step(carry, batch):
+                params, batch_stats, opt_state, key = carry
+                x, y = batch
+                key, subkey = jax.random.split(key)
+                def loss_fn(p):
+                    variables = {"params": p, "batch_stats": batch_stats}
+                    logits, mutated = model.apply(
+                        variables, x, train=True, mutable=["batch_stats"]
+                    )
+                    return optax.softmax_cross_entropy_with_integer_labels(
+                        logits, y
+                    ).mean(), mutated
+                def scalar_loss_fn(p):
+                    return loss_fn(p)[0]
+                (loss, mutated), grads = jax.value_and_grad(
+                    loss_fn, has_aux=True
+                )(params)
+                batch_stats_new = mutated["batch_stats"]
+                h_diag = hutchinson_hvp_diag(scalar_loss_fn, params, subkey)
+                updates, opt_state_new = optimizer.update(grads, opt_state, h_diag, params)
+                params_new = optax.apply_updates(params, updates)
+                return (params_new, batch_stats_new, opt_state_new, key), loss
+            (params, batch_stats, opt_state, _), losses = jax.lax.scan(
+                step, (params, batch_stats, opt_state, rng_key), (x_batched, y_batched)
+            )
+            return params, batch_stats, opt_state, jnp.mean(losses)
+    elif use_loss:
         @jax.jit
         def train_epoch(params, batch_stats, opt_state, x_batched, y_batched):
             def step(carry, batch):
@@ -184,6 +215,7 @@ def train(config, seed, logger):
     train_time = 0.0
     pruned = False
     prev_diag_loss = None
+    hvp_key = jax.random.PRNGKey(seed + 999)
 
     for epoch in range(n_epochs):
         # Shuffle and reshape training data for this epoch
@@ -197,9 +229,15 @@ def train(config, seed, logger):
         )
 
         epoch_start = time.time()
-        params, batch_stats, opt_state, avg_loss = train_epoch(
-            params, batch_stats, opt_state, x_epoch, y_epoch
-        )
+        if use_hvp:
+            hvp_key, hvp_epoch_key = jax.random.split(hvp_key)
+            params, batch_stats, opt_state, avg_loss = train_epoch(
+                params, batch_stats, opt_state, x_epoch, y_epoch, hvp_epoch_key
+            )
+        else:
+            params, batch_stats, opt_state, avg_loss = train_epoch(
+                params, batch_stats, opt_state, x_epoch, y_epoch
+            )
         avg_loss = float(avg_loss)
         epoch_time = time.time() - epoch_start
         train_time += epoch_time
@@ -217,7 +255,11 @@ def train(config, seed, logger):
                     logits, y_epoch[0]
                 ).mean()
             dl, dg = jax.value_and_grad(_diag_loss)(params)
-            if use_loss:
+            if use_hvp:
+                hvp_key, diag_key = jax.random.split(hvp_key)
+                dh = hutchinson_hvp_diag(_diag_loss, params, diag_key)
+                du, _ = optimizer.update(dg, opt_state, dh, params)
+            elif use_loss:
                 du, _ = optimizer.update(dg, opt_state, dl, params)
             else:
                 du, _ = optimizer.update(dg, opt_state, params)

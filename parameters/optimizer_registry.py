@@ -31,6 +31,7 @@ from optimisers.jax_learnable_diag_curv import (
     custom_sgd_log_learnable_diag_curv,
 )
 from optimisers.jax_offdiag import custom_sgd_offdiag
+from optimisers.jax_derived_newton_diag import derived_newton_diag
 
 
 # ---------------------------------------------------------------------------
@@ -51,6 +52,7 @@ ALL_OPTIMIZERS = [
     "sgd_learn_diag_log",
     "sgd_learn_diag_curv",
     "sgd_learn_diag_curv_log",
+    "sgd_newton_diag",
     "sgd_offdiag_0_l",
     "sgd_offdiag_0_m",
     "sgd_offdiag_0_theta",
@@ -73,6 +75,10 @@ LOG_OPTIMIZERS = frozenset({
     "sgd_learn_scalar_log",
     "sgd_learn_diag_log",
     "sgd_learn_diag_curv_log",
+})
+
+HVP_OPTIMIZERS = frozenset({
+    "sgd_newton_diag",
 })
 
 # Off-diagonal mode shorthand -> full mode name
@@ -112,6 +118,9 @@ _PARAM_BOUNDS = {
     "metric_reg": (1e-6, 1e-2, True),
     "metric_clip": (1.0, 5.0, False),
     "max_condition_number": (10.0, 10000.0, True),
+    # Newton-targeted parameters
+    "beta_s": (0.01, 0.5, True),
+    "hess_eps": (1e-8, 1e-3, True),
     # Curvature-aware parameters
     "curv_beta": (0.001, 1.0, True),
     "curv_tau": (0.5, 10.0, True),     # IMO-48: narrowed from [0.1,100]; sensitivity peaks at tau~|H|
@@ -354,6 +363,16 @@ def create_optimizer(name, config):
             max_condition_number=config.get("max_condition_number", None),
         )
 
+    if name == "sgd_newton_diag":
+        return derived_newton_diag(
+            learning_rate=config["learning_rate"],
+            momentum=config.get("momentum", 0.9),
+            beta_s=config.get("beta_s", 0.1),
+            weight_decay=config.get("weight_decay", 0.0),
+            metric_clip=config.get("metric_clip", 4.0),
+            hess_eps=config.get("hess_eps", 1e-6),
+        )
+
     if name.startswith("sgd_offdiag_"):
         parts = name.split("_")
         a_short, b_short = parts[2], parts[3]
@@ -377,6 +396,11 @@ def create_optimizer(name, config):
 def needs_loss(name):
     """Return True if optimizer.update() expects loss as a positional arg."""
     return name in LOG_OPTIMIZERS
+
+
+def needs_hvp(name):
+    """Return True if optimizer.update() expects h_diag as a positional arg."""
+    return name in HVP_OPTIMIZERS
 
 
 # ---------------------------------------------------------------------------
@@ -495,6 +519,14 @@ def get_sweep_parameters(name, overrides=None):
         }
 
     if name in ("sgd_learn_diag_curv", "sgd_learn_diag_curv_log"):
+        # Clamp curv_beta override range to _PARAM_BOUNDS (Optuna does this
+        # after the ratio transform; keep WandB consistent).
+        cb_spec = _param("curv_beta")
+        cb_lo, cb_hi, _ = _PARAM_BOUNDS["curv_beta"]
+        if "min" in cb_spec:
+            cb_spec["min"] = max(cb_lo, cb_spec["min"])
+        if "max" in cb_spec:
+            cb_spec["max"] = min(cb_hi, cb_spec["max"])
         return {
             "learning_rate": _param("learning_rate"),
             "momentum": _param("momentum"),
@@ -504,12 +536,22 @@ def get_sweep_parameters(name, overrides=None):
             "metric_lr": _param("metric_lr"),
             "metric_reg": _param("metric_reg"),
             "metric_clip": _param("metric_clip"),
-            "curv_beta": _param("curv_beta"),  # WandB can't do dependent params; Optuna uses curv_ratio
+            "curv_beta": cb_spec,
             "curv_tau": _param("curv_tau"),
             "metric_param": _param("metric_param", default_categorical=[
                 "exp", "exp_matched_reg", "softplus", "exp_norm_grad", "exp_adaptive_clip",
             ]),
             "max_condition_number": _param("max_condition_number"),
+        }
+
+    if name == "sgd_newton_diag":
+        return {
+            "learning_rate": _param("learning_rate"),
+            "momentum": _param("momentum"),
+            "beta_s": _param("beta_s"),
+            "weight_decay": _param("weight_decay"),
+            "metric_clip": _param("metric_clip"),
+            "hess_eps": _param("hess_eps", default_fixed=1e-6),
         }
 
     if name.startswith("sgd_offdiag_"):
@@ -674,6 +716,16 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             config["max_condition_number"] = _suggest("max_condition_number")
         return config
 
+    if name == "sgd_newton_diag":
+        return {
+            "learning_rate": _suggest("learning_rate"),
+            "momentum": _suggest("momentum"),
+            "beta_s": _suggest("beta_s"),
+            "weight_decay": _suggest("weight_decay"),
+            "metric_clip": _suggest("metric_clip"),
+            "hess_eps": _suggest("hess_eps", default_fixed=1e-6),
+        }
+
     if name.startswith("sgd_offdiag_"):
         return {
             "learning_rate": _suggest("learning_rate"),
@@ -708,6 +760,7 @@ _OPTIMIZER_COLORS = {
     "sgd_learn_diag_log": "#aec7e8",
     "sgd_learn_diag_curv": "#e6550d",
     "sgd_learn_diag_curv_log": "#fdae6b",
+    "sgd_newton_diag": "#7b2d8e",
     "sgd_offdiag_0_l": "#bcbd22",
     "sgd_offdiag_0_m": "#dbdb8d",
     "sgd_offdiag_0_theta": "#98df8a",

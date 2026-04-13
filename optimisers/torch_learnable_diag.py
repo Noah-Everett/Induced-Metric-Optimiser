@@ -174,9 +174,12 @@ class SGDLearnableDiag(Optimizer):
                 m_tilde = _torch_sigma(mp, s) * m_corr
 
                 # Parameter update (decoupled weight decay)
-                p.add_( -lr * r * m_tilde )
                 if weight_decay != 0.0:
-                    p.add_( -lr * weight_decay * p )
+                    p_orig = p.data.clone()
+                    p.add_(-lr * r * m_tilde)
+                    p.add_(-lr * weight_decay * p_orig)
+                else:
+                    p.add_(-lr * r * m_tilde)
 
             # --- Online metric learning step for s ---
             for p in params:
