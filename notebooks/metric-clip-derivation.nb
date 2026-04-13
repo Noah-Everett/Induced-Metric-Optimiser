@@ -1,0 +1,1490 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     56981,       1481]
+NotebookOptionsPosition[     52288,       1423]
+NotebookOutlinePosition[     52605,       1437]
+CellTagsIndexPosition[     52562,       1434]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[TextData[{
+ "Deriving the Metric Clip Value ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["c", "TI"], TraditionalForm], "errors" -> {}, "input" -> "c", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b9e70c90-3b68-44b1-b748-a3ff5209890c"],
+ " (IMO-125)"
+}], "Title",ExpressionUUID->"8f727819-efcb-4854-b2f0-4ad942c53ab8"],
+
+Cell[TextData[{
+ "Companion to ",
+ Cell[BoxData[Cell["notes/metric-clip-derivation.md",
+   Background->None,ExpressionUUID->"a3ea0919-d85d-4f3d-a1e6-7db0f443fb2d"]], 
+  "InlineCode",ExpressionUUID->"412a4f63-fb55-40f9-95e3-9c2d04f5bddf"],
+ ". All results verified here. "
+}], "Text",ExpressionUUID->"b8d9afa6-67b0-4161-b308-1109a9b515e0"],
+
+Cell["1. What the clip does", "Section",ExpressionUUID->"0515d94c-6fcc-4d94-a93f-a5fe18469829"],
+
+Cell[TextData[{
+ "After mean-centering, ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[Element]", 
+         RowBox[{"[", 
+           RowBox[{"-", 
+             StyleBox["c", "TI"], ",", 
+             StyleBox["c", "TI"]}], "]"}]}], TraditionalForm], "errors" -> {},
+      "input" -> "s_i \\in [-c, c]", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2f2b7017-e704-4335-83bc-9845380fe67b"],
+ " bounds the preconditioner condition number: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[Kappa]", 
+          StyleBox["M", "TI"]], "\[LongEqual]", 
+         FractionBox[
+          RowBox[{
+            UnderscriptBox["max", 
+             StyleBox["i", "TI"], LimitsPositioning -> True], 
+            SuperscriptBox[
+             StyleBox["e", "TI"], 
+             SubscriptBox[
+              StyleBox["s", "TI"], 
+              StyleBox["i", "TI"]]]}], 
+          RowBox[{
+            UnderscriptBox["min", 
+             StyleBox["i", "TI"], LimitsPositioning -> True], 
+            SuperscriptBox[
+             StyleBox["e", "TI"], 
+             SubscriptBox[
+              StyleBox["s", "TI"], 
+              StyleBox["i", "TI"]]]}]], "\[LessEqual]", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          RowBox[{"2", 
+            StyleBox["c", "TI"]}]]}], TraditionalForm], "errors" -> {}, 
+     "input" -> 
+     "\\kappa_M = \\frac{\\max_i e^{s_i}}{\\min_i e^{s_i}} \\le e^{2c}", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "4f573bdd-6c9d-4f22-a901-099ba2651b98"]
+}], "Text",ExpressionUUID->"d3ff4b1b-e687-42cb-a14e-0356d9248fd0"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Condition", " ", "number", " ", "table"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"Grid", "[", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{"Prepend", "[", "\[IndentingNewLine]", "    ", 
+     RowBox[{
+      RowBox[{"Table", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"c0", ",", 
+          RowBox[{"N", "[", 
+           RowBox[{
+            RowBox[{"Exp", "[", 
+             RowBox[{"2", " ", "c0"}], "]"}], ",", "5"}], "]"}]}], "}"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"c0", ",", 
+          RowBox[{"{", 
+           RowBox[{
+           "1", ",", "2", ",", "3", ",", "4", ",", "5", ",", "6", ",", "8", ",",
+             "10"}], "}"}]}], "}"}]}], "]"}], ",", "\[IndentingNewLine]", 
+      "    ", 
+      RowBox[{"{", 
+       RowBox[{"\"\<c\>\"", ",", "\"\<kappa_M = e^(2c)\>\""}], "}"}]}], 
+     "\[IndentingNewLine]", "  ", "]"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Frame", "->", "All"}], ",", 
+    RowBox[{"Alignment", "->", "Left"}]}], "\[IndentingNewLine]", 
+   "]"}]}]], "Input",ExpressionUUID->"198e2b5a-1549-49cf-ab7e-883355e7288b"],
+
+Cell["2. Newton target range analysis", "Section",ExpressionUUID->"1138472d-0a9f-49d4-a844-c50d8659a83d"],
+
+Cell[TextData[{
+ "The mean-centered Newton target is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"], "*"], "\[LongEqual]", "log", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["h", "TI"], "geo"], "/", 
+             SubscriptBox[
+              StyleBox["h", "TI"], 
+              StyleBox["i", "TI"]]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "s_i^* = \\log(h_{\\text{geo}}/h_i)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a0559096-cdb7-44d9-bc1d-3f40ebd30453"],
+ ". For the clip to be inactive at equilibrium we need ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         UnderscriptBox["max", 
+          StyleBox["i", "TI"], LimitsPositioning -> True], "|", 
+         SubsuperscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"], "*"], "|", "\[LessEqual]", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\max_i |s_i^*| \\le c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "4f44685f-98b1-41a6-aac7-4fe3930c4fec"],
+ ". "
+}], "Text",ExpressionUUID->"c0eb886e-d04c-4c01-9b13-0a3444176d08"],
+
+Cell[TextData[{
+ "Range equals ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"log", "\[Kappa]"}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\log \\kappa", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "9e7d2fb9-c2d6-4010-a4c0-bf37b92ce7b2"]
+}], "Subsection",ExpressionUUID->"1a46f95f-a2b0-4dc8-b3e9-469b4f141612"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "The", " ", "range", " ", "of", " ", "s", "*", " ", "is", " ", "always", " ", 
+     RowBox[{"Log", "[", "kappa", "]"}]}], ",", " ", 
+    RowBox[{"independent", " ", "of", " ", "distribution"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"sRange", "=", 
+     RowBox[{
+      RowBox[{"Log", "[", 
+       RowBox[{"hGeo", "/", "hMin"}], "]"}], "-", 
+      RowBox[{"Log", "[", 
+       RowBox[{"hGeo", "/", "hMax"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"sRange", "=", 
+    RowBox[{"Log", "[", 
+     RowBox[{"hMax", "/", "hMin"}], "]"}]}], "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"=", " ", 
+     RowBox[{"Log", "[", "kappa", "]"}]}], " ", "*)"}]}]}]], "Input",Expressio\
+nUUID->"68db031a-e874-40db-9281-be22957e824f"],
+
+Cell["Log-uniform spectrum (balanced case)", "Subsection",ExpressionUUID->"99538070-d6e6-4e9c-be55-dbfb3921660e"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"N", "=", "10"}], ",", " ", 
+    RowBox[{"kappa", "=", "1000"}], ",", " ", 
+    RowBox[{"log", "-", 
+     RowBox[{"uniform", " ", "eigenvalues"}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"nDim", "=", "10"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"hVals", "=", 
+     RowBox[{
+      RowBox[{"Table", "[", 
+       RowBox[{
+        RowBox[{"Exp", "[", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"i", "-", "1"}], ")"}], "/", 
+           RowBox[{"(", 
+            RowBox[{"nDim", "-", "1"}], ")"}]}], "*", 
+          RowBox[{"Log", "[", "1000", "]"}]}], "]"}], ",", 
+        RowBox[{"{", 
+         RowBox[{"i", ",", "nDim"}], "}"}]}], "]"}], " ", "//", " ", "N"}]}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"logHMean", "=", 
+     RowBox[{"Mean", "[", 
+      RowBox[{"Log", "[", "hVals", "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"hGeoVal", "=", 
+     RowBox[{"Exp", "[", "logHMean", "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sStarVals", "=", 
+     RowBox[{
+      RowBox[{"Log", "[", "hGeoVal", "]"}], "-", 
+      RowBox[{"Log", "[", "hVals", "]"}]}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Newton target s* (mean-centered): \>\"", ",", 
+     RowBox[{"N", "[", 
+      RowBox[{"sStarVals", ",", "5"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+   
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<max|s*| = \>\"", ",", 
+     RowBox[{"Max", "[", 
+      RowBox[{"Abs", "[", "sStarVals", "]"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Log[kappa]/2 = \>\"", ",", 
+     RowBox[{"N", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"Log", "[", "1000", "]"}], "/", "2"}], ",", "10"}], "]"}]}], 
+    "]"}]}]}]], "Input",ExpressionUUID->"95466b33-614c-4ca9-bfa5-\
+716309eb4171"],
+
+Cell["Skewed spectrum: max|s*| depends on spectral skew", "Subsection",ExpressionUUID->"0b219128-a93a-4f2e-b84d-83a374d30c5f"],
+
+Cell[TextData[{
+ "For a fraction ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[Alpha]", TraditionalForm], "errors" -> {}, "input" -> 
+     "\\alpha", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "30c948ad-e4b9-49a6-a41c-2d35a0d6eb7c"],
+ " at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox[
+        StyleBox["h", "TI"], "min"], TraditionalForm], "errors" -> {}, 
+     "input" -> "h_{\\min}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a7314ed0-dbea-4550-903d-bfd2f9268832"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"(", 
+         RowBox[{"1", "-", "\[Alpha]"}], ")"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "(1-\\alpha)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d1adac88-22e2-4018-981f-d75c97f42de2"],
+ " at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox[
+        StyleBox["h", "TI"], "max"], TraditionalForm], "errors" -> {}, 
+     "input" -> "h_{\\max}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0d88f69e-3524-4bed-a8cf-0b798bc1c417"],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"max", "|", 
+         SuperscriptBox[
+          StyleBox["s", "TI"], "*"], "|", "\[LongEqual]", "max", 
+         RowBox[{"(", 
+           RowBox[{"\[Alpha]", ",", "1", "-", "\[Alpha]"}], ")"}], 
+         "\[CenterDot]", "log", "\[Kappa]"}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\max|s^*| = \\max(\\alpha, 1-\\alpha) \\cdot \\log\\kappa", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c79c76a6-9373-4158-aa52-10d5e3f770d4"]
+}], "Text",ExpressionUUID->"53beb1fe-ff47-468e-a887-1a91dea1ba0b"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"One", " ", "small", " ", "eigenvalue"}], ",", " ", 
+    RowBox[{
+     RowBox[{"rest", " ", 
+      RowBox[{"large", ":", " ", "h"}]}], " ", "=", " ", 
+     RowBox[{"{", 
+      RowBox[{"1", ",", " ", "100", ",", " ", "...", ",", " ", "100"}], 
+      "}"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+   "Print", "[", "\"\<=== Skewed distributions: 1 small, (N-1) large ===\>\"",
+     "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"hVals", "=", 
+       RowBox[{"Join", "[", 
+        RowBox[{
+         RowBox[{"{", "1", "}"}], ",", 
+         RowBox[{"Table", "[", 
+          RowBox[{"100", ",", 
+           RowBox[{"{", 
+            RowBox[{"n0", "-", "1"}], "}"}]}], "]"}]}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"logHMean", "=", 
+       RowBox[{"Mean", "[", 
+        RowBox[{"Log", "[", "hVals", "]"}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"sStarVals", "=", 
+       RowBox[{"logHMean", "-", 
+        RowBox[{"Log", "[", "hVals", "]"}]}]}], ";", "\[IndentingNewLine]", 
+      "  ", 
+      RowBox[{"Print", "[", 
+       RowBox[{"\"\<N=\>\"", ",", "n0", ",", "\[IndentingNewLine]", 
+        "    ", "\"\<  max|s*|=\>\"", ",", 
+        RowBox[{"N", "[", 
+         RowBox[{
+          RowBox[{"Max", "[", 
+           RowBox[{"Abs", "[", "sStarVals", "]"}], "]"}], ",", "5"}], "]"}], ",",
+         "\[IndentingNewLine]", "    ", "\"\<  Log[kappa]/2=\>\"", ",", 
+        RowBox[{"N", "[", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"Log", "[", "100", "]"}], "/", "2"}], ",", "5"}], "]"}], ",",
+         "\[IndentingNewLine]", "    ", "\"\<  ratio=\>\"", ",", 
+        RowBox[{"N", "[", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"Max", "[", 
+            RowBox[{"Abs", "[", "sStarVals", "]"}], "]"}], "/", 
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{"Log", "[", "100", "]"}], "/", "2"}], ")"}]}], ",", 
+          "4"}], "]"}]}], "]"}]}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"{", 
+      RowBox[{"n0", ",", 
+       RowBox[{"{", 
+        RowBox[{
+        "2", ",", "5", ",", "10", ",", "50", ",", "100", ",", "1000"}], 
+        "}"}]}], "}"}]}], "\[IndentingNewLine]", "]"}]}]}]], "Input",Expressio\
+nUUID->"2004f49e-2dd7-4282-a2c5-50c507500d44"],
+
+Cell["Analytic derivation of worst-case bound", "Subsection",ExpressionUUID->"4345337e-de03-4ca1-81eb-5f14074c0f4b"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"For", " ", "1", " ", "eigenvalue"}], " ", "=", " ", "hMin"}], ",",
+     " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"n", "-", "1"}], ")"}], " ", "eigenvalues"}], " ", "=", " ", 
+     RowBox[{"hMax", ":"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Clear", "[", 
+     RowBox[{"n", ",", "hMin", ",", "hMax", ",", "kappa"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"logHGeo", "=", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "/", "n"}], ")"}], "*", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"Log", "[", "hMin", "]"}], "+", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"n", "-", "1"}], ")"}], "*", 
+         RowBox[{"Log", "[", "hMax", "]"}]}]}], ")"}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "s", "*", " ", "for", " ", "the", " ", "small", " ", "eigenvalue"}], " ", 
+    "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"sSmall", "=", 
+    RowBox[{
+     RowBox[{"logHGeo", "-", 
+      RowBox[{"Log", "[", "hMin", "]"}]}], " ", "//", " ", "Simplify"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"n", "-", "1"}], ")"}], "/", "n"}], ")"}], " ", "*", " ", 
+       RowBox[{"Log", "[", 
+        RowBox[{"hMax", "/", "hMin"}], "]"}]}], " ", "=", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"n", "-", "1"}], ")"}], "/", "n"}], ")"}], " ", "*", " ", 
+       RowBox[{"Log", "[", "kappa", "]"}]}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "s", "*", " ", "for", " ", "any", " ", "large", " ", "eigenvalue"}], " ", 
+    "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"sLarge", "=", 
+    RowBox[{
+     RowBox[{"logHGeo", "-", 
+      RowBox[{"Log", "[", "hMax", "]"}]}], " ", "//", " ", "Simplify"}]}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"=", " ", 
+     RowBox[{
+      RowBox[{"-", 
+       RowBox[{"(", 
+        RowBox[{"1", "/", "n"}], ")"}]}], " ", "*", " ", 
+      RowBox[{"Log", "[", "kappa", "]"}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+   "Print", "[", "\"\<|s* for hMin| = ((n-1)/n) * Log[kappa]\>\"", "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", "\"\<|s* for hMax| = (1/n) * Log[kappa]\>\"", "]"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+   "Print", "[", "\"\<max|s*| = ((n-1)/n) * Log[kappa]  (always the small \
+eigenvalue)\>\"", "]"}]}]}]], "Input",ExpressionUUID->"3a0f59d7-1d72-4603-\
+a7e7-baeabe3eed6a"],
+
+Cell["What condition number does c=4 allow?", "Subsection",ExpressionUUID->"f1b13092-c431-42e8-ab15-56d007293f6d"],
+
+Cell[BoxData[{
+ RowBox[{"Print", "[", "\"\<=== What condition number does c=4 allow? ===\>\"",
+   "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"kappaAllowed", "=", 
+      RowBox[{"Exp", "[", 
+       RowBox[{"4", "*", 
+        RowBox[{"n0", "/", 
+         RowBox[{"(", 
+          RowBox[{"n0", "-", "1"}], ")"}]}]}], "]"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Print", "[", 
+      RowBox[{"\"\<N=\>\"", ",", "n0", ",", "\"\<:  kappa_max = \>\"", ",", 
+       RowBox[{"N", "[", 
+        RowBox[{"kappaAllowed", ",", "5"}], "]"}]}], "]"}]}], ",", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"{", 
+     RowBox[{"n0", ",", 
+      RowBox[{"{", 
+       RowBox[{"2", ",", "10", ",", "100", ",", "1000"}], "}"}]}], "}"}]}], 
+   "\[IndentingNewLine]", "]"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<\\nFor balanced (log-uniform) spectrum:\>\"", 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<kappa_max = e^(2c) = e^8 = \>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{
+     RowBox[{"Exp", "[", "8", "]"}], ",", "5"}], "]"}]}], "]"}]}], "Input",Exp\
+ressionUUID->"4fde15c5-0e8c-4f37-be58-9386edc21c84"],
+
+Cell["3. Stability of clipped components", "Section",ExpressionUUID->"efc74e0b-93d9-405f-b3dd-80910ebc7f8c"],
+
+Cell["Clip at +c (small eigenvalue): always protective", "Subsection",ExpressionUUID->"5117ff9c-7126-4f72-8209-4befeff120e5"],
+
+Cell[TextData[{
+ "When ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"], "*"], ">", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i^* > c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "08be06cf-bacc-433c-9a48-b6f9c58aab5e"],
+ ", we set ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i = c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7aa30d33-52fa-4da3-a144-fbcc12cd2a24"],
+ ". Since ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"], "*"], "\[LongEqual]", "log", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["h", "TI"], "geo"], "/", 
+             SubscriptBox[
+              StyleBox["h", "TI"], 
+              StyleBox["i", "TI"]]}], ")"}], ">", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i^* = \\log(h_{\\text{geo}}/h_i) > c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "37503cb0-5e0d-4daf-b1f7-96b7e315bc5a"],
+ " implies ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]], "<", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          RowBox[{"-", 
+            StyleBox["c", "TI"]}]]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "h_i < h_{\\text{geo}} e^{-c}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c5cbc765-0208-46fb-8336-3a4e41141945"],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Eta] ", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          StyleBox["c", "TI"]], " ", 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]], "<", "\[Eta] ", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          StyleBox["c", "TI"]], " ", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"], " ", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          RowBox[{"-", 
+            StyleBox["c", "TI"]}]], "\[LongEqual]", "\[Eta] ", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> 
+     "\\eta \\, e^c \\, h_i < \\eta \\, e^c \\, h_{\\text{geo}} \\, e^{-c} = \
+\\eta \\, h_{\\text{geo}}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c8ea071f-1ecc-42f6-9153-857728f006e4"],
+ "The clipped step is bounded by the Newton step. Always safe. "
+}], "Text",ExpressionUUID->"af05f0cd-87e6-49b0-b6ae-4172ce8592b6"],
+
+Cell["Clip at -c (large eigenvalue): stability lower bound", "Subsection",ExpressionUUID->"6fe98ba9-bb4b-48f4-876f-234470e71d11"],
+
+Cell[TextData[{
+ "When ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"], "*"], "<", "-", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i^* < -c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b28f7bf1-b447-41dd-8c1a-2e1693f09ed1"],
+ ", we set ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", "-", 
+         StyleBox["c", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i = -c", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a1e33f26-e109-4313-9d08-eadd31058449"],
+ ". The step multiplier ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Eta]", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          RowBox[{"-", 
+            StyleBox["c", "TI"]}]], 
+         SubscriptBox[
+          StyleBox["h", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\eta e^{-c} h_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f90f9bbd-5384-4345-ba9b-00f4cd3b2223"],
+ " can exceed ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Eta]", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "geo"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\eta h_{\\text{geo}}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3c90d588-f656-4450-a267-0b3aa5f6d048"],
+ "."
+}], "Text",ExpressionUUID->"52674bd7-ecf2-42be-94fc-ac885cc7ee44"],
+
+Cell[TextData[{
+ "Stability requires: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Eta] ", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          RowBox[{"-", 
+            StyleBox["c", "TI"]}]], " ", 
+         SubscriptBox[
+          StyleBox["h", "TI"], "max"], "<", "2"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\eta \\, e^{-c} \\, h_{\\max} < 2", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "1b7920f5-7272-4c6d-abe8-e475a542b165"],
+ ", i.e., ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["c", "TI"], ">", "log", 
+         RowBox[{"(", 
+           RowBox[{"\[Eta] ", 
+             SubscriptBox[
+              StyleBox["h", "TI"], "max"], "/", "2"}], ")"}]}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "c > \\log(\\eta \\, h_{\\max}/2)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "48575198-fb16-48ca-a261-8d010e99628c"],
+ ". "
+}], "Text",ExpressionUUID->"d2f056f3-6bcf-4c19-abcf-2be5bb8b9906"],
+
+Cell["Numerical verification", "Subsection",ExpressionUUID->"aa441578-d161-40f6-a510-3a267d22c586"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"nDim3", "=", "100"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hVals3", "=", 
+   RowBox[{
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"Exp", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"i", "-", "1"}], ")"}], "/", 
+         RowBox[{"(", 
+          RowBox[{"nDim3", "-", "1"}], ")"}]}], "*", 
+        RowBox[{"Log", "[", "1000", "]"}]}], "]"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "nDim3"}], "}"}]}], "]"}], " ", "//", " ", "N"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hGeo3", "=", 
+   RowBox[{"Exp", "[", 
+    RowBox[{"Mean", "[", 
+     RowBox[{"Log", "[", "hVals3", "]"}], "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sTrue3", "=", 
+   RowBox[{
+    RowBox[{"Log", "[", "hGeo3", "]"}], "-", 
+    RowBox[{"Log", "[", "hVals3", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"eta0", "=", 
+    RowBox[{"0.8", "/", "hGeo3"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<N=100, kappa=1000, hGeo=\>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{"hGeo3", ",", "5"}], "]"}], ",", "\"\<, eta=\>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{"eta0", ",", "5"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<Log[kappa]/2 = \>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Log", "[", "1000", "]"}], "/", "2"}], ",", "5"}], "]"}]}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<Stability bound: c > Log[eta*hMax/2] = \>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{
+     RowBox[{"Log", "[", 
+      RowBox[{"eta0", "*", 
+       RowBox[{"1000", "/", "2"}]}], "]"}], ",", "5"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<\>\"", "]"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"sClipped", "=", 
+     RowBox[{"Clip", "[", 
+      RowBox[{"sTrue3", ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "cVal"}], ",", "cVal"}], "}"}]}], "]"}]}], ";", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"rhoVals", "=", 
+     RowBox[{"Abs", "[", 
+      RowBox[{"1", "-", 
+       RowBox[{"eta0", "*", 
+        RowBox[{"Exp", "[", "sClipped", "]"}], "*", "hVals3"}]}], "]"}]}], ";",
+     "\[IndentingNewLine]", "  ", 
+    RowBox[{"maxRho", "=", 
+     RowBox[{"Max", "[", "rhoVals", "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+    RowBox[{"worstIdx", "=", 
+     RowBox[{"First", "[", 
+      RowBox[{"Ordering", "[", 
+       RowBox[{"rhoVals", ",", 
+        RowBox[{"-", "1"}]}], "]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"stable", "=", 
+     RowBox[{"If", "[", 
+      RowBox[{
+       RowBox[{"maxRho", "<", "1"}], ",", "\"\<YES\>\"", ",", "\"\<NO\>\""}], 
+      "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<c=\>\"", ",", 
+      RowBox[{"PaddedForm", "[", 
+       RowBox[{"cVal", ",", 
+        RowBox[{"{", 
+         RowBox[{"3", ",", "1"}], "}"}]}], "]"}], ",", "\[IndentingNewLine]", 
+      "    ", "\"\<  max_rho=\>\"", ",", 
+      RowBox[{"N", "[", 
+       RowBox[{"maxRho", ",", "5"}], "]"}], ",", "\[IndentingNewLine]", 
+      "    ", "\"\<  worst=h_\>\"", ",", "worstIdx", ",", 
+      "\[IndentingNewLine]", "    ", "\"\<  stable=\>\"", ",", "stable"}], 
+     "]"}]}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"{", 
+    RowBox[{"cVal", ",", 
+     RowBox[{"{", 
+      RowBox[{
+      "1", ",", "2", ",", "3", ",", "3.4", ",", "3.5", ",", "4", ",", "5", ",",
+        "6", ",", "8", ",", "10"}], "}"}]}], "}"}]}], "\[IndentingNewLine]", 
+  "]"}]}], "Input",ExpressionUUID->"8584d713-a883-4e4d-8174-3b9eab368ab9"],
+
+Cell[TextData[{
+ StyleBox["Result:",
+  FontWeight->Bold],
+ " c < 3 is unstable (large-eigenvalue overshoot). c >= 3 is stable. c >= 3.5 \
+achieves full Newton rate. No degradation for large c. "
+}], "Text",ExpressionUUID->"776617bd-6304-4f20-97de-9a7589c574e7"],
+
+Cell["4. Simulation: optimizer on quadratic with different c", "Section",ExpressionUUID->"d3c4c60f-271f-4a97-8e3a-f182e9a7e3fa"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"nDim", "=", "10"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hVals", "=", 
+   RowBox[{
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"Exp", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"i", "-", "1"}], ")"}], "/", 
+         RowBox[{"(", 
+          RowBox[{"nDim", "-", "1"}], ")"}]}], "*", 
+        RowBox[{"Log", "[", "1000", "]"}]}], "]"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "nDim"}], "}"}]}], "]"}], " ", "//", " ", "N"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"eta", "=", "0.1"}], ";", " ", 
+   RowBox[{"betaS", "=", "0.1"}], ";", " ", 
+   RowBox[{"hEps", "=", 
+    RowBox[{"10", "^", 
+     RowBox[{"-", "6"}]}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"simulateOptimizer", "[", 
+     RowBox[{"cVal_", ",", 
+      RowBox[{"nSteps_", ":", " ", "500"}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"theta", ",", "s", ",", "loss", ",", 
+        RowBox[{"losses", "=", 
+         RowBox[{"{", "}"}]}], ",", "lo", ",", "hi"}], "}"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"theta", "=", 
+        RowBox[{"Table", "[", 
+         RowBox[{"1.0", ",", 
+          RowBox[{"{", "nDim", "}"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"s", "=", 
+        RowBox[{"Table", "[", 
+         RowBox[{"0.0", ",", 
+          RowBox[{"{", "nDim", "}"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"lo", "=", 
+        RowBox[{"-", 
+         RowBox[{"Abs", "[", "cVal", "]"}]}]}], ";", " ", 
+       RowBox[{"hi", "=", 
+        RowBox[{"Abs", "[", "cVal", "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+       RowBox[{"Do", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"loss", "=", 
+           RowBox[{"0.5", "*", 
+            RowBox[{"Total", "[", 
+             RowBox[{"hVals", "*", 
+              RowBox[{"theta", "^", "2"}]}], "]"}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"AppendTo", "[", 
+           RowBox[{"losses", ",", "loss"}], "]"}], ";", "\[IndentingNewLine]",
+           "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"1", "-", "betaS"}], ")"}], "*", "s"}], "+", 
+            RowBox[{"betaS", "*", 
+             RowBox[{"(", 
+              RowBox[{
+               RowBox[{
+                RowBox[{"-", 
+                 RowBox[{"Log", "[", 
+                  RowBox[{"Max", "[", 
+                   RowBox[{"#", ",", "hEps"}], "]"}], "]"}]}], " ", "&"}], 
+               " ", "/@", " ", "hVals"}], ")"}]}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{"s", "-", 
+            RowBox[{"Mean", "[", "s", "]"}]}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{"Clip", "[", 
+            RowBox[{"s", ",", 
+             RowBox[{"{", 
+              RowBox[{"lo", ",", "hi"}], "}"}]}], "]"}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"theta", "=", 
+           RowBox[{"theta", "-", 
+            RowBox[{"eta", "*", 
+             RowBox[{"Exp", "[", "s", "]"}], "*", "hVals", "*", "theta"}]}]}],
+           ";"}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"step", ",", "nSteps"}], "}"}]}], "]"}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<finalLoss\>\"", "->", 
+          RowBox[{"Last", "[", "losses", "]"}]}], ",", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"\"\<clipped\>\"", "->", 
+          RowBox[{"Or", " ", "@@", " ", 
+           RowBox[{"(", 
+            RowBox[{
+             RowBox[{
+              RowBox[{
+               RowBox[{"Abs", "[", "#", "]"}], ">=", 
+               RowBox[{"cVal", "-", "0.01"}]}], " ", "&"}], " ", "/@", " ", 
+             "s"}], ")"}]}]}], ",", "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<maxS\>\"", "->", 
+          RowBox[{"Max", "[", 
+           RowBox[{"Abs", "[", "s", "]"}], "]"}]}]}], "|>"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", 
+  "[", "\"\<N=10, kappa=1000, eta=0.1, beta_s=0.1, 500 steps\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<Log[kappa]/2 = \>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Log", "[", "1000", "]"}], "/", "2"}], ",", "4"}], "]"}]}], 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"result", "=", 
+     RowBox[{"simulateOptimizer", "[", 
+      RowBox[{"cVal", ",", "500"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<c=\>\"", ",", "cVal", ",", "\[IndentingNewLine]", 
+      "    ", "\"\<  clipped=\>\"", ",", 
+      RowBox[{"result", "[", "\"\<clipped\>\"", "]"}], ",", 
+      "\[IndentingNewLine]", "    ", "\"\<  max|s|=\>\"", ",", 
+      RowBox[{"N", "[", 
+       RowBox[{
+        RowBox[{"result", "[", "\"\<maxS\>\"", "]"}], ",", "4"}], "]"}]}], 
+     "]"}]}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"{", 
+    RowBox[{"cVal", ",", 
+     RowBox[{"{", 
+      RowBox[{
+      "1", ",", "2", ",", "3", ",", "3.5", ",", "4", ",", "5", ",", "6", ",", 
+       "8", ",", "10"}], "}"}]}], "}"}]}], "\[IndentingNewLine]", 
+  "]"}]}], "Input",ExpressionUUID->"a77d7d30-2e9c-4f52-94ca-9f3b6f11205a"],
+
+Cell["5. Noisy Hutchinson simulation", "Section",ExpressionUUID->"8bd6de33-60db-43e2-8320-9e6a540cc40a"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"nDim2", "=", "100"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hTrue", "=", 
+   RowBox[{
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"Exp", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"(", 
+          RowBox[{"i", "-", "1"}], ")"}], "/", 
+         RowBox[{"(", 
+          RowBox[{"nDim2", "-", "1"}], ")"}]}], "*", 
+        RowBox[{"Log", "[", "1000", "]"}]}], "]"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "nDim2"}], "}"}]}], "]"}], " ", "//", " ", "N"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"betaS2", "=", "0.1"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"simulateWithNoise", "[", 
+     RowBox[{"cVal_", ",", "noiseLevel_", ",", 
+      RowBox[{"nSteps_", ":", " ", "1000"}]}], "]"}], ":=", 
+    RowBox[{"Module", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"s", ",", "theta", ",", "hHat", ",", "sTarget", ",", 
+        RowBox[{"lossHistory", "=", 
+         RowBox[{"{", "}"}]}]}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"SeedRandom", "[", "42", "]"}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"s", "=", 
+        RowBox[{"Table", "[", 
+         RowBox[{"0.0", ",", 
+          RowBox[{"{", "nDim2", "}"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"theta", "=", 
+        RowBox[{"Table", "[", 
+         RowBox[{"1.0", ",", 
+          RowBox[{"{", "nDim2", "}"}]}], "]"}]}], ";", "\[IndentingNewLine]", 
+       "  ", 
+       RowBox[{"Do", "[", "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{
+          RowBox[{"hHat", "=", 
+           RowBox[{"hTrue", "*", 
+            RowBox[{"(", 
+             RowBox[{"1", "+", 
+              RowBox[{"noiseLevel", "*", 
+               RowBox[{"RandomVariate", "[", 
+                RowBox[{
+                 RowBox[{"NormalDistribution", "[", "]"}], ",", "nDim2"}], 
+                "]"}]}]}], ")"}]}]}], ";", "\[IndentingNewLine]", "    ", 
+          RowBox[{"hHat", "=", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"Max", "[", 
+              RowBox[{"#", ",", 
+               RowBox[{"10", "^", 
+                RowBox[{"-", "6"}]}]}], "]"}], " ", "&"}], " ", "/@", " ", 
+            "hHat"}]}], ";", "\[IndentingNewLine]", "    ", 
+          RowBox[{"sTarget", "=", 
+           RowBox[{"-", 
+            RowBox[{"Log", "[", "hHat", "]"}]}]}], ";", "\[IndentingNewLine]",
+           "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{
+            RowBox[{
+             RowBox[{"(", 
+              RowBox[{"1", "-", "betaS2"}], ")"}], "*", "s"}], "+", 
+            RowBox[{"betaS2", "*", "sTarget"}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{"s", "-", 
+            RowBox[{"Mean", "[", "s", "]"}]}]}], ";", "\[IndentingNewLine]", 
+          "    ", 
+          RowBox[{"s", "=", 
+           RowBox[{"Clip", "[", 
+            RowBox[{"s", ",", 
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{"-", "cVal"}], ",", "cVal"}], "}"}]}], "]"}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"theta", "=", 
+           RowBox[{"theta", "-", 
+            RowBox[{"0.05", "*", 
+             RowBox[{"Exp", "[", "s", "]"}], "*", "hTrue", "*", "theta"}]}]}],
+           ";", "\[IndentingNewLine]", "    ", 
+          RowBox[{"AppendTo", "[", 
+           RowBox[{"lossHistory", ",", 
+            RowBox[{"0.5", "*", 
+             RowBox[{"Total", "[", 
+              RowBox[{"hTrue", "*", 
+               RowBox[{"theta", "^", "2"}]}], "]"}]}]}], "]"}], ";"}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"step", ",", "nSteps"}], "}"}]}], "]"}], ";", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"<|", 
+        RowBox[{
+         RowBox[{"\"\<finalLoss\>\"", "->", 
+          RowBox[{"Last", "[", "lossHistory", "]"}]}], ",", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"\"\<converged\>\"", "->", 
+          RowBox[{"(", 
+           RowBox[{
+            RowBox[{"Last", "[", "lossHistory", "]"}], "<", 
+            RowBox[{"10", "^", 
+             RowBox[{"-", "5"}]}]}], ")"}]}]}], "|>"}]}]}], 
+     "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", 
+  "[", "\"\<N=100, kappa=1000, 50% multiplicative noise, 1000 steps\>\"", 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"result", "=", 
+     RowBox[{"simulateWithNoise", "[", 
+      RowBox[{"cVal", ",", "0.5"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<c=\>\"", ",", "cVal", ",", "\[IndentingNewLine]", 
+      "    ", "\"\<  final_loss=\>\"", ",", 
+      RowBox[{"ScientificForm", "[", 
+       RowBox[{
+        RowBox[{"result", "[", "\"\<finalLoss\>\"", "]"}], ",", "3"}], "]"}], 
+      ",", "\[IndentingNewLine]", "    ", "\"\<  converged=\>\"", ",", 
+      RowBox[{"result", "[", "\"\<converged\>\"", "]"}]}], "]"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"{", 
+    RowBox[{"cVal", ",", 
+     RowBox[{"{", 
+      RowBox[{
+      "2", ",", "3", ",", "3.5", ",", "4", ",", "5", ",", "6", ",", "8", ",", 
+       "10"}], "}"}]}], "}"}]}], "\[IndentingNewLine]", "]"}]}], "Input",Expre\
+ssionUUID->"6349e3c5-134a-4905-99d8-cec31bc56c8a"],
+
+Cell["6. Rosenbrock: why tight c helps on non-quadratics", "Section",ExpressionUUID->"588a014c-29a4-48cd-a9fc-cdaaa6727573"],
+
+Cell["Hessian along the valley", "Subsection",ExpressionUUID->"0bae5296-ac09-4f00-97e0-140a4f2e8529"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{"x", ",", "y"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"fRosen", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"1", "-", "x"}], ")"}], "^", "2"}], "+", 
+    RowBox[{"100", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"y", "-", 
+        RowBox[{"x", "^", "2"}]}], ")"}], "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"hessRosen", "=", 
+    RowBox[{"D", "[", 
+     RowBox[{"fRosen", ",", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"x", ",", "y"}], "}"}], ",", "2"}], "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<Rosenbrock Hessian:\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"hessRosen", " ", "//", " ", "MatrixForm"}], "]"}]}], "Input",Expres\
+sionUUID->"454ec3c2-257c-4e52-8b9a-b88918064fb2"],
+
+Cell["Newton target flips sign along the valley", "Subsection",ExpressionUUID->"a4090298-02c8-41ce-850c-f5e4d72b0d84"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"points", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"0.5", ",", "0.25"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"0.8", ",", "0.64"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"1.0", ",", "1.0"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"hess", "=", 
+     RowBox[{"hessRosen", " ", "/.", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"x", "->", 
+         RowBox[{"pt", "[", 
+          RowBox[{"[", "1", "]"}], "]"}]}], ",", 
+        RowBox[{"y", "->", 
+         RowBox[{"pt", "[", 
+          RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}]}], ";", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"h11", "=", 
+     RowBox[{"hess", "[", 
+      RowBox[{"[", 
+       RowBox[{"1", ",", "1"}], "]"}], "]"}]}], ";", " ", 
+    RowBox[{"h22", "=", 
+     RowBox[{"hess", "[", 
+      RowBox[{"[", 
+       RowBox[{"2", ",", "2"}], "]"}], "]"}]}], ";", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"hGeoLocal", "=", 
+     RowBox[{"Sqrt", "[", 
+      RowBox[{"h11", "*", "h22"}], "]"}]}], ";", "\[IndentingNewLine]", "  ", 
+    
+    RowBox[{"s1Star", "=", 
+     RowBox[{"Log", "[", 
+      RowBox[{"hGeoLocal", "/", "h11"}], "]"}]}], ";", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"s2Star", "=", 
+     RowBox[{"Log", "[", 
+      RowBox[{"hGeoLocal", "/", "h22"}], "]"}]}], ";", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"kappaDiag", "=", 
+     RowBox[{
+      RowBox[{"Max", "[", 
+       RowBox[{"h11", ",", "h22"}], "]"}], "/", 
+      RowBox[{"Min", "[", 
+       RowBox[{"h11", ",", "h22"}], "]"}]}]}], ";", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Point \>\"", ",", "pt", ",", "\"\<:  H_diag={\>\"", ",", 
+      RowBox[{"N", "[", "h11", "]"}], ",", "\"\<,\>\"", ",", 
+      RowBox[{"N", "[", "h22", "]"}], ",", "\[IndentingNewLine]", 
+      "    ", "\"\<}  s*={\>\"", ",", 
+      RowBox[{"N", "[", 
+       RowBox[{"s1Star", ",", "3"}], "]"}], ",", "\"\<,\>\"", ",", 
+      RowBox[{"N", "[", 
+       RowBox[{"s2Star", ",", "3"}], "]"}], ",", "\[IndentingNewLine]", 
+      "    ", "\"\<}  kappa=\>\"", ",", 
+      RowBox[{"N", "[", 
+       RowBox[{"kappaDiag", ",", "4"}], "]"}]}], "]"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"{", 
+    RowBox[{"pt", ",", "points"}], "}"}]}], "\[IndentingNewLine]", 
+  "]"}]}], "Input",ExpressionUUID->"bcefd6df-9e33-4a8c-a151-ba4d94dd3176"],
+
+Cell["Rate of Hessian change", "Subsection",ExpressionUUID->"92f0c742-569e-4b74-9c28-5bbbfc362c84"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", "x0", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"h11Valley", "=", 
+   RowBox[{"2", "+", 
+    RowBox[{"800", " ", 
+     RowBox[{"x0", "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"relChangeRate", "=", 
+   RowBox[{"D", "[", 
+    RowBox[{
+     RowBox[{"Log", "[", "h11Valley", "]"}], ",", "x0"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<d/dx Log[H_11] = \>\"", ",", "relChangeRate"}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<At x=0.5: \>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{
+     RowBox[{"relChangeRate", " ", "/.", " ", 
+      RowBox[{"x0", "->", "0.5"}]}], ",", "4"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", 
+  RowBox[{"\"\<At x=1.0: \>\"", ",", 
+   RowBox[{"N", "[", 
+    RowBox[{
+     RowBox[{"relChangeRate", " ", "/.", " ", 
+      RowBox[{"x0", "->", "1.0"}]}], ",", "4"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<\>\"", "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<The Hessian changes by factor e over dx ~ 0.5\>\"",
+   "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", 
+  "[", "\"\<This is the same scale as the optimization trajectory.\>\"", 
+  "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Print", "[", "\"\<Tight c limits the damage from stale metrics.\>\"",
+   "]"}]}], "Input",ExpressionUUID->"6b92a749-ae06-4397-8149-448877ffcfb7"],
+
+Cell["7. Hutchinson noise propagation", "Section",ExpressionUUID->"13c3f57a-08ec-4420-bf22-a63f5bb7298e"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"EMA", " ", "smoothing", " ", "factor"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"betaSVal", "=", "0.1"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"emaFactor", "=", 
+     RowBox[{"Sqrt", "[", 
+      RowBox[{"betaSVal", "/", 
+       RowBox[{"(", 
+        RowBox[{"2", "-", "betaSVal"}], ")"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<EMA smoothing factor = sqrt(beta_s/(2-beta_s)) = \>\"", ",", 
+     
+     RowBox[{"N", "[", 
+      RowBox[{"emaFactor", ",", "4"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+   
+   RowBox[{"Print", "[", "\"\<\>\"", "]"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"For", " ", "kappa"}], "=", 
+      RowBox[{"1000", " ", "balanced"}]}], ",", " ", 
+     RowBox[{"c", "=", 
+      RowBox[{"4", ":"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"margin", "=", 
+     RowBox[{"4", "-", 
+      RowBox[{"N", "[", 
+       RowBox[{
+        RowBox[{"Log", "[", "1000", "]"}], "/", "2"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Margin = c - max|s*| = \>\"", ",", 
+     RowBox[{"N", "[", 
+      RowBox[{"margin", ",", "4"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Max sigma_s_ema (2-sigma) = \>\"", ",", 
+     RowBox[{"N", "[", 
+      RowBox[{
+       RowBox[{"margin", "/", "2"}], ",", "4"}], "]"}]}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Max sigma_s_raw = \>\"", ",", 
+     RowBox[{"N", "[", 
+      RowBox[{
+       RowBox[{"margin", "/", 
+        RowBox[{"(", 
+         RowBox[{"2", "*", "emaFactor"}], ")"}]}], ",", "4"}], "]"}]}], "]"}],
+    "\[IndentingNewLine]", 
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Relative Hutchinson noise tolerance: ~\>\"", ",", 
+     RowBox[{"N", "[", 
+      RowBox[{
+       RowBox[{"100", "*", 
+        RowBox[{"margin", "/", 
+         RowBox[{"(", 
+          RowBox[{"2", "*", "emaFactor"}], ")"}]}]}], ",", "2"}], "]"}], 
+     ",", "\"\<%\>\""}], "]"}]}]}]], "Input",ExpressionUUID->"e921a146-032e-\
+4022-8232-dc44e566cb67"],
+
+Cell["8. Summary", "Section",ExpressionUUID->"1e436bfa-1f56-4a78-9228-4eaeadc942b2"],
+
+Cell[TextData[{
+ "The clip ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["c", "TI"], TraditionalForm], "errors" -> {}, "input" -> "c", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e11906c0-dad1-4312-a8dc-821effd5648a"],
+ " is a ",
+ StyleBox["condition-number trust bound",
+  FontWeight->Bold],
+ ": ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[Kappa]", 
+          StyleBox["M", "TI"]], "\[LessEqual]", 
+         SuperscriptBox[
+          StyleBox["e", "TI"], 
+          RowBox[{"2", 
+            StyleBox["c", "TI"]}]]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\kappa_M \\le e^{2c}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2aff92a5-5401-4724-ba90-ccac1dfdb50c"],
+ ". "
+}], "Text",ExpressionUUID->"e3ae2688-167a-47d1-883f-03a142883fa5"],
+
+Cell[TextData[{
+ StyleBox["Lower bound:",
+  FontWeight->Bold],
+ " ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       FractionBox[
+        RowBox[{
+          StyleBox["c", "TI"], "\[GreaterEqual]", "1"}], 
+        RowBox[{"2", "log", "\[Kappa]"}]], TraditionalForm], "errors" -> {}, 
+     "input" -> "c \\ge \\tfrac{1}{2}\\log\\kappa", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "fd393aef-788c-4258-b338-56f44f98200e"],
+ " (balanced) to ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["c", "TI"], "\[GreaterEqual]", "log", "\[Kappa]"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "c \\ge \\log\\kappa", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "69ef8aca-8fef-434f-ae4e-dfc23ffce3e2"],
+ " (worst-case skew)"
+}], "Item",ExpressionUUID->"07bc5a17-fef1-49ee-b99e-58adca93b2ad"],
+
+Cell[TextData[{
+ StyleBox["No upper bound from stability",
+  FontWeight->Bold],
+ " (larger ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["c", "TI"], TraditionalForm], "errors" -> {}, "input" -> "c", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "86d36d62-dc50-4146-8ac8-499fd2348c5b"],
+ " is always more stable on quadratics)"
+}], "Item",ExpressionUUID->"7dcffb18-0f81-4dbb-9c42-e376db4e4cb2"],
+
+Cell[TextData[{
+ StyleBox["Effective upper bound from tracking error",
+  FontWeight->Bold],
+ " on non-quadratics"
+}], "Item",ExpressionUUID->"ab0b89d7-f0bd-4ca2-9360-ffc8f203fd5f"],
+
+Cell[TextData[{
+ StyleBox["Adaptive rule:",
+  FontWeight->Bold],
+ " ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["c", "TI"], 
+          StyleBox["t", "TI"]], "\[LongEqual]", "max", 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox[
+              StyleBox["c", "TI"], "min"], ",", "1.2", "\[CenterDot]", 
+             UnderscriptBox["max", 
+              StyleBox["i", "TI"], LimitsPositioning -> True], "|", 
+             SubscriptBox[
+              StyleBox["s", "TI"], 
+              RowBox[{
+                StyleBox["i", "TI"], ",", 
+                StyleBox["t", "TI"]}]], "|"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "c_t = \\max(c_{\\min}, 1.2 \\cdot \\max_i|s_{i,t}|)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f78ad3ff-a0d9-469b-90b3-e3fd50fdfdaa"],
+ ", no new hyperparameters"
+}], "Item",ExpressionUUID->"fae2f5cc-c9b9-4809-898b-f6b784ad40df"],
+
+Cell[TextData[{
+ StyleBox["c=4 justified",
+  FontWeight->Bold],
+ " for ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Kappa]", "\[LessEqual]", "3000"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\kappa \\le 3000", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2ae8f369-50b8-4a97-89de-2524ed60cb7c"],
+ " (balanced spectra)"
+}], "Item",ExpressionUUID->"bd3f5752-61bf-455c-b332-12482c646a10"]
+},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"cd159dda-c5a9-48dc-8b5a-40ee04d89e50"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 409, 10, 70, "Title",ExpressionUUID->"8f727819-efcb-4854-b2f0-4ad942c53ab8"],
+Cell[966, 32, 338, 6, 70, "Text",ExpressionUUID->"b8d9afa6-67b0-4161-b308-1109a9b515e0"],
+Cell[1307, 40, 95, 0, 70, "Section",ExpressionUUID->"0515d94c-6fcc-4d94-a93f-a5fe18469829"],
+Cell[1405, 42, 1819, 49, 70, "Text",ExpressionUUID->"d3ff4b1b-e687-42cb-a14e-0356d9248fd0"],
+Cell[3227, 93, 1158, 29, 70, "Input",ExpressionUUID->"198e2b5a-1549-49cf-ab7e-883355e7288b"],
+Cell[4388, 124, 105, 0, 70, "Section",ExpressionUUID->"1138472d-0a9f-49d4-a844-c50d8659a83d"],
+Cell[4496, 126, 1372, 35, 70, "Text",ExpressionUUID->"c0eb886e-d04c-4c01-9b13-0a3444176d08"],
+Cell[5871, 163, 401, 9, 70, "Subsection",ExpressionUUID->"1a46f95f-a2b0-4dc8-b3e9-469b4f141612"],
+Cell[6275, 174, 854, 23, 70, "Input",ExpressionUUID->"68db031a-e874-40db-9281-be22957e824f"],
+Cell[7132, 199, 113, 0, 70, "Subsection",ExpressionUUID->"99538070-d6e6-4e9c-be55-dbfb3921660e"],
+Cell[7248, 201, 1999, 56, 70, "Input",ExpressionUUID->"95466b33-614c-4ca9-bfa5-716309eb4171"],
+Cell[9250, 259, 126, 0, 70, "Subsection",ExpressionUUID->"0b219128-a93a-4f2e-b84d-83a374d30c5f"],
+Cell[9379, 261, 1934, 51, 70, "Text",ExpressionUUID->"53beb1fe-ff47-468e-a887-1a91dea1ba0b"],
+Cell[11316, 314, 2423, 63, 70, "Input",ExpressionUUID->"2004f49e-2dd7-4282-a2c5-50c507500d44"],
+Cell[13742, 379, 116, 0, 70, "Subsection",ExpressionUUID->"4345337e-de03-4ca1-81eb-5f14074c0f4b"],
+Cell[13861, 381, 2801, 79, 70, "Input",ExpressionUUID->"3a0f59d7-1d72-4603-a7e7-baeabe3eed6a"],
+Cell[16665, 462, 114, 0, 70, "Subsection",ExpressionUUID->"f1b13092-c431-42e8-ab15-56d007293f6d"],
+Cell[16782, 464, 1260, 31, 70, "Input",ExpressionUUID->"4fde15c5-0e8c-4f37-be58-9386edc21c84"],
+Cell[18045, 497, 108, 0, 70, "Section",ExpressionUUID->"efc74e0b-93d9-405f-b3dd-80910ebc7f8c"],
+Cell[18156, 499, 125, 0, 70, "Subsection",ExpressionUUID->"5117ff9c-7126-4f72-8209-4befeff120e5"],
+Cell[18284, 501, 3220, 89, 70, "Text",ExpressionUUID->"af05f0cd-87e6-49b0-b6ae-4172ce8592b6"],
+Cell[21507, 592, 129, 0, 70, "Subsection",ExpressionUUID->"6fe98ba9-bb4b-48f4-876f-234470e71d11"],
+Cell[21639, 594, 1834, 51, 70, "Text",ExpressionUUID->"52674bd7-ecf2-42be-94fc-ac885cc7ee44"],
+Cell[23476, 647, 1128, 31, 70, "Text",ExpressionUUID->"d2f056f3-6bcf-4c19-abcf-2be5bb8b9906"],
+Cell[24607, 680, 99, 0, 70, "Subsection",ExpressionUUID->"aa441578-d161-40f6-a510-3a267d22c586"],
+Cell[24709, 682, 3818, 102, 70, "Input",ExpressionUUID->"8584d713-a883-4e4d-8174-3b9eab368ab9"],
+Cell[28530, 786, 261, 5, 70, "Text",ExpressionUUID->"776617bd-6304-4f20-97de-9a7589c574e7"],
+Cell[28794, 793, 128, 0, 70, "Section",ExpressionUUID->"d3c4c60f-271f-4a97-8e3a-f182e9a7e3fa"],
+Cell[28925, 795, 5754, 149, 70, "Input",ExpressionUUID->"a77d7d30-2e9c-4f52-94ca-9f3b6f11205a"],
+Cell[34682, 946, 104, 0, 70, "Section",ExpressionUUID->"8bd6de33-60db-43e2-8320-9e6a540cc40a"],
+Cell[34789, 948, 5506, 140, 70, "Input",ExpressionUUID->"6349e3c5-134a-4905-99d8-cec31bc56c8a"],
+Cell[40298, 1090, 124, 0, 70, "Section",ExpressionUUID->"588a014c-29a4-48cd-a9fc-cdaaa6727573"],
+Cell[40425, 1092, 101, 0, 70, "Subsection",ExpressionUUID->"0bae5296-ac09-4f00-97e0-140a4f2e8529"],
+Cell[40529, 1094, 957, 28, 70, "Input",ExpressionUUID->"454ec3c2-257c-4e52-8b9a-b88918064fb2"],
+Cell[41489, 1124, 118, 0, 70, "Subsection",ExpressionUUID->"a4090298-02c8-41ce-850c-f5e4d72b0d84"],
+Cell[41610, 1126, 2562, 70, 70, "Input",ExpressionUUID->"bcefd6df-9e33-4a8c-a151-ba4d94dd3176"],
+Cell[44175, 1198, 99, 0, 70, "Subsection",ExpressionUUID->"92f0c742-569e-4b74-9c28-5bbbfc362c84"],
+Cell[44277, 1200, 1468, 34, 70, "Input",ExpressionUUID->"6b92a749-ae06-4397-8149-448877ffcfb7"],
+Cell[45748, 1236, 105, 0, 70, "Section",ExpressionUUID->"13c3f57a-08ec-4420-bf22-a63f5bb7298e"],
+Cell[45856, 1238, 2252, 61, 70, "Input",ExpressionUUID->"e921a146-032e-4022-8232-dc44e566cb67"],
+Cell[48111, 1301, 84, 0, 70, "Section",ExpressionUUID->"1e436bfa-1f56-4a78-9228-4eaeadc942b2"],
+Cell[48198, 1303, 946, 27, 70, "Text",ExpressionUUID->"e3ae2688-167a-47d1-883f-03a142883fa5"],
+Cell[49147, 1332, 954, 25, 70, "Item",ExpressionUUID->"07bc5a17-fef1-49ee-b99e-58adca93b2ad"],
+Cell[50104, 1359, 477, 12, 70, "Item",ExpressionUUID->"7dcffb18-0f81-4dbb-9c42-e376db4e4cb2"],
+Cell[50584, 1373, 180, 4, 70, "Item",ExpressionUUID->"ab0b89d7-f0bd-4ca2-9360-ffc8f203fd5f"],
+Cell[50767, 1379, 1034, 28, 70, "Item",ExpressionUUID->"fae2f5cc-c9b9-4809-898b-f6b784ad40df"],
+Cell[51804, 1409, 480, 12, 70, "Item",ExpressionUUID->"bd3f5752-61bf-455c-b332-12482c646a10"]
+}
+]
+*)
+
+(* End of internal cache information *)
