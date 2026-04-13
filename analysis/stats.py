@@ -404,7 +404,7 @@ def plot_best_of_budget_grid(all_runs_by_func, functions, metric_key="sweep_metr
         opt_vals = {}
         for opt, runs in all_runs.items():
             vals = np.array([
-                float(r["summary"][metric_key])
+                float(v)
                 for r in runs
                 if (v := r.get("summary", {}).get(metric_key)) is not None
                 and np.isfinite(float(v))
