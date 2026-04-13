@@ -31,7 +31,7 @@ from shared_models import ResNet18
 from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
-from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag
+from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag, loss_grad_and_hvp_diag
 
 # Parse CLI
 parser = setup_argparser("CIFAR-10 ResNet18 Hyperparameter Sweep")
@@ -134,11 +134,9 @@ def train(config, seed, logger):
                     ).mean(), mutated
                 def scalar_loss_fn(p):
                     return loss_fn(p)[0]
-                (loss, mutated), grads = jax.value_and_grad(
-                    loss_fn, has_aux=True
-                )(params)
+                loss, grads, h_diag = loss_grad_and_hvp_diag(scalar_loss_fn, params, subkey)
+                _, mutated = loss_fn(params)  # forward pass for batch_stats
                 batch_stats_new = mutated["batch_stats"]
-                h_diag = hutchinson_hvp_diag(scalar_loss_fn, params, subkey)
                 updates, opt_state_new = optimizer.update(grads, opt_state, h_diag, params)
                 params_new = optax.apply_updates(params, updates)
                 return (params_new, batch_stats_new, opt_state_new, key), loss

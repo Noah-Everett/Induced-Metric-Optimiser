@@ -33,7 +33,7 @@ from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
-from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag
+from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag, loss_grad_and_hvp_diag
 
 # Parse CLI
 parser = setup_argparser("MNIST MLP Hyperparameter Sweep")
@@ -119,8 +119,7 @@ def train(config, seed, logger):
                 x, y = batch
                 key, subkey = jax.random.split(key)
                 batch_loss_fn = lambda p: loss_fn(p, x, y, model)
-                loss, grads = jax.value_and_grad(batch_loss_fn)(params)
-                h_diag = hutchinson_hvp_diag(batch_loss_fn, params, subkey)
+                loss, grads, h_diag = loss_grad_and_hvp_diag(batch_loss_fn, params, subkey)
                 updates, opt_state = optimizer.update(grads, opt_state, h_diag, params)
                 params = optax.apply_updates(params, updates)
                 return (params, opt_state, key), loss

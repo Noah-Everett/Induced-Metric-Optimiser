@@ -85,6 +85,43 @@ def hutchinson_hvp_diag(loss_fn, params, rng_key):
     return jax.tree.map(lambda vi, hi: vi * hi, v, hvp)
 
 
+def loss_grad_and_hvp_diag(loss_fn, params, rng_key):
+    """Compute loss, gradient, and Hutchinson Hessian diagonal in one pass.
+
+    Fuses ``jax.value_and_grad`` with the Hutchinson HVP by calling
+    ``jax.jvp(jax.value_and_grad(loss_fn), ...)``.  This avoids the
+    redundant backward pass that occurs when ``value_and_grad`` and
+    ``hutchinson_hvp_diag`` are called separately.
+
+    Total cost is approximately 2x a single gradient evaluation (same as
+    :func:`hutchinson_hvp_diag` alone).
+
+    Parameters
+    ----------
+    loss_fn : callable
+        Scalar loss function: ``loss_fn(params) -> scalar``.
+    params : pytree
+        Current parameters.
+    rng_key : jax.random.PRNGKey
+        PRNG key for Rademacher vector sampling.
+
+    Returns
+    -------
+    loss : scalar
+        Loss value at params.
+    grads : pytree
+        Gradient of loss_fn at params (same structure as params).
+    h_diag : pytree
+        Estimated Hessian diagonal (same structure as params).
+    """
+    v = _rademacher_like(rng_key, params)
+    (loss, grads), (_, hvp) = jax.jvp(
+        jax.value_and_grad(loss_fn), (params,), (v,)
+    )
+    h_diag = jax.tree.map(lambda vi, hi: vi * hi, v, hvp)
+    return loss, grads, h_diag
+
+
 # ---- state container --------------------------------------------------------
 
 class DerivedNewtonDiagState(NamedTuple):

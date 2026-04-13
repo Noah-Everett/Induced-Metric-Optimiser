@@ -30,7 +30,7 @@ import optax
 from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepLogger, SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
-from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag
+from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag, loss_grad_and_hvp_diag
 
 # Enable 64-bit precision for small-scale optimisation
 jax.config.update("jax_enable_x64", True)
@@ -153,8 +153,7 @@ def train(config, seed, logger, optimizer_name, function_name, diagnostics=False
     if use_hvp:
         @jax.jit
         def train_step(params, opt_state, rng_key):
-            grads = grad_func(params)
-            h_diag = hutchinson_hvp_diag(func, params, rng_key)
+            _, grads, h_diag = loss_grad_and_hvp_diag(func, params, rng_key)
             updates, new_opt_state = optimizer.update(grads, opt_state, h_diag, params)
             new_params = optax.apply_updates(params, updates)
             return new_params, new_opt_state
