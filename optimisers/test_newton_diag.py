@@ -30,7 +30,6 @@ def run_optimizer_hvp(opt, params_init, grad_fn, h_diag_fn, n_steps,
     """Run optimizer for n_steps with externally provided h_diag."""
     params = params_init.copy()
     state = opt.init(params)
-    losses = []
     for _ in range(n_steps):
         grads = grad_fn(params)
         h_diag = h_diag_fn(params)
@@ -156,13 +155,13 @@ def test_rosenbrock_convergence():
     p0 = jnp.array([0.0, 0.0])
 
     opt = derived_newton_diag(
-        learning_rate=0.001, momentum=0.9, beta_s=0.05,
+        learning_rate=0.003, momentum=0.9, beta_s=0.05,
         weight_decay=0.0, metric_clip=4.0, hess_eps=1e-6,
     )
     params = p0.copy()
     state = opt.init(params)
     key = jax.random.PRNGKey(0)
-    n_steps = 1000
+    n_steps = 5000
 
     initial_loss = float(loss_fn(params))
     for i in range(n_steps):
@@ -174,9 +173,8 @@ def test_rosenbrock_convergence():
 
     final_loss = float(loss_fn(params))
     print(f"[Rosenbrock] initial={initial_loss:.4f}, final={final_loss:.6f}")
-    # Sanity check: should make meaningful progress, not just epsilon improvement
-    assert final_loss < 0.9 * initial_loss, (
-        f"Should converge meaningfully: final={final_loss}, initial={initial_loss}"
+    assert final_loss < 0.1, (
+        f"Should converge near optimum: final={final_loss}"
     )
     print("PASS: Rosenbrock convergence")
 

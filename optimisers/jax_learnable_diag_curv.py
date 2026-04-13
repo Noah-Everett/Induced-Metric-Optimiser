@@ -35,7 +35,14 @@ _VALID_METRIC_PARAMS = frozenset({
 
 _SOFTPLUS_IDENTITY_INIT = float(jnp.log(jnp.exp(jnp.ones([])) - 1.0))
 
-# ---- utilities (shared with jax_learnable_diag.py) ----------------------------
+# ---- utilities ---------------------------------------------------------------
+
+from optimisers.jax_diag_utils import (
+    apply_diag as _apply_diag,
+    apply_diag_softplus as _apply_diag_softplus,
+    mean_center as _mean_center,
+    clip as _clip,
+)
 
 def _tree_dot(a, b):
     """Sum_i a_i * b_i over a pytree of matching structure."""
@@ -44,21 +51,6 @@ def _tree_dot(a, b):
         jax.tree.map(lambda x, y: x * y, a, b),
         initializer=jnp.array(0.0),
     )
-
-def _apply_diag(log_diag, x):
-    """Apply diagonal inverse metric diag(exp(log_diag)) to x, per leaf."""
-    return jax.tree.map(lambda s, t: jnp.exp(s) * t, log_diag, x)
-
-def _apply_diag_softplus(log_diag, x):
-    """Apply diagonal inverse metric diag(softplus(log_diag)) to x, per leaf."""
-    return jax.tree.map(lambda s, t: jax.nn.softplus(s) * t, log_diag, x)
-
-def _mean_center(log_diag):
-    """Per-leaf mean-centre s to control global scale."""
-    return jax.tree.map(lambda s: s - jnp.mean(s), log_diag)
-
-def _clip(log_diag, lo, hi):
-    return jax.tree.map(lambda s: jnp.clip(s, lo, hi), log_diag)
 
 def _adaptive_clip(log_diag, max_cond):
     """Clip s values to enforce a maximum condition number across all leaves."""

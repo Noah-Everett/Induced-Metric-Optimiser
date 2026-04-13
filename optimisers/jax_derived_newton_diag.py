@@ -35,21 +35,9 @@ import jax
 import jax.numpy as jnp
 import optax
 
-
-# ---- utilities (duplicated from jax_learnable_diag.py, matching convention) --
-
-def _apply_diag(log_diag, x):
-    """Apply diagonal inverse metric diag(exp(log_diag)) to x, per leaf."""
-    return jax.tree.map(lambda s, t: jnp.exp(s) * t, log_diag, x)
-
-
-def _mean_center(log_diag):
-    """Per-leaf mean-centre s to control global scale."""
-    return jax.tree.map(lambda s: s - jnp.mean(s), log_diag)
-
-
-def _clip(log_diag, lo, hi):
-    return jax.tree.map(lambda s: jnp.clip(s, lo, hi), log_diag)
+from optimisers.jax_diag_utils import apply_diag as _apply_diag
+from optimisers.jax_diag_utils import mean_center as _mean_center
+from optimisers.jax_diag_utils import clip as _clip
 
 
 # ---- Hutchinson helper ------------------------------------------------------
