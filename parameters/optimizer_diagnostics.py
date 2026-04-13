@@ -520,6 +520,14 @@ def _extract_newton_diag(opt_state, config, grads=None, h_diag=None):
                 else:
                     m['h_diag/rho_global'] = 0.0
 
+            # Gap between current metric and instantaneous Newton target
+            hess_eps = config.get('hess_eps', 1e-6)
+            s_target = -jnp.log(jnp.maximum(all_h, hess_eps))
+            gap = jnp.abs(s_target - all_s)
+            m['s_target_gap/mean'] = _scalar(jnp.mean(gap))
+            m['s_target_gap/max']  = _scalar(jnp.max(gap))
+            m['s_target_gap/std']  = _scalar(jnp.std(gap))
+
             # Per-leaf stats and rho
             try:
                 key_leaves, _ = jax.tree_util.tree_flatten_with_path(h_diag)
