@@ -1628,3 +1628,111 @@ def plot_effective_lr_comparison(
     fig.suptitle(title, fontsize=12)
     fig.tight_layout()
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Convenience wrappers
+# ---------------------------------------------------------------------------
+
+def plot_all_diagnostics(history_data, title_prefix="", colors=None):
+    """Plot all diagnostic groups in one call, skipping groups with no data.
+
+    Returns a list of ``(figure, group_name)`` tuples.
+    """
+    from utils import (
+        DIAG_KEYS_TRAINING, DIAG_KEYS_METRIC_SCALE, DIAG_KEYS_LEARNABLE,
+        DIAG_KEYS_CURVATURE, DIAG_KEYS_OFFDIAG,
+    )
+    groups = [
+        (DIAG_KEYS_TRAINING, "Training-Level Diagnostics"),
+        (DIAG_KEYS_METRIC_SCALE, "Metric Scale (r, v_hat, metric_ema)"),
+        (DIAG_KEYS_LEARNABLE, "Learnable Metric Diagnostics"),
+        (DIAG_KEYS_CURVATURE, "Curvature-Aware Diagnostics"),
+        (DIAG_KEYS_OFFDIAG, "Off-Diagonal (Woodbury) Diagnostics"),
+    ]
+    figs = []
+    for keys, name in groups:
+        full_title = f"{title_prefix}: {name}" if title_prefix else name
+        fig = plot_diagnostic_curves(history_data, keys,
+                                     title=full_title, colors=colors)
+        if fig is not None:
+            figs.append((fig, name))
+    eff_title = (f"{title_prefix}: Effective LR Comparison"
+                 if title_prefix else None)
+    fig = plot_effective_lr_comparison(history_data, title=eff_title,
+                                       colors=colors)
+    if fig is not None:
+        figs.append((fig, "Effective LR Comparison"))
+    return figs
+
+
+def plot_convergence_curves_grid(all_history, functions, y_keys=None,
+                                  x_keys=None, highlight=None, colors=None,
+                                  figsize_per_subplot=(5, 3),
+                                  print_summary=True, best_runs_by_func=None):
+    """Multi-function convergence curves in a single figure.
+
+    Parameters
+    ----------
+    all_history : dict
+        ``{func_name: optimizer_data}`` from ``extract_history``.
+    functions : list[str]
+        Function names (rows in the grid).
+    y_keys, x_keys : list[str], optional
+        Metric keys for y/x axes.  Defaults ``["function_value"]`` /
+        ``["epoch", "wall_times"]``.
+    """
+    if y_keys is None:
+        y_keys = ["function_value"]
+    if x_keys is None:
+        x_keys = ["epoch", "wall_times"]
+
+    nrows = len(functions)
+    ncols = len(x_keys) * len(y_keys)
+    fig, axes = plt.subplots(nrows, ncols,
+                              figsize=(figsize_per_subplot[0] * ncols,
+                                       figsize_per_subplot[1] * nrows),
+                              squeeze=False)
+
+    if colors is None:
+        all_opts = set()
+        for hist in all_history.values():
+            all_opts.update(hist.keys())
+        from utils import get_optimizer_colors
+        colors = get_optimizer_colors(sorted(all_opts))
+
+    for row, func_name in enumerate(functions):
+        hist = all_history.get(func_name, {})
+        col = 0
+        for yk in y_keys:
+            for xk in x_keys:
+                ax = axes[row, col]
+                for opt, data in hist.items():
+                    yv = data.get(yk)
+                    xv = data.get(xk, data.get("epoch"))
+                    if yv is None or xv is None:
+                        continue
+                    lw = 2.5 if highlight and opt in highlight else 1.2
+                    alpha = 1.0 if highlight and opt in highlight else 0.6
+                    ax.plot(xv, yv, label=opt, color=colors.get(opt),
+                            linewidth=lw, alpha=alpha)
+                ax.set_title(f"{func_name}: {yk} vs {xk}", fontsize=9)
+                ax.set_xlabel(xk, fontsize=8)
+                if col == 0:
+                    ax.set_ylabel(yk, fontsize=8)
+                ax.set_yscale("log")
+                ax.tick_params(labelsize=7)
+                col += 1
+        if row == 0:
+            axes[row, -1].legend(fontsize=6, loc="upper right",
+                                  bbox_to_anchor=(1.0, 1.0))
+
+    if print_summary and best_runs_by_func:
+        from tables import print_convergence_summary
+        for func_name in functions:
+            br = best_runs_by_func.get(func_name, {})
+            if br:
+                print_convergence_summary(br, func_name=func_name)
+
+    fig.tight_layout()
+    return fig

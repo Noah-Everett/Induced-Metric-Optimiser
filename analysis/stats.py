@@ -15,6 +15,7 @@ __all__ = [
     "print_topk_comparison",
     "print_robustness_table",
     "plot_best_of_budget",
+    "plot_best_of_budget_grid",
 ]
 
 
@@ -369,4 +370,85 @@ def plot_best_of_budget(all_runs, metric_key="sweep_metric",
     ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=7)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
+    return fig
+
+
+def plot_best_of_budget_grid(all_runs_by_func, functions, metric_key="sweep_metric",
+                              direction="minimize", colors=None, ncols=3,
+                              figsize_per_subplot=(5, 4), n_bootstrap=1000,
+                              ci_level=0.95, max_budget=None):
+    """Best-of-budget incumbent curves for multiple functions in a single figure.
+
+    Parameters
+    ----------
+    all_runs_by_func : dict
+        ``{func_name: {optimizer: [run, ...], ...}}``
+    functions : list[str]
+        Function names to plot.
+    """
+    nrows = int(np.ceil(len(functions) / ncols))
+    fig, axes = plt.subplots(nrows, ncols,
+                              figsize=(figsize_per_subplot[0] * ncols,
+                                       figsize_per_subplot[1] * nrows),
+                              squeeze=False)
+
+    best_fn = np.minimum.accumulate if direction == "minimize" else np.maximum.accumulate
+    alpha = (1 - ci_level) / 2
+    rng = np.random.default_rng(42)
+
+    for idx, func_name in enumerate(functions):
+        row, col = divmod(idx, ncols)
+        ax = axes[row, col]
+        all_runs = all_runs_by_func.get(func_name, {})
+
+        opt_vals = {}
+        for opt, runs in all_runs.items():
+            vals = np.array([
+                float(r["summary"][metric_key])
+                for r in runs
+                if (v := r.get("summary", {}).get(metric_key)) is not None
+                and np.isfinite(float(v))
+            ])
+            if len(vals) >= 2:
+                opt_vals[opt] = vals
+
+        if not opt_vals:
+            ax.text(0.5, 0.5, "No data", ha="center", va="center",
+                    transform=ax.transAxes)
+            ax.set_title(func_name)
+            continue
+
+        budget = max_budget or min(len(v) for v in opt_vals.values())
+
+        for opt, vals in opt_vals.items():
+            n = min(len(vals), budget)
+            budgets = np.arange(1, n + 1)
+            boot_curves = np.empty((n_bootstrap, n))
+            for b in range(n_bootstrap):
+                perm = rng.permutation(vals)[:n]
+                boot_curves[b] = best_fn(perm)
+            median_curve = np.median(boot_curves, axis=0)
+            ci_lo = np.percentile(boot_curves, 100 * alpha, axis=0)
+            ci_hi = np.percentile(boot_curves, 100 * (1 - alpha), axis=0)
+            c = colors.get(opt, None) if colors else None
+            ax.plot(budgets, median_curve, label=opt, color=c, linewidth=1.2)
+            ax.fill_between(budgets, ci_lo, ci_hi, alpha=0.12, color=c)
+
+        ax.set_title(func_name, fontsize=10)
+        ax.set_xlabel("Budget (trials)", fontsize=8)
+        ax.set_ylabel(f"Best {metric_key}", fontsize=8)
+        ax.grid(True, alpha=0.3)
+        ax.tick_params(labelsize=7)
+
+    # Hide unused subplots
+    for idx in range(len(functions), nrows * ncols):
+        row, col = divmod(idx, ncols)
+        axes[row, col].set_visible(False)
+
+    # Single legend from the last populated axis
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, bbox_to_anchor=(1.02, 1), loc="upper left",
+               fontsize=7)
+    fig.suptitle("Best-of-Budget Incumbent Curves", fontsize=12)
+    fig.tight_layout()
     return fig

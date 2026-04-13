@@ -94,6 +94,8 @@ from plots import (  # noqa: F401, E402
     plot_hp_sensitivity,
     plot_diagnostic_curves,
     plot_effective_lr_comparison,
+    plot_all_diagnostics,
+    plot_convergence_curves_grid,
 )
 
 from tables import (  # noqa: F401, E402
@@ -111,6 +113,8 @@ from tables import (  # noqa: F401, E402
 )
 
 from stats import *  # noqa: F401, F403, E402
+
+from task_configs import TASK_CONFIGS  # noqa: F401, E402
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -151,6 +155,8 @@ __all__ = [
     "plot_hp_sensitivity",
     "plot_diagnostic_curves",
     "plot_effective_lr_comparison",
+    "plot_all_diagnostics",
+    "plot_convergence_curves_grid",
     # tables
     "print_speedrun_table",
     "print_convergence_summary",
@@ -167,4 +173,7 @@ __all__ = [
     "print_topk_comparison",
     "print_robustness_table",
     "plot_best_of_budget",
+    "plot_best_of_budget_grid",
+    # task configs
+    "TASK_CONFIGS",
 ]
