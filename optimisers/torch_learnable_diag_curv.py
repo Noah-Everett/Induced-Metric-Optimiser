@@ -177,9 +177,12 @@ class SGDLearnableDiagCurv(Optimizer):
                 m_corr = buf / (1.0 - (mom ** step))
                 m_tilde = _torch_sigma(mp, s) * m_corr
 
-                p.add_(-lr * r * m_tilde)
                 if weight_decay != 0.0:
-                    p.add_(-lr * weight_decay * p)
+                    p_orig = p.data.clone()
+                    p.add_(-lr * r * m_tilde)
+                    p.add_(-lr * weight_decay * p_orig)
+                else:
+                    p.add_(-lr * r * m_tilde)
 
             # --- Online metric learning step (curvature-aware) ---
             have_prev = step > 1

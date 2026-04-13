@@ -211,8 +211,11 @@ class DerivedNewtonDiag(Optimizer):
                 # Preconditioned step (xi=0 => r=1)
                 m_tilde = torch.exp(s) * m_corr
 
-                p.add_(-lr * m_tilde)
                 if weight_decay != 0.0:
-                    p.add_(-lr * weight_decay * p)
+                    p_orig = p.data.clone()
+                    p.add_(-lr * m_tilde)
+                    p.add_(-lr * weight_decay * p_orig)
+                else:
+                    p.add_(-lr * m_tilde)
 
         return loss_val
