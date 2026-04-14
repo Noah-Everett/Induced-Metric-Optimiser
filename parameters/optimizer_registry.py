@@ -242,7 +242,7 @@ def create_optimizer(name, config):
             adam_b1=config.get("adam_b1", 0.9),
             adam_b2=config.get("adam_b2", 0.999),
             eps=config.get("eps", 1e-8),
-            beta=config.get("beta", 0.95),
+            beta=config.get("muon_beta", 0.95),
             weight_decay=config.get("weight_decay", 0.0),
         )
 
@@ -478,7 +478,7 @@ def get_sweep_parameters(name, overrides=None):
             "adam_b1": _param("adam_b1"),
             "adam_b2": _param("adam_b2"),
             "eps": _param("eps", default_fixed=1e-8),
-            "beta": _param("muon_beta"),
+            "muon_beta": _param("muon_beta"),
             "weight_decay": _param("weight_decay"),
         }
 
@@ -644,7 +644,7 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "adam_b1": _suggest("adam_b1"),
             "adam_b2": _suggest("adam_b2"),
             "eps": _suggest("eps", default_fixed=1e-8),
-            "beta": _suggest("muon_beta"),
+            "muon_beta": _suggest("muon_beta"),
             "weight_decay": _suggest("weight_decay"),
         }
 

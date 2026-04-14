@@ -24,7 +24,7 @@ from optimizer_registry import (
 _FULL_CONFIG = {
     "learning_rate": 0.01, "momentum": 0.9, "weight_decay": 0.01,
     "eps": 1e-8, "beta1": 0.9, "beta2": 0.999,
-    "adam_b1": 0.9, "adam_b2": 0.999, "beta": 0.8,
+    "adam_b1": 0.9, "adam_b2": 0.999, "beta": 0.8, "muon_beta": 0.95,
     "xi": 0.1, "beta_rms": 0.99,
     "metric_lr": 1e-3, "metric_reg": 1e-4, "metric_clip": 4.0,
     "metric_param": "exp", "max_condition_number": 1000.0,
