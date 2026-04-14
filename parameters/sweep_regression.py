@@ -18,7 +18,7 @@ from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
-from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag, loss_grad_and_hvp_diag
+from optimisers.jax_gn_diag import loss_grad_and_gn_diag, gn_diag_mlp, mse_output_grad
 
 # Parse CLI
 parser = setup_argparser("Regression Hyperparameter Sweep")
@@ -133,13 +133,16 @@ def train(config, seed, logger):
     opt_state = optimizer.init(params)
     use_loss = needs_loss(args.optimiser)
     use_hvp = needs_hvp(args.optimiser)
-    hvp_key = jax.random.PRNGKey(seed + 999)
 
     if use_hvp:
         @jax.jit
-        def train_step(params, opt_state, x, y, rng_key):
-            batch_loss_fn = lambda p: mse_fn(p, x, y, model)
-            loss, grads, h_diag = loss_grad_and_hvp_diag(batch_loss_fn, params, rng_key)
+        def train_step(params, opt_state, x, y):
+            loss, grads, h_diag = loss_grad_and_gn_diag(
+                params, x, y,
+                loss_fn=lambda p: mse_fn(p, x, y, model),
+                activation_fn=jax.nn.gelu,
+                output_grad_fn=mse_output_grad,
+            )
             updates, opt_state_new = optimizer.update(grads, opt_state, h_diag, params)
             return optax.apply_updates(params, updates), opt_state_new, loss
     elif use_loss:
@@ -167,8 +170,7 @@ def train(config, seed, logger):
         epoch_start = time.time()
         for x_batch, y_batch in train_batches:
             if use_hvp:
-                hvp_key, step_key = jax.random.split(hvp_key)
-                params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch, step_key)
+                params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch)
             else:
                 params, opt_state, loss = train_step(params, opt_state, x_batch, y_batch)
             epoch_losses.append(loss)
@@ -183,8 +185,11 @@ def train(config, seed, logger):
             diag_loss_fn = lambda p: mse_fn(p, x_b0, y_b0, model)
             dl, dg = jax.value_and_grad(diag_loss_fn)(params)
             if use_hvp:
-                hvp_key, diag_key = jax.random.split(hvp_key)
-                dh = hutchinson_hvp_diag(diag_loss_fn, params, diag_key)
+                dh = gn_diag_mlp(
+                    params, x_b0, y_b0,
+                    activation_fn=jax.nn.gelu,
+                    output_grad_fn=mse_output_grad,
+                )
                 du, _ = optimizer.update(dg, opt_state, dh, params)
             elif use_loss:
                 du, _ = optimizer.update(dg, opt_state, dl, params)
@@ -194,6 +199,7 @@ def train(config, seed, logger):
                 args.optimiser, opt_state, params,
                 grads=dg, updates=du, loss=dl,
                 config=config, prev_loss=prev_diag_loss,
+                h_diag=dh if use_hvp else None,
             )
             prev_diag_loss = dl
 

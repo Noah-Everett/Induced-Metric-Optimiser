@@ -33,7 +33,7 @@ from shared_models import MLP
 from optimizer_registry import create_optimizer, needs_loss, needs_hvp
 from sweep_utils import SweepRunner, setup_argparser
 from optimizer_diagnostics import collect_diagnostics
-from optimisers.jax_derived_newton_diag import hutchinson_hvp_diag, loss_grad_and_hvp_diag
+from optimisers.jax_gn_diag import loss_grad_and_gn_diag, gn_diag_mlp, cross_entropy_output_grad
 
 # Parse CLI
 parser = setup_argparser("MNIST MLP Hyperparameter Sweep")
@@ -113,18 +113,21 @@ def train(config, seed, logger):
     # Use jax.lax.scan to process all batches in a single GPU dispatch per epoch
     if use_hvp:
         @jax.jit
-        def train_epoch(params, opt_state, x_batched, y_batched, rng_key):
+        def train_epoch(params, opt_state, x_batched, y_batched):
             def step(carry, batch):
-                params, opt_state, key = carry
+                params, opt_state = carry
                 x, y = batch
-                key, subkey = jax.random.split(key)
-                batch_loss_fn = lambda p: loss_fn(p, x, y, model)
-                loss, grads, h_diag = loss_grad_and_hvp_diag(batch_loss_fn, params, subkey)
+                loss, grads, h_diag = loss_grad_and_gn_diag(
+                    params, x, y,
+                    loss_fn=lambda p: loss_fn(p, x, y, model),
+                    activation_fn=jax.nn.gelu,
+                    output_grad_fn=cross_entropy_output_grad,
+                )
                 updates, opt_state = optimizer.update(grads, opt_state, h_diag, params)
                 params = optax.apply_updates(params, updates)
-                return (params, opt_state, key), loss
-            (params, opt_state, _), losses = jax.lax.scan(
-                step, (params, opt_state, rng_key), (x_batched, y_batched)
+                return (params, opt_state), loss
+            (params, opt_state), losses = jax.lax.scan(
+                step, (params, opt_state), (x_batched, y_batched)
             )
             return params, opt_state, jnp.mean(losses)
     elif use_loss:
@@ -163,14 +166,11 @@ def train(config, seed, logger):
     pruned = False
     prev_diag_loss = None
 
-    hvp_key = jax.random.PRNGKey(seed + 999)
-
     for epoch in range(n_epochs):
         epoch_start = time.time()
         if use_hvp:
-            hvp_key, epoch_key = jax.random.split(hvp_key)
             params, opt_state, avg_loss = train_epoch(
-                params, opt_state, x_train_batched, y_train_batched, epoch_key
+                params, opt_state, x_train_batched, y_train_batched
             )
         else:
             params, opt_state, avg_loss = train_epoch(
@@ -189,8 +189,11 @@ def train(config, seed, logger):
             diag_loss_fn = lambda p: loss_fn(p, x_train_batched[0], y_train_batched[0], model)
             dl, dg = jax.value_and_grad(diag_loss_fn)(params)
             if use_hvp:
-                hvp_key, diag_key = jax.random.split(hvp_key)
-                dh = hutchinson_hvp_diag(diag_loss_fn, params, diag_key)
+                dh = gn_diag_mlp(
+                    params, x_train_batched[0], y_train_batched[0],
+                    activation_fn=jax.nn.gelu,
+                    output_grad_fn=cross_entropy_output_grad,
+                )
                 du, _ = optimizer.update(dg, opt_state, dh, params)
             elif use_loss:
                 du, _ = optimizer.update(dg, opt_state, dl, params)
