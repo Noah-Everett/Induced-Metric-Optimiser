@@ -32,6 +32,7 @@ import tensorflow as tf
 
 from optimisers.jax_derived_newton_diag import derived_newton_diag
 from optimisers.jax_gn_diag import gn_diag_mlp, cross_entropy_output_grad
+from optimisers.jax_kronecker import kronecker_factors_mlp, kronecker_newton
 from parameters.shared_models import MLP
 
 
@@ -105,6 +106,47 @@ def train_newton_steps(params, model, x_train, y_train, x_test, y_test,
                     print(f"  [{label}] step={step:5d}  loss={float(loss):.4f}  "
                           f"acc={test_acc:.4f}  clip={clipped_frac:.3f}  "
                           f"cond={condition:.1f}  ({elapsed:.1f}s)")
+            step += 1
+
+    return params, trajectory
+
+
+def train_kronecker_steps(params, model, x_train, y_train, x_test, y_test,
+                          batch_size, lr, momentum, damping,
+                          n_steps=1000, eval_every=50, label=""):
+    """Train with Kronecker-preconditioned gradient for fixed steps."""
+    opt = kronecker_newton(learning_rate=lr, momentum=momentum)
+    state = opt.init(params)
+
+    n_batches = len(x_train) // batch_size
+    x_batched = x_train[:n_batches * batch_size].reshape(n_batches, batch_size, 784)
+    y_batched = y_train[:n_batches * batch_size].reshape(n_batches, batch_size)
+
+    trajectory = []
+    step = 0
+    t0 = time.time()
+    while step < n_steps:
+        for b in range(n_batches):
+            if step >= n_steps:
+                break
+            x, y = x_batched[b], y_batched[b]
+            loss, grads = jax.value_and_grad(lambda p: loss_fn(p, x, y, model))(params)
+            kron_factors = kronecker_factors_mlp(
+                params, x, y, jax.nn.gelu, cross_entropy_output_grad,
+                damping=damping)
+            updates, state = opt.update(grads, state, kron_factors)
+            params = optax.apply_updates(params, updates)
+
+            if step % eval_every == 0 or step == n_steps - 1:
+                test_acc = accuracy(params, x_test, y_test, model)
+                elapsed = time.time() - t0
+                trajectory.append({
+                    'step': step, 'loss': float(loss), 'test_acc': test_acc,
+                    'elapsed': elapsed,
+                })
+                if step % (eval_every * 4) == 0:
+                    print(f"  [{label}] step={step:5d}  loss={float(loss):.4f}  "
+                          f"acc={test_acc:.4f}  ({elapsed:.1f}s)")
             step += 1
 
     return params, trajectory
@@ -239,6 +281,36 @@ def main():
             n_steps=n_steps, label=f"sgd,{bs_label}")
 
     # =================================================================
+    # Experiment 4: Kronecker vs diagonal Newton (IMO-152)
+    # =================================================================
+    print("\n" + "=" * 70)
+    print(f"EXP 4: Kronecker-preconditioned Newton ({n_steps} steps, full-batch)")
+    print("=" * 70)
+
+    # 4a: Damping sweep
+    for damp in [1e-6, 1e-4, 1e-2, 1e-1]:
+        print(f"\n--- Kronecker (damping={damp}, lr=0.1, mom=0.9) ---")
+        _, results[f'kron_d{damp}'] = train_kronecker_steps(
+            init_params, model, x_train, y_train, x_test, y_test,
+            batch_size=full_batch, lr=0.1, momentum=momentum,
+            damping=damp, n_steps=n_steps, label=f"kron,d={damp}")
+
+    # 4b: LR sweep at best damping (1e-4 as starting point)
+    for kron_lr in [0.01, 0.05, 0.5]:
+        print(f"\n--- Kronecker (damping=1e-4, lr={kron_lr}, mom=0.9) ---")
+        _, results[f'kron_lr{kron_lr}'] = train_kronecker_steps(
+            init_params, model, x_train, y_train, x_test, y_test,
+            batch_size=full_batch, lr=kron_lr, momentum=momentum,
+            damping=1e-4, n_steps=n_steps, label=f"kron,lr={kron_lr}")
+
+    # 4c: No-momentum Kronecker
+    print(f"\n--- Kronecker (no momentum, damping=1e-4, lr=0.1) ---")
+    _, results['kron_nomom'] = train_kronecker_steps(
+        init_params, model, x_train, y_train, x_test, y_test,
+        batch_size=full_batch, lr=0.1, momentum=0.0,
+        damping=1e-4, n_steps=n_steps, label="kron,nomom")
+
+    # =================================================================
     # Summary at key step counts
     # =================================================================
     print("\n" + "=" * 70)
@@ -281,6 +353,19 @@ def main():
                 f"{last.get('clipped_frac', 0):.3f}",
                 f"{last.get('condition', 0):.1f}",
             ))
+
+
+    # Kronecker summary
+    print()
+    print("--- Kronecker sweep detail (full-batch, step 999) ---")
+    fmt3 = "{:<25s} {:>8s} {:>8s}"
+    print(fmt3.format("config", "acc", "loss"))
+    print("-" * 45)
+    kron_keys = sorted([k for k in results if k.startswith('kron')])
+    for key in kron_keys:
+        if results[key]:
+            last = results[key][-1]
+            print(fmt3.format(key, f"{last['test_acc']:.4f}", f"{last['loss']:.4f}"))
 
 
 if __name__ == "__main__":
