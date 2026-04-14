@@ -9,7 +9,9 @@ This optimizer replaces the learnable metric's gradient-ascent s-update
 
 where H_hat_ii is the Hutchinson Hessian diagonal estimate.  The derivation
 (IMO-83 through IMO-87) shows that this is the unique minimax-optimal diagonal
-preconditioner.  No xi, no denominator, no metric_ema (xi=0 => r=1).
+preconditioner.  With xi=0 (default), uses the plain embedding f(L)=L
+with no denominator.  With xi>0, activates the sqrt(L) embedding
+denominator for O(log kappa) scaling.  See IMO-134, IMO-138.
 
 Usage (with explicit h_diag)::
 
@@ -199,6 +201,7 @@ class DerivedNewtonDiag(Optimizer):
             step = gstate['step']
 
             # --- Metric EMA towards Newton target ---
+            h_clamped_list = []
             for p in grad_params:
                 if p.grad is None:
                     continue
@@ -210,7 +213,7 @@ class DerivedNewtonDiag(Optimizer):
                     h_clamped = torch.clamp(h, min=hess_eps)
                     target = -torch.log(h_clamped)
                     s.mul_(1.0 - beta_s).add_(beta_s * target)
-                    st['h_clamped'] = h_clamped
+                    h_clamped_list.append(h_clamped)
                 # mean-centre per tensor
                 s.add_(-s.mean())
                 # clip
@@ -218,19 +221,24 @@ class DerivedNewtonDiag(Optimizer):
 
             # --- sqrt(L) denominator (xi > 0) ---
             if xi > 0.0:
-                numer = 0.0
-                denom_sum = 0.0
+                if not h_clamped_list:
+                    raise ValueError(
+                        "h_diag must be provided when xi > 0 "
+                        "(needed for E_w[lambda] computation)"
+                    )
+                dev = grad_params[0].device
+                numer = torch.tensor(0.0, device=dev)
+                denom_sum = torch.tensor(0.0, device=dev)
+                h_i = 0
                 for p in grad_params:
                     if p.grad is None:
                         continue
-                    st = self.state[p]
-                    h_c = st.get('h_clamped')
-                    if h_c is None:
-                        continue
-                    s = st['log_diag']
-                    numer += (h_c**2 * p.data**2 * torch.exp(s)).sum().item()
-                    denom_sum += (h_c * p.data**2).sum().item()
-                e_w_lambda = numer / max(denom_sum, hess_eps)
+                    s = self.state[p]['log_diag']
+                    h_c = h_clamped_list[h_i]
+                    h_i += 1
+                    numer = numer + (h_c**2 * p.data**2 * torch.exp(s)).sum()
+                    denom_sum = denom_sum + (h_c * p.data**2).sum()
+                e_w_lambda = (numer / torch.clamp(denom_sum, min=hess_eps)).item()
                 r = 1.0 / (1.0 + (xi / 2.0) * e_w_lambda)
             else:
                 r = 1.0

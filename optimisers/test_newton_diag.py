@@ -549,6 +549,24 @@ def test_xi_denominator_effect():
     print("PASS: xi denominator effect")
 
 
+# ---- Test 18: xi>0 requires params ----
+
+def test_xi_requires_params():
+    """xi>0 without params should raise ValueError."""
+    grad_fn = lambda p: jnp.array([0.1, 0.1])
+    h_diag_fn = lambda p: jnp.array([2.0, 2.0])
+    p0 = jnp.array([1.0, 1.0])
+
+    opt = derived_newton_diag(learning_rate=0.01, momentum=0.0, beta_s=0.0, xi=0.5)
+    state = opt.init(p0)
+    try:
+        opt.update(grad_fn(p0), state, h_diag_fn(p0))  # no params
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "params" in str(e)
+    print("PASS: xi>0 requires params")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Derived Newton-targeted optimizer functional tests")
@@ -587,6 +605,8 @@ if __name__ == "__main__":
     test_xi_zero_backward_compat()
     print()
     test_xi_denominator_effect()
+    print()
+    test_xi_requires_params()
     print()
     print("=" * 60)
     print("ALL TESTS PASSED")

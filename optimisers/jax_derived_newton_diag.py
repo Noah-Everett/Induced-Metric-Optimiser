@@ -314,6 +314,11 @@ def derived_newton_diag(
 
         # --- sqrt(L) denominator (xi > 0) ---
         if xi > 0.0:
+            if params is None:
+                raise ValueError(
+                    "params must be passed to update() when xi > 0 "
+                    "(needed for E_w[lambda] computation)"
+                )
             h_clamped = jax.tree.map(
                 lambda h: jnp.maximum(h, hess_eps), h_diag,
             )

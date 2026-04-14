@@ -226,6 +226,21 @@ def test_xi_denominator_effect():
     print("PASS: xi denominator effect (PyTorch)")
 
 
+# ---- Test 8: xi>0 requires h_diag ----
+
+def test_xi_requires_h_diag():
+    """xi>0 without h_diag should raise ValueError."""
+    p = torch.tensor([1.0, 1.0], requires_grad=True)
+    opt = DerivedNewtonDiag([p], lr=0.01, momentum=0.0, beta_s=0.0, xi=0.5)
+    p.grad = torch.tensor([0.1, 0.1])
+    try:
+        opt.step()  # no h_diag
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "h_diag" in str(e)
+    print("PASS: xi>0 requires h_diag (PyTorch)")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Derived Newton-targeted optimizer PyTorch tests")
@@ -244,6 +259,8 @@ if __name__ == "__main__":
     test_xi_zero_backward_compat()
     print()
     test_xi_denominator_effect()
+    print()
+    test_xi_requires_h_diag()
     print()
     print("=" * 60)
     print("ALL PYTORCH TESTS PASSED")
