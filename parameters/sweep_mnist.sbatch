@@ -28,11 +28,11 @@
 
 TASK="parameters/sweep_mnist_mlp.py"
 RESULTS_DIR="results"
-ITERATION=5
+ITERATION=6
 
 NUM_RUNS=1000
 BACKEND="local"
-SEARCH="bayes"
+SEARCH="random"
 PRUNER="none"
 SEED=42
 
@@ -54,7 +54,7 @@ export JAX_DEFAULT_MATMUL_PRECISION='tensorfloat32'
 # Optimizer array (indexed 0-3)
 # -----------------------------------------------------------------------------
 OPTIMIZERS=(
-    "adam"                      # 0
+    "adam"                     # 0
     "sgd"                      # 1
     "sgd_learn_diag_curv"      # 2
     "sgd_newton_diag"          # 3
