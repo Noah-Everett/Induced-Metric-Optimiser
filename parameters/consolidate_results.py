@@ -23,6 +23,7 @@ import argparse
 import csv
 import io
 import json
+import os
 import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -96,33 +97,35 @@ def consolidate_directory(
     itr_dir: Path,
     include_trajectories: bool = True,
     skip_existing: bool = False,
-) -> tuple[int, int]:
+) -> tuple[int, int, int]:
     """Consolidate all run_*.csv files in *itr_dir* into Parquet.
 
     Returns
     -------
-    (n_runs, n_trajectory_rows)
+    (n_runs, n_trajectory_rows, n_skipped)
     """
     summary_path = itr_dir / "summary.parquet"
     traj_path = itr_dir / "trajectories.parquet"
 
     if skip_existing and summary_path.exists():
         if not include_trajectories or traj_path.exists():
-            return 0, 0  # already done
+            return 0, 0, 0  # already done
 
     run_files = sorted(
         itr_dir.glob("run_*.csv"),
         key=lambda p: int(re.search(r"(\d+)", p.name).group(1)),
     )
     if not run_files:
-        return 0, 0
+        return 0, 0, 0
 
     summary_rows: list[dict] = []
     traj_rows: list[dict] = []
+    skipped = 0
 
     for path in run_files:
         result = _parse_run_csv(path)
         if result is None:
+            skipped += 1
             continue
         metadata, rows = result
 
@@ -136,12 +139,20 @@ def consolidate_directory(
             traj_rows.extend(rows)
 
     if summary_rows:
-        pd.DataFrame(summary_rows).to_parquet(summary_path, index=False)
+        tmp = summary_path.with_suffix(".parquet.tmp")
+        pd.DataFrame(summary_rows).to_parquet(tmp, index=False)
+        os.replace(tmp, summary_path)
 
     if include_trajectories and traj_rows:
-        pd.DataFrame(traj_rows).to_parquet(traj_path, index=False)
+        tmp = traj_path.with_suffix(".parquet.tmp")
+        pd.DataFrame(traj_rows).to_parquet(tmp, index=False)
+        os.replace(tmp, traj_path)
 
-    return len(summary_rows), len(traj_rows)
+    if skipped:
+        print(f"  WARNING: {skipped}/{skipped + len(summary_rows)} run files "
+              f"in {itr_dir} could not be parsed")
+
+    return len(summary_rows), len(traj_rows), skipped
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +209,7 @@ def main():
 
     total_runs = 0
     total_traj_rows = 0
+    total_skipped = 0
     errors = 0
 
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
@@ -211,20 +223,24 @@ def main():
             d = futures[future]
             rel = d.relative_to(results_dir)
             try:
-                n_runs, n_rows = future.result()
+                n_runs, n_rows, n_skipped = future.result()
                 total_runs += n_runs
                 total_traj_rows += n_rows
+                total_skipped += n_skipped
                 if n_runs == 0 and args.skip_existing:
                     print(f"[{i}/{len(itr_dirs)}] SKIPPED  {rel}")
                 else:
                     traj_str = f", {n_rows:,} traj rows" if include_trajectories else ""
-                    print(f"[{i}/{len(itr_dirs)}] OK       {rel}: {n_runs:,} runs{traj_str}")
+                    skip_str = f" ({n_skipped} failed)" if n_skipped else ""
+                    print(f"[{i}/{len(itr_dirs)}] OK       {rel}: {n_runs:,} runs{traj_str}{skip_str}")
             except Exception as exc:
                 errors += 1
                 print(f"[{i}/{len(itr_dirs)}] ERROR    {rel}: {exc}")
 
     print()
     print(f"Done. {total_runs:,} runs consolidated, {total_traj_rows:,} trajectory rows total.")
+    if total_skipped:
+        print(f"  {total_skipped} run files could not be parsed (see warnings above).")
     if errors:
         print(f"  {errors} directories had errors.")
 
