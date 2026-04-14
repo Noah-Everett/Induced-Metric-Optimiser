@@ -120,7 +120,8 @@ class SweepLogger:
                     if key not in columns:
                         columns.append(key)
 
-            with open(self._run_file, "w", newline="") as f:
+            tmp_file = Path(str(self._run_file) + ".tmp")
+            with open(tmp_file, "w", newline="") as f:
                 # Line 1: metadata as JSON comment
                 f.write("# " + json.dumps(metadata, default=_json_default) + "\n")
                 # CSV body
@@ -128,6 +129,7 @@ class SweepLogger:
                 writer.writeheader()
                 for row in self._history:
                     writer.writerow({k: _format_value(row.get(k)) for k in columns})
+            os.replace(tmp_file, self._run_file)
 
     @property
     def config(self):
@@ -256,12 +258,17 @@ class SweepRunner:
         sweep_id = wandb.sweep(sweep_config, project=self.project)
         tags = [self.optimizer_name, self.task_tag,
                 f"run_{self.args.index}", self.args.search]
+        base_seed = getattr(self.args, 'seed', 42)
+        _run_counter = 0
 
         def _agent_fn():
+            nonlocal _run_counter
             logger = SweepLogger("wandb", project=self.project, tags=tags)
             logger.init_run()
             config = dict(wandb.config)
-            seed = np.random.randint(1, 1_000_000)
+            trial_rng = np.random.RandomState(base_seed + _run_counter)
+            seed = int(trial_rng.randint(1, 1_000_000))
+            _run_counter += 1
             start = time.time()
             results = train_fn(config, seed, logger)
             elapsed = time.time() - start
@@ -350,19 +357,20 @@ class SweepRunner:
             run_offset = getattr(self.args, 'run_offset', 0)
             logger = SweepLogger("local", local_dir=local_dir, run_index=run_offset + trial.number, trial=trial)
             logger.init_run(config)
-            seed = np.random.randint(1, 1_000_000)
+            trial_rng = np.random.RandomState(seed + trial.number)
+            training_seed = int(trial_rng.randint(1, 1_000_000))
             start = time.time()
             try:
-                results = train_fn(config, seed, logger)
+                results = train_fn(config, training_seed, logger)
             except optuna.TrialPruned:
                 # Trial was pruned - still save partial results
-                logger.finish({"pruned": True, "seed": seed})
+                logger.finish({"pruned": True, "seed": training_seed})
                 raise
             elapsed = time.time() - start
             summary = {
                 "total_training_time_sec": elapsed,
                 "total_training_time_min": elapsed / 60,
-                "seed": seed,
+                "seed": training_seed,
                 "optimizer": self.optimizer_name,
             }
             summary.update(results.get("summary", {}))
