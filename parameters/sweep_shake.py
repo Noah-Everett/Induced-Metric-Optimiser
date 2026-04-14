@@ -261,6 +261,7 @@ def train(config, seed, logger):
                 args.optimiser, opt_state, params,
                 grads=dg, updates=du, loss=dl,
                 config=full_config, prev_loss=prev_diag_loss,
+                h_diag=dh if use_hvp else None,
             )
             prev_diag_loss = dl
 
