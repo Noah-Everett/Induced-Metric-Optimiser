@@ -38,10 +38,22 @@ for opt in optimizers:
             meta = json.loads(fh.readline().lstrip('# '))
             rows = list(csv.DictReader(fh))
         s = meta.get('summary', {})
-        last = rows[-1] if rows else {}
+        # Parse per-epoch data for convergence analysis
+        epochs = []
+        for row in rows:
+            ep = {}
+            try: ep['epoch'] = int(float(row.get('epoch', -1)))
+            except: continue
+            for k in ('test_acc', 'train_loss', 'test_mse', 'train_mse'):
+                if k in row and row[k]:
+                    try: ep[k] = float(row[k])
+                    except: pass
+            epochs.append(ep)
         records.append({
             'time': s.get('total_training_time_sec', 0),
             'acc': s.get('final_max_val_acc', 0),
+            'loss': s.get('final_min_val_loss', None),
+            'epochs': epochs,
         })
     data[opt] = records
 
@@ -93,7 +105,120 @@ for label, recs in sorted(data.items()):
     print(f'    acc:  {accs_str}')
     print(f'    time: {times_str}')
 
-# --- Cost-adjusted comparison (accuracy per GPU-hour) ---
+# --- Convergence speed: epochs to reach target accuracy ---
+print()
+print('--- Convergence speed (median epochs to target, best 100 trials) ---')
+
+# Detect metric: use test_acc if available, else test_mse
+has_acc = any(
+    any('test_acc' in ep for ep in r['epochs'])
+    for recs in data.values() for r in recs
+)
+
+if has_acc:
+    targets = [0.90, 0.95, 0.97]
+    metric_key = 'test_acc'
+    metric_name = 'accuracy'
+    higher_better = True
+else:
+    # Regression: use test_mse, lower is better
+    # Pick targets based on observed range
+    all_losses = [r['loss'] for recs in data.values() for r in recs
+                  if r['loss'] is not None]
+    if all_losses:
+        best_loss = min(all_losses)
+        targets = [best_loss * 10, best_loss * 3, best_loss * 1.5]
+        targets = [round(t, 4) for t in targets]
+    else:
+        targets = []
+    metric_key = 'test_mse'
+    metric_name = 'test_mse'
+    higher_better = False
+
+if targets:
+    header = '{:<25s}'.format('optimizer')
+    for t in targets:
+        if has_acc:
+            header += f'  {\"ep@\"+str(t):>10s}'
+        else:
+            header += f'  {\"ep@\"+str(t):>12s}'
+    print(f'  metric: {metric_name} ({\">=\" if higher_better else \"<=\"} target)')
+    print(f'  using best 100 trials by final metric')
+    print()
+    print(f'  {header}')
+    print(f'  ' + '-' * len(header))
+
+    for label, recs in sorted(data.items()):
+        # Take best 100 trials
+        if higher_better:
+            top = sorted(recs, key=lambda r: r['acc'], reverse=True)[:100]
+        else:
+            top = sorted(recs, key=lambda r: r['loss'] if r['loss'] is not None else 1e10)[:100]
+
+        row = f'{label:<25s}'
+        for target in targets:
+            epochs_to_target = []
+            for r in top:
+                found = None
+                for ep in r['epochs']:
+                    val = ep.get(metric_key)
+                    if val is None:
+                        continue
+                    if (higher_better and val >= target) or (not higher_better and val <= target):
+                        found = ep['epoch']
+                        break
+                if found is not None:
+                    epochs_to_target.append(found)
+
+            if epochs_to_target:
+                med = sorted(epochs_to_target)[len(epochs_to_target)//2]
+                frac = len(epochs_to_target)
+                row += f'  {med:>4d} ({frac:>3d})'
+            else:
+                row += f'  {\"never\":>10s}'
+        print(f'  {row}')
+
+    print()
+    print(f'  Format: median_epoch (num_trials_reaching_target out of top 100)')
+
+# --- HP robustness: fraction reaching thresholds ---
+print()
+print('--- HP robustness (fraction of ALL trials reaching target) ---')
+
+if has_acc:
+    thresholds = [0.90, 0.95, 0.97]
+    header = '{:<25s} {:>5s}'.format('optimizer', 'n')
+    for t in thresholds:
+        header += f'  {\">=\" + str(t):>8s}'
+    print(f'  {header}')
+    print(f'  ' + '-' * len(header))
+
+    for label, recs in sorted(data.items()):
+        n = len(recs)
+        row = f'{label:<25s} {n:>5d}'
+        for t in thresholds:
+            count = sum(1 for r in recs if r['acc'] >= t)
+            pct = count / n * 100 if n > 0 else 0
+            row += f'  {pct:>7.1f}%'
+        print(f'  {row}')
+else:
+    if targets:
+        header = '{:<25s} {:>5s}'.format('optimizer', 'n')
+        for t in targets:
+            header += f'  {\"<=\" + str(t):>10s}'
+        print(f'  {header}')
+        print(f'  ' + '-' * len(header))
+
+        for label, recs in sorted(data.items()):
+            n = len(recs)
+            row = f'{label:<25s} {n:>5d}'
+            for t in targets:
+                count = sum(1 for r in recs if r['loss'] is not None and r['loss'] <= t)
+                pct = count / n * 100 if n > 0 else 0
+                row += f'  {pct:>9.1f}%'
+            print(f'  {row}')
+
+# --- Efficiency: trials per GPU-hour ---
 print()
 print('--- Efficiency: trials per GPU-hour at median speed ---')
 for label, recs in sorted(data.items()):
