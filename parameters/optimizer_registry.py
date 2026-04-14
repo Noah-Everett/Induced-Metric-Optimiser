@@ -371,6 +371,7 @@ def create_optimizer(name, config):
             weight_decay=config.get("weight_decay", 0.0),
             metric_clip=config.get("metric_clip", 4.0),
             hess_eps=config.get("hess_eps", 1e-6),
+            xi=config.get("xi", 0.0),
         )
 
     if name.startswith("sgd_offdiag_"):
@@ -552,6 +553,7 @@ def get_sweep_parameters(name, overrides=None):
             "weight_decay": _param("weight_decay"),
             "metric_clip": _param("metric_clip"),
             "hess_eps": _param("hess_eps", default_fixed=1e-6),
+            "xi": _param("xi", default_fixed=0.0),
         }
 
     if name.startswith("sgd_offdiag_"):
@@ -724,6 +726,7 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "weight_decay": _suggest("weight_decay"),
             "metric_clip": _suggest("metric_clip"),
             "hess_eps": _suggest("hess_eps", default_fixed=1e-6),
+            "xi": _suggest("xi", default_fixed=0.0),
         }
 
     if name.startswith("sgd_offdiag_"):

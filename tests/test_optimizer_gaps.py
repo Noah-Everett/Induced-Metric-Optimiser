@@ -41,6 +41,13 @@ def test_init_validation_zero_hess_eps():
         DerivedNewtonDiag([w], hess_eps=0.0)
 
 
+def test_init_validation_negative_xi():
+    from optimisers.torch_derived_newton_diag import DerivedNewtonDiag
+    w = torch.randn(3, requires_grad=True)
+    with pytest.raises(ValueError, match="xi"):
+        DerivedNewtonDiag([w], xi=-0.1)
+
+
 @pytest.mark.parametrize("momentum", [0.0, 0.5, 0.99])
 def test_init_validation_valid_momentum(momentum):
     from optimisers.torch_derived_newton_diag import DerivedNewtonDiag

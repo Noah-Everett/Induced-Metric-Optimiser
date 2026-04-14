@@ -494,6 +494,61 @@ def test_nested_pytree():
     print("PASS: nested pytree")
 
 
+# ---- Test 16: xi=0 backward compatibility ----
+
+def test_xi_zero_backward_compat():
+    """Explicit xi=0.0 should produce identical results to the default (no xi arg)."""
+    a, b = 5.0, 0.5
+    grad_fn = jax.jit(jax.grad(lambda p: a * p[0]**2 + b * p[1]**2))
+    h_diag_fn = lambda p: jnp.array([2.0 * a, 2.0 * b])
+    p0 = jnp.array([1.0, 1.0])
+    hparams = dict(learning_rate=0.01, momentum=0.9, beta_s=0.1, metric_clip=4.0)
+
+    _, params_default = run_optimizer_hvp(
+        derived_newton_diag(**hparams), p0, grad_fn, h_diag_fn, 50,
+    )
+    _, params_xi0 = run_optimizer_hvp(
+        derived_newton_diag(**hparams, xi=0.0), p0, grad_fn, h_diag_fn, 50,
+    )
+
+    diff = float(jnp.max(jnp.abs(params_default - params_xi0)))
+    print(f"[xi=0 compat] max diff = {diff:.2e}")
+    assert diff < 1e-10, f"xi=0 should be identical to default, got diff={diff}"
+    print("PASS: xi=0 backward compatibility")
+
+
+# ---- Test 17: xi>0 denominator effect ----
+
+def test_xi_denominator_effect():
+    """With xi>0, updates should be smaller due to the denominator > 1.
+
+    Setup: h_diag=[2,2], params=[1,1], s=[0,0] (step 0).
+    E_w[lambda] = sum(h^2 * p^2 * exp(s)) / sum(h * p^2) = (4+4)/(2+2) = 2.
+    With xi=2: r = 1/(1 + 1*2) = 1/3.
+    So updates with xi=2 should be ~1/3 of updates with xi=0.
+    """
+    h_diag_fn = lambda p: jnp.array([2.0, 2.0])
+    grad_fn = lambda p: jnp.array([0.1, 0.1])
+    p0 = jnp.array([1.0, 1.0])
+    hparams = dict(learning_rate=0.01, momentum=0.0, beta_s=0.0, metric_clip=4.0)
+
+    opt_no_xi = derived_newton_diag(**hparams, xi=0.0)
+    st0 = opt_no_xi.init(p0)
+    updates_no_xi, _ = opt_no_xi.update(grad_fn(p0), st0, h_diag_fn(p0), params=p0)
+
+    opt_xi = derived_newton_diag(**hparams, xi=2.0)
+    st_xi = opt_xi.init(p0)
+    updates_xi, _ = opt_xi.update(grad_fn(p0), st_xi, h_diag_fn(p0), params=p0)
+
+    ratio = float(jnp.abs(updates_xi[0]) / jnp.abs(updates_no_xi[0]))
+    expected_ratio = 1.0 / 3.0  # r = 1/(1 + (2/2)*2) = 1/3
+    print(f"[xi denominator] ratio={ratio:.6f}, expected={expected_ratio:.6f}")
+    assert abs(ratio - expected_ratio) < 1e-5, (
+        f"Update ratio should be ~{expected_ratio}, got {ratio}"
+    )
+    print("PASS: xi denominator effect")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Derived Newton-targeted optimizer functional tests")
@@ -528,6 +583,10 @@ if __name__ == "__main__":
     test_three_groups()
     print()
     test_nested_pytree()
+    print()
+    test_xi_zero_backward_compat()
+    print()
+    test_xi_denominator_effect()
     print()
     print("=" * 60)
     print("ALL TESTS PASSED")

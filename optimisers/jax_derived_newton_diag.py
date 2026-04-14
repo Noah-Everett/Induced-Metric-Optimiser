@@ -13,7 +13,8 @@ preconditioner, robust to multiplicative estimation error, and eliminates the
 xi/denominator/metric_ema machinery (xi=0, r=1).
 
 Provided optimiser:
-- derived_newton_diag:  Plain embedding f(L)=L with Hutchinson-driven metric
+- derived_newton_diag:  Plain embedding f(L)=L by default (xi=0).  With xi>0,
+  activates the sqrt(L) embedding denominator for O(log kappa) scaling.
 
 The update() signature takes h_diag (Hutchinson Hessian diagonal estimate)
 as an extra positional arg, analogous to how log-loss variants take 'loss':
@@ -28,6 +29,8 @@ References:
 - IMO-85: Robustness theorem (Hutchinson over secant)
 - IMO-86: xi=0 optimality
 - IMO-87: Plain embedding non-interference
+- IMO-134: sqrt(L) embedding theory
+- IMO-138: sqrt(L) embedding implementation
 """
 
 from typing import NamedTuple, Any
@@ -234,13 +237,20 @@ def derived_newton_diag(
     weight_decay: float = 0.0,
     metric_clip: float = 4.0,
     hess_eps: float = 1e-6,
+    xi: float = 0.0,
 ) -> optax.GradientTransformation:
     """
     Derived Newton-targeted diagonal optimizer.
 
     The inverse metric diag(exp(s)) is driven towards the Newton target
     s_i* = -log H_ii via an EMA of Hutchinson Hessian diagonal estimates.
-    No xi, no denominator, no metric parameterisation variants.
+
+    With xi=0 (default), uses the plain embedding f(L)=L with no denominator.
+    With xi>0, activates the sqrt(L) embedding: the update is scaled by
+    1/(1 + (xi/2)*E_w[lambda]) where E_w[lambda] is the loss-contribution-
+    weighted mean preconditioned eigenvalue.  This provides automatic step
+    size adaptation from ~1/h_max (transient) to ~1/h_geo (equilibrium),
+    achieving O(log kappa) convergence.  See IMO-134, IMO-138.
 
     The update function takes ``h_diag`` (Hutchinson diagonal estimate)
     as a positional argument::
@@ -257,6 +267,9 @@ def derived_newton_diag(
         weight_decay: Decoupled weight decay.
         metric_clip: Symmetric clip bound c for s after mean-centering.
         hess_eps: Floor for max(h_diag, eps) before taking log.
+        xi: Strength of the sqrt(L) embedding denominator.  With xi=0
+            (default), the optimizer uses the plain f(L)=L embedding.
+            With xi>0, requires ``params`` to be passed.
     """
     neg_lr = -learning_rate
     one_minus_momentum = 1.0 - momentum
@@ -296,14 +309,40 @@ def derived_newton_diag(
             new_momentum,
         )
 
-        # --- Preconditioned step (xi=0 => r=1) ---
+        # --- Preconditioned step ---
         m_tilde = _apply_diag(new_log_diag, m_corr)
 
+        # --- sqrt(L) denominator (xi > 0) ---
+        if xi > 0.0:
+            h_clamped = jax.tree.map(
+                lambda h: jnp.maximum(h, hess_eps), h_diag,
+            )
+            numer = jax.tree.reduce(
+                lambda acc, x: acc + jnp.sum(x),
+                jax.tree.map(
+                    lambda h, p, s: h**2 * p**2 * jnp.exp(s),
+                    h_clamped, params, new_log_diag,
+                ),
+                initializer=jnp.array(0.0),
+            )
+            denom_sum = jax.tree.reduce(
+                lambda acc, x: acc + jnp.sum(x),
+                jax.tree.map(
+                    lambda h, p: h * p**2,
+                    h_clamped, params,
+                ),
+                initializer=jnp.array(0.0),
+            )
+            e_w_lambda = numer / jnp.maximum(denom_sum, hess_eps)
+            r = 1.0 / (1.0 + (xi / 2.0) * e_w_lambda)
+        else:
+            r = 1.0
+
         if params is None:
-            updates = jax.tree.map(lambda mt: neg_lr * mt, m_tilde)
+            updates = jax.tree.map(lambda mt: neg_lr * r * mt, m_tilde)
         else:
             updates = jax.tree.map(
-                lambda mt, p: neg_lr * mt - learning_rate * weight_decay * p,
+                lambda mt, p: neg_lr * r * mt - learning_rate * weight_decay * p,
                 m_tilde, params,
             )
 

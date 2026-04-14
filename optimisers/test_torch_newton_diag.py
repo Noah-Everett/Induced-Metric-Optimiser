@@ -155,6 +155,77 @@ def test_mixed_requires_grad():
     print("PASS: mixed requires_grad (PyTorch)")
 
 
+# ---- Test 6: xi=0 backward compatibility ----
+
+def test_xi_zero_backward_compat():
+    """Explicit xi=0.0 should produce identical results to the default."""
+    torch.manual_seed(42)
+    w = torch.randn(4, 3, requires_grad=True)
+    w_data = w.data.clone()
+
+    # Run with default (no xi arg)
+    w_default = w_data.clone().requires_grad_(True)
+    opt_default = DerivedNewtonDiag(
+        [w_default], lr=0.01, momentum=0.9, beta_s=0.1,
+    )
+    h_diag = [torch.abs(torch.randn(4, 3)) + 0.1]
+    grads = [torch.randn(4, 3) * 0.1 for _ in range(20)]
+    for i in range(20):
+        w_default.grad = grads[i].clone()
+        opt_default.step(h_diag=h_diag)
+
+    # Run with explicit xi=0.0
+    w_xi0 = w_data.clone().requires_grad_(True)
+    opt_xi0 = DerivedNewtonDiag(
+        [w_xi0], lr=0.01, momentum=0.9, beta_s=0.1, xi=0.0,
+    )
+    for i in range(20):
+        w_xi0.grad = grads[i].clone()
+        opt_xi0.step(h_diag=h_diag)
+
+    diff = float((w_default.data - w_xi0.data).abs().max())
+    print(f"[xi=0 compat] max diff = {diff:.2e}")
+    assert diff < 1e-10, f"xi=0 should be identical to default, got diff={diff}"
+    print("PASS: xi=0 backward compatibility (PyTorch)")
+
+
+# ---- Test 7: xi>0 denominator effect ----
+
+def test_xi_denominator_effect():
+    """With xi>0, updates should be smaller due to the denominator > 1."""
+    # Single step, momentum=0, beta_s=0 (s stays at 0, exp(s)=1)
+    # h=[2,2], p=[1,1] => E_w[lambda] = (4+4)/(2+2) = 2
+    # xi=2 => r = 1/(1 + 1*2) = 1/3
+    p_no_xi = torch.tensor([1.0, 1.0], requires_grad=True)
+    p_xi = torch.tensor([1.0, 1.0], requires_grad=True)
+
+    opt_no_xi = DerivedNewtonDiag(
+        [p_no_xi], lr=0.01, momentum=0.0, beta_s=0.0, xi=0.0,
+    )
+    opt_xi = DerivedNewtonDiag(
+        [p_xi], lr=0.01, momentum=0.0, beta_s=0.0, xi=2.0,
+    )
+
+    g = torch.tensor([0.1, 0.1])
+    h = [torch.tensor([2.0, 2.0])]
+
+    p_no_xi.grad = g.clone()
+    opt_no_xi.step(h_diag=h)
+    delta_no_xi = (p_no_xi.data - torch.tensor([1.0, 1.0])).abs()
+
+    p_xi.grad = g.clone()
+    opt_xi.step(h_diag=h)
+    delta_xi = (p_xi.data - torch.tensor([1.0, 1.0])).abs()
+
+    ratio = float(delta_xi[0] / delta_no_xi[0])
+    expected_ratio = 1.0 / 3.0
+    print(f"[xi denominator] ratio={ratio:.6f}, expected={expected_ratio:.6f}")
+    assert abs(ratio - expected_ratio) < 1e-4, (
+        f"Update ratio should be ~{expected_ratio}, got {ratio}"
+    )
+    print("PASS: xi denominator effect (PyTorch)")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Derived Newton-targeted optimizer PyTorch tests")
@@ -169,6 +240,10 @@ if __name__ == "__main__":
     test_h_diag_none_fallback()
     print()
     test_mixed_requires_grad()
+    print()
+    test_xi_zero_backward_compat()
+    print()
+    test_xi_denominator_effect()
     print()
     print("=" * 60)
     print("ALL PYTORCH TESTS PASSED")

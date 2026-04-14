@@ -54,6 +54,7 @@ def run_parity(hparams, n_steps, label=""):
         [w1_t, b1_t], lr=hparams["learning_rate"], momentum=hparams["momentum"],
         beta_s=hparams["beta_s"], weight_decay=hparams["weight_decay"],
         metric_clip=hparams["metric_clip"], hess_eps=hparams["hess_eps"],
+        xi=hparams.get("xi", 0.0),
     )
     for i in range(n_steps):
         with torch.no_grad():
@@ -107,6 +108,15 @@ def main():
              weight_decay=0.1, metric_clip=4.0, hess_eps=1e-6),
         n_steps=25,
         label="high-wd",
+    )
+
+    # sqrt(L) embedding (xi > 0)
+    run_parity(
+        dict(learning_rate=0.01, momentum=0.9, beta_s=0.1,
+             weight_decay=0.01, metric_clip=4.0, hess_eps=1e-6,
+             xi=0.5),
+        n_steps=25,
+        label="sqrt-L-embedding",
     )
 
 

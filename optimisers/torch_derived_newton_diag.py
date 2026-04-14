@@ -28,6 +28,8 @@ References:
 - IMO-85: Robustness theorem (Hutchinson over secant)
 - IMO-86: xi=0 optimality
 - IMO-87: Plain embedding non-interference
+- IMO-134: sqrt(L) embedding theory
+- IMO-138: sqrt(L) embedding implementation
 """
 
 from __future__ import annotations
@@ -82,7 +84,11 @@ class DerivedNewtonDiag(Optimizer):
 
     The inverse metric diag(exp(s)) is driven towards the Newton target
     s_i* = -log H_ii via an EMA of Hutchinson Hessian diagonal estimates.
-    No xi, no denominator, no metric parameterisation variants.
+
+    With xi=0 (default), uses the plain embedding f(L)=L with no denominator.
+    With xi>0, activates the sqrt(L) embedding: the update is scaled by
+    1/(1 + (xi/2)*E_w[lambda]) where E_w[lambda] is the loss-contribution-
+    weighted mean preconditioned eigenvalue.  See IMO-134, IMO-138.
 
     The ``step()`` method takes ``h_diag`` (list of tensors matching parameter
     shapes) as a keyword argument::
@@ -99,6 +105,8 @@ class DerivedNewtonDiag(Optimizer):
         weight_decay: Decoupled weight decay.
         metric_clip: Symmetric clip bound for s after mean-centering.
         hess_eps: Floor for max(h_diag, eps) before taking log.
+        xi: Strength of the sqrt(L) embedding denominator.  With xi=0
+            (default), the optimizer uses the plain f(L)=L embedding.
     """
 
     def __init__(
@@ -110,6 +118,7 @@ class DerivedNewtonDiag(Optimizer):
         weight_decay: float = 0.0,
         metric_clip: float = 4.0,
         hess_eps: float = 1e-6,
+        xi: float = 0.0,
     ):
         if not 0.0 <= momentum < 1.0:
             raise ValueError(f"momentum must be in [0, 1), got {momentum}")
@@ -121,6 +130,8 @@ class DerivedNewtonDiag(Optimizer):
             raise ValueError(f"weight_decay must be non-negative, got {weight_decay}")
         if hess_eps <= 0.0:
             raise ValueError(f"hess_eps must be positive, got {hess_eps}")
+        if xi < 0.0:
+            raise ValueError(f"xi must be non-negative, got {xi}")
         defaults = dict(
             lr=lr,
             momentum=momentum,
@@ -128,6 +139,7 @@ class DerivedNewtonDiag(Optimizer):
             weight_decay=weight_decay,
             metric_clip=metric_clip,
             hess_eps=hess_eps,
+            xi=xi,
         )
         super().__init__(params, defaults)
 
@@ -174,6 +186,7 @@ class DerivedNewtonDiag(Optimizer):
             weight_decay = group['weight_decay']
             clip = abs(group['metric_clip'])
             hess_eps = group['hess_eps']
+            xi = group['xi']
             lo, hi = -clip, clip
 
             grad_params = [p for p in group['params'] if p.requires_grad]
@@ -194,12 +207,33 @@ class DerivedNewtonDiag(Optimizer):
                 if h_diag is not None:
                     h = h_diag[h_idx]
                     h_idx += 1
-                    target = -torch.log(torch.clamp(h, min=hess_eps))
+                    h_clamped = torch.clamp(h, min=hess_eps)
+                    target = -torch.log(h_clamped)
                     s.mul_(1.0 - beta_s).add_(beta_s * target)
+                    st['h_clamped'] = h_clamped
                 # mean-centre per tensor
                 s.add_(-s.mean())
                 # clip
                 s.clamp_(min=lo, max=hi)
+
+            # --- sqrt(L) denominator (xi > 0) ---
+            if xi > 0.0:
+                numer = 0.0
+                denom_sum = 0.0
+                for p in grad_params:
+                    if p.grad is None:
+                        continue
+                    st = self.state[p]
+                    h_c = st.get('h_clamped')
+                    if h_c is None:
+                        continue
+                    s = st['log_diag']
+                    numer += (h_c**2 * p.data**2 * torch.exp(s)).sum().item()
+                    denom_sum += (h_c * p.data**2).sum().item()
+                e_w_lambda = numer / max(denom_sum, hess_eps)
+                r = 1.0 / (1.0 + (xi / 2.0) * e_w_lambda)
+            else:
+                r = 1.0
 
             # --- Momentum with bias correction ---
             for p in grad_params:
@@ -212,14 +246,14 @@ class DerivedNewtonDiag(Optimizer):
                 buf.mul_(mom).add_((1.0 - mom) * p.grad)
                 m_corr = buf / (1.0 - mom ** step)
 
-                # Preconditioned step (xi=0 => r=1)
+                # Preconditioned step
                 m_tilde = torch.exp(s) * m_corr
 
                 if weight_decay != 0.0:
                     p_orig = p.data.clone()
-                    p.add_(-lr * m_tilde)
+                    p.add_(-lr * r * m_tilde)
                     p.add_(-lr * weight_decay * p_orig)
                 else:
-                    p.add_(-lr * m_tilde)
+                    p.add_(-lr * r * m_tilde)
 
         return loss_val
