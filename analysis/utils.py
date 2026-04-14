@@ -41,6 +41,7 @@ _SUMMARY_KEYS = frozenset({
     # best-epoch / best-metric keys used by 2D histograms
     "final_max_acc_epoch", "final_max_val_acc",
     "final_min_perp_epoch", "final_min_val_perplexity",
+    "final_min_loss_epoch", "final_min_val_loss",
 })
 
 # ---------------------------------------------------------------------------
