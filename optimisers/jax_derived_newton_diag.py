@@ -42,6 +42,9 @@ from optimisers.jax_diag_utils import clip as _clip
 
 # ---- Hutchinson helper ------------------------------------------------------
 
+_SMALL_LEAF_THRESHOLD = 1024
+
+
 def _rademacher_like(rng_key, params):
     """Generate a Rademacher (+/-1) pytree matching the structure of params."""
     leaves, treedef = jax.tree.flatten(params)
@@ -53,12 +56,48 @@ def _rademacher_like(rng_key, params):
     return treedef.unflatten(v_leaves)
 
 
-def hutchinson_hvp_diag(loss_fn, params, rng_key):
-    """Estimate Hessian diagonal via Hutchinson's method with Rademacher vectors.
+def _group_leaves(leaves, threshold=_SMALL_LEAF_THRESHOLD):
+    """Partition leaf indices into groups for per-leaf Hutchinson estimation.
 
-    Uses forward-over-reverse AD: a single ``jax.jvp(jax.grad(loss_fn), ...)``
-    call gives both the gradient and the Hessian-vector product.  Total cost is
-    approximately 2x a single gradient evaluation.
+    Large leaves (numel > threshold) get their own group.
+    Small leaves are batched together into shared groups.
+    """
+    n = len(leaves)
+    if n <= 1:
+        return [list(range(n))]
+
+    large_groups = []
+    small_batch = []
+    small_size = 0
+
+    for i, leaf in enumerate(leaves):
+        if leaf.size > threshold:
+            large_groups.append([i])
+        else:
+            small_batch.append(i)
+            small_size += leaf.size
+            if small_size > threshold:
+                large_groups.append(small_batch)
+                small_batch = []
+                small_size = 0
+
+    if small_batch:
+        large_groups.append(small_batch)
+
+    return large_groups
+
+
+def hutchinson_hvp_diag(loss_fn, params, rng_key):
+    """Estimate Hessian diagonal via per-leaf Hutchinson's method.
+
+    Loops over leaf groups, generating a Rademacher vector for each group
+    (zeros for leaves outside the group) and computing the HVP.  This
+    eliminates cross-leaf off-diagonal noise from the estimate while
+    remaining unbiased: ``E[h_diag_i] = H_ii`` exactly.
+
+    Uses forward-over-reverse AD: ``jax.jvp(jax.grad(loss_fn), ...)``
+    per group.  Total cost is approximately ``2 * n_groups`` gradient
+    evaluations.
 
     Parameters
     ----------
@@ -80,21 +119,42 @@ def hutchinson_hvp_diag(loss_fn, params, rng_key):
     inside a ``@jax.jit``-compiled training step rather than from plain
     Python.
     """
-    v = _rademacher_like(rng_key, params)
-    _, hvp = jax.jvp(jax.grad(loss_fn), (params,), (v,))
-    return jax.tree.map(lambda vi, hi: vi * hi, v, hvp)
+    leaves, treedef = jax.tree.flatten(params)
+    groups = _group_leaves(leaves)
+    keys = jax.random.split(rng_key, len(leaves))
+    rademacher = [
+        2.0 * jax.random.bernoulli(keys[i], 0.5, leaves[i].shape).astype(
+            leaves[i].dtype) - 1.0
+        for i in range(len(leaves))
+    ]
+
+    h_diag_leaves = [jnp.zeros_like(l) for l in leaves]
+    grad_fn = jax.grad(loss_fn)
+
+    for group in groups:
+        v_list = [jnp.zeros_like(l) for l in leaves]
+        for idx in group:
+            v_list[idx] = rademacher[idx]
+        v = treedef.unflatten(v_list)
+
+        _, hvp = jax.jvp(grad_fn, (params,), (v,))
+        hvp_leaves = jax.tree.flatten(hvp)[0]
+
+        for idx in group:
+            h_diag_leaves[idx] = rademacher[idx] * hvp_leaves[idx]
+
+    return treedef.unflatten(h_diag_leaves)
 
 
 def loss_grad_and_hvp_diag(loss_fn, params, rng_key):
-    """Compute loss, gradient, and Hutchinson Hessian diagonal in one pass.
+    """Compute loss, gradient, and per-leaf Hutchinson Hessian diagonal.
 
-    Fuses ``jax.value_and_grad`` with the Hutchinson HVP by calling
-    ``jax.jvp(jax.value_and_grad(loss_fn), ...)``.  This avoids the
-    redundant backward pass that occurs when ``value_and_grad`` and
-    ``hutchinson_hvp_diag`` are called separately.
+    The first leaf group uses ``jax.jvp(jax.value_and_grad(...))`` to
+    obtain loss and grads fused with the first HVP.  Remaining groups
+    use ``jax.jvp(jax.grad(...))`` for their HVPs only, avoiding
+    redundant loss/grad computation.
 
-    Total cost is approximately 2x a single gradient evaluation (same as
-    :func:`hutchinson_hvp_diag` alone).
+    Total cost is approximately ``2 * n_groups`` gradient evaluations.
 
     Parameters
     ----------
@@ -114,12 +174,46 @@ def loss_grad_and_hvp_diag(loss_fn, params, rng_key):
     h_diag : pytree
         Estimated Hessian diagonal (same structure as params).
     """
-    v = _rademacher_like(rng_key, params)
+    leaves, treedef = jax.tree.flatten(params)
+    groups = _group_leaves(leaves)
+    keys = jax.random.split(rng_key, len(leaves))
+    rademacher = [
+        2.0 * jax.random.bernoulli(keys[i], 0.5, leaves[i].shape).astype(
+            leaves[i].dtype) - 1.0
+        for i in range(len(leaves))
+    ]
+
+    h_diag_leaves = [jnp.zeros_like(l) for l in leaves]
+
+    # First group: fuse loss + grads with HVP
+    first_group = groups[0]
+    v_list = [jnp.zeros_like(l) for l in leaves]
+    for idx in first_group:
+        v_list[idx] = rademacher[idx]
+    v = treedef.unflatten(v_list)
+
     (loss, grads), (_, hvp) = jax.jvp(
         jax.value_and_grad(loss_fn), (params,), (v,)
     )
-    h_diag = jax.tree.map(lambda vi, hi: vi * hi, v, hvp)
-    return loss, grads, h_diag
+    hvp_leaves = jax.tree.flatten(hvp)[0]
+    for idx in first_group:
+        h_diag_leaves[idx] = rademacher[idx] * hvp_leaves[idx]
+
+    # Remaining groups: grad-only JVP
+    grad_fn = jax.grad(loss_fn)
+    for group in groups[1:]:
+        v_list = [jnp.zeros_like(l) for l in leaves]
+        for idx in group:
+            v_list[idx] = rademacher[idx]
+        v = treedef.unflatten(v_list)
+
+        _, hvp = jax.jvp(grad_fn, (params,), (v,))
+        hvp_leaves = jax.tree.flatten(hvp)[0]
+
+        for idx in group:
+            h_diag_leaves[idx] = rademacher[idx] * hvp_leaves[idx]
+
+    return loss, grads, treedef.unflatten(h_diag_leaves)
 
 
 # ---- state container --------------------------------------------------------

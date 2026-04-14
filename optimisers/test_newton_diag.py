@@ -21,6 +21,8 @@ jax.config.update("jax_enable_x64", True)
 from optimisers.jax_derived_newton_diag import (
     derived_newton_diag,
     hutchinson_hvp_diag,
+    loss_grad_and_hvp_diag,
+    _group_leaves,
     DerivedNewtonDiagState,
 )
 
@@ -226,6 +228,272 @@ def test_params_none():
     print("PASS: params=None path")
 
 
+# ---- Test 8: _group_leaves correctness ----
+
+def test_group_leaves():
+    """Verify _group_leaves partitions leaves correctly."""
+    # Single leaf -> single group
+    leaves_1 = [jnp.zeros(10)]
+    assert _group_leaves(leaves_1) == [[0]], "single leaf should be one group"
+
+    # All large -> each its own group
+    leaves_large = [jnp.zeros(2000), jnp.zeros(3000), jnp.zeros(5000)]
+    groups = _group_leaves(leaves_large)
+    assert len(groups) == 3
+    assert all(len(g) == 1 for g in groups)
+    print(f"[group_leaves] all-large: {groups}")
+
+    # All small -> bundled
+    leaves_small = [jnp.zeros(10), jnp.zeros(20), jnp.zeros(30)]
+    groups = _group_leaves(leaves_small)
+    assert len(groups) == 1
+    assert sorted(groups[0]) == [0, 1, 2]
+    print(f"[group_leaves] all-small: {groups}")
+
+    # Mixed -> large separate, small bundled
+    leaves_mixed = [jnp.zeros(5000), jnp.zeros(10), jnp.zeros(3000), jnp.zeros(20)]
+    groups = _group_leaves(leaves_mixed)
+    large_g = [g for g in groups if any(leaves_mixed[i].size > 1024 for i in g)]
+    small_g = [g for g in groups if all(leaves_mixed[i].size <= 1024 for i in g)]
+    assert len(large_g) == 2  # indices 0 and 2
+    assert len(small_g) == 1  # indices 1 and 3
+    print(f"[group_leaves] mixed: {groups}")
+
+    print("PASS: group_leaves")
+
+
+# ---- Test 9: Per-leaf Hutchinson on multi-group pytree ----
+
+def test_per_leaf_hutchinson_multi_group():
+    """Per-leaf Hutchinson with leaves in separate groups should match true diagonal.
+
+    Uses leaves > _SMALL_LEAF_THRESHOLD (1024) to ensure they get separate groups,
+    and a non-separable loss to verify cross-leaf noise is eliminated.
+    """
+    # L = ||w||^2 + 0.5*||u||^2 + w.sum()*u.sum()
+    # H_ww = 2*I, H_uu = I, H_wu = ones (dense cross-block)
+    # True diagonal: w -> 2.0, u -> 1.0
+    # Per-leaf zeroes the cross-block, so each sample is exact.
+    n_w, n_u = 2000, 1500  # both > 1024 -> separate groups
+    def loss_fn(p):
+        return jnp.sum(p["w"] ** 2) + 0.5 * jnp.sum(p["u"] ** 2) + p["w"].sum() * p["u"].sum()
+
+    params = {"u": jnp.ones(n_u), "w": jnp.ones(n_w)}
+    true_diag = {"u": jnp.ones(n_u), "w": 2.0 * jnp.ones(n_w)}
+
+    n_samples = 100
+    key = jax.random.PRNGKey(42)
+    h_sum = jax.tree.map(jnp.zeros_like, params)
+    for _ in range(n_samples):
+        key, subkey = jax.random.split(key)
+        h = hutchinson_hvp_diag(loss_fn, params, subkey)
+        h_sum = jax.tree.map(lambda a, b: a + b, h_sum, h)
+    h_mean = jax.tree.map(lambda s: s / n_samples, h_sum)
+
+    for k in params:
+        err = float(jnp.max(jnp.abs(h_mean[k] - true_diag[k])))
+        print(f"[multi-group Hutchinson] {k}: max_err={err:.2e}")
+        # Diagonal H within each leaf -> exact per sample -> tight tolerance
+        assert err < 1e-6, f"Leaf '{k}' mean too far from truth: err={err}"
+
+    print("PASS: per-leaf Hutchinson multi-group")
+
+
+# ---- Test 10: Per-leaf matches global for single-leaf params ----
+
+def test_per_leaf_matches_global_single_leaf():
+    """For a single flat array, per-leaf should produce identical results."""
+    loss_fn = lambda p: 3.0 * p[0]**2 + 7.0 * p[1]**2
+    params = jnp.array([1.0, 1.0])
+    key = jax.random.PRNGKey(99)
+
+    h = hutchinson_hvp_diag(loss_fn, params, key)
+    # With single leaf, per-leaf == global. Verify it's a valid estimate.
+    # For diagonal quadratic, each sample is exact.
+    true_diag = jnp.array([6.0, 14.0])
+    err = float(jnp.max(jnp.abs(h - true_diag)))
+    print(f"[single-leaf match] h={h}, err={err:.2e}")
+    assert err < 1e-10, f"Single leaf should be exact on diagonal quadratic: err={err}"
+    print("PASS: per-leaf matches global single-leaf")
+
+
+# ---- Test 11: loss_grad_and_hvp_diag with multiple groups ----
+
+def test_loss_grad_hvp_multi_group():
+    """loss_grad_and_hvp_diag with 2+ groups returns correct loss, grads, and h_diag.
+
+    Ensures the groups[1:] codepath (grad-only JVP) is exercised.
+    """
+    a, b = 5.0, 2.0
+    n_w, n_v = 2000, 1500  # both > 1024 -> separate groups
+    def loss_fn(p):
+        return a * jnp.sum(p["w"] ** 2) + b * jnp.sum(p["v"] ** 2)
+
+    params = {"v": jnp.ones(n_v), "w": jnp.ones(n_w)}
+    key = jax.random.PRNGKey(7)
+
+    loss, grads, h_diag = loss_grad_and_hvp_diag(loss_fn, params, key)
+
+    # Check loss
+    expected_loss = float(a * n_w + b * n_v)
+    print(f"[fused multi-group] loss={float(loss):.4f}, expected={expected_loss:.4f}")
+    assert abs(float(loss) - expected_loss) < 1e-3
+
+    # Check grads
+    assert float(jnp.max(jnp.abs(grads["w"] - 2.0 * a))) < 1e-6
+    assert float(jnp.max(jnp.abs(grads["v"] - 2.0 * b))) < 1e-6
+
+    # Check h_diag (separable diagonal quadratic -> exact per sample)
+    err_w = float(jnp.max(jnp.abs(h_diag["w"] - 2.0 * a)))
+    err_v = float(jnp.max(jnp.abs(h_diag["v"] - 2.0 * b)))
+    print(f"[fused multi-group] h_diag err: w={err_w:.2e}, v={err_v:.2e}")
+    assert err_w < 1e-6 and err_v < 1e-6
+
+    print("PASS: loss_grad_and_hvp_diag multi-group")
+
+
+# ---- Test 12: Fused vs separate consistency ----
+
+def test_fused_matches_separate():
+    """loss_grad_and_hvp_diag h_diag must match hutchinson_hvp_diag for same key."""
+    n_w, n_b = 2000, 1500
+    def loss_fn(p):
+        return jnp.sum(p["w"] ** 2) + 0.5 * jnp.sum(p["b"] ** 2) + p["w"].sum() * p["b"].sum()
+
+    params = {"b": jnp.ones(n_b), "w": jnp.ones(n_w)}
+    key = jax.random.PRNGKey(123)
+
+    h_separate = hutchinson_hvp_diag(loss_fn, params, key)
+    _, _, h_fused = loss_grad_and_hvp_diag(loss_fn, params, key)
+
+    for k in params:
+        diff = float(jnp.max(jnp.abs(h_separate[k] - h_fused[k])))
+        print(f"[fused vs separate] {k}: max_diff={diff:.2e}")
+        assert diff < 1e-10, f"h_diag should be identical for same key: {k} diff={diff}"
+
+    print("PASS: fused matches separate")
+
+
+# ---- Test 13: Variance reduction vs global baseline ----
+
+def test_variance_reduction():
+    """Per-leaf Hutchinson should have lower variance than global with cross-leaf coupling."""
+    # L = ||w||^2 + 0.5*||b||^2 + w.sum()*b.sum()
+    # H_ww = 2*I, H_bb = I, H_wb = ones (dense cross-block)
+    # Per-leaf: H_ww diagonal -> var = 0
+    # Global: cross-leaf off-diag ones contribute massive noise
+    n_w, n_b = 2000, 1500
+
+    def loss_fn(p):
+        return jnp.sum(p["w"] ** 2) + 0.5 * jnp.sum(p["b"] ** 2) + p["w"].sum() * p["b"].sum()
+
+    params = {"b": jnp.ones(n_b), "w": jnp.ones(n_w)}
+    key = jax.random.PRNGKey(42)
+
+    n_samples = 200
+    h_samples_w = []
+    for i in range(n_samples):
+        key, subkey = jax.random.split(key)
+        h = hutchinson_hvp_diag(loss_fn, params, subkey)
+        h_samples_w.append(h["w"][0])
+
+    h_arr = jnp.array(h_samples_w)
+    per_leaf_var = float(jnp.var(h_arr))
+    h_mean = float(jnp.mean(h_arr))
+
+    print(f"[variance reduction] per-leaf: mean={h_mean:.4f}, var={per_leaf_var:.6f}")
+    assert abs(h_mean - 2.0) < 0.1, f"Mean should be ~2.0, got {h_mean}"
+    assert per_leaf_var < 0.01, (
+        f"Per-leaf variance should be ~0 for diagonal H_ww block: {per_leaf_var}"
+    )
+
+    # Compare against global Hutchinson (single-group baseline)
+    from optimisers.jax_derived_newton_diag import _rademacher_like
+    key2 = jax.random.PRNGKey(42)
+    h_global_w = []
+    grad_fn = jax.grad(loss_fn)
+    for i in range(n_samples):
+        key2, subkey = jax.random.split(key2)
+        v = _rademacher_like(subkey, params)
+        _, hvp = jax.jvp(grad_fn, (params,), (v,))
+        h_global = jax.tree.map(lambda vi, hi: vi * hi, v, hvp)
+        h_global_w.append(h_global["w"][0])
+
+    global_arr = jnp.array(h_global_w)
+    global_var = float(jnp.var(global_arr))
+    print(f"[variance reduction] global:   mean={float(jnp.mean(global_arr)):.4f}, var={global_var:.4f}")
+    assert global_var > 100 * per_leaf_var, (
+        f"Global variance ({global_var}) should be >> per-leaf variance ({per_leaf_var})"
+    )
+
+    print("PASS: variance reduction")
+
+
+# ---- Test 14: Three leaf groups ----
+
+def test_three_groups():
+    """Per-leaf Hutchinson with 3 separate groups (2 large + 1 small batch)."""
+    n_w1, n_w2, n_b = 2000, 1500, 10  # w1, w2 separate; b small -> bundled
+    def loss_fn(p):
+        return (jnp.sum(p["w1"] ** 2) + 2.0 * jnp.sum(p["w2"] ** 2)
+                + 0.5 * jnp.sum(p["b"] ** 2)
+                + p["w1"].sum() * p["w2"].sum())  # cross-leaf coupling
+
+    params = {"b": jnp.ones(n_b), "w1": jnp.ones(n_w1), "w2": jnp.ones(n_w2)}
+    # True diag: w1 -> 2, w2 -> 4, b -> 1
+    true_diag = {"b": jnp.ones(n_b), "w1": 2.0 * jnp.ones(n_w1), "w2": 4.0 * jnp.ones(n_w2)}
+
+    # Verify grouping: should be 3 groups (b is small -> own group, w1 + w2 large)
+    leaves, _ = jax.tree.flatten(params)
+    groups = _group_leaves(leaves)
+    print(f"[three groups] groups={groups} (sizes: {[leaves[g[0]].size for g in groups]})")
+    assert len(groups) == 3, f"Expected 3 groups, got {len(groups)}"
+
+    n_samples = 100
+    key = jax.random.PRNGKey(77)
+    h_sum = jax.tree.map(jnp.zeros_like, params)
+    for _ in range(n_samples):
+        key, subkey = jax.random.split(key)
+        h = hutchinson_hvp_diag(loss_fn, params, subkey)
+        h_sum = jax.tree.map(lambda a, b: a + b, h_sum, h)
+    h_mean = jax.tree.map(lambda s: s / n_samples, h_sum)
+
+    for k in params:
+        err = float(jnp.max(jnp.abs(h_mean[k] - true_diag[k])))
+        print(f"[three groups] {k}: max_err={err:.2e}")
+        assert err < 1e-6, f"Leaf '{k}' mean too far from truth: err={err}"
+
+    print("PASS: three groups")
+
+
+# ---- Test 15: Nested pytree ----
+
+def test_nested_pytree():
+    """Per-leaf Hutchinson on a nested pytree preserves structure."""
+    n = 1500  # > 1024 -> separate groups
+    def loss_fn(p):
+        return jnp.sum(p["l1"]["w"] ** 2) + 2.0 * jnp.sum(p["l2"]["w"] ** 2)
+
+    params = {"l1": {"w": jnp.ones(n)}, "l2": {"w": jnp.ones(n)}}
+    key = jax.random.PRNGKey(55)
+
+    h = hutchinson_hvp_diag(loss_fn, params, key)
+    # Diagonal quadratic -> exact
+    err_l1 = float(jnp.max(jnp.abs(h["l1"]["w"] - 2.0)))
+    err_l2 = float(jnp.max(jnp.abs(h["l2"]["w"] - 4.0)))
+    print(f"[nested pytree] l1/w err={err_l1:.2e}, l2/w err={err_l2:.2e}")
+    assert err_l1 < 1e-6 and err_l2 < 1e-6
+
+    # Also test fused version
+    loss, grads, h2 = loss_grad_and_hvp_diag(loss_fn, params, key)
+    assert abs(float(loss) - 3.0 * n) < 1e-3
+    err_l1_f = float(jnp.max(jnp.abs(h2["l1"]["w"] - 2.0)))
+    err_l2_f = float(jnp.max(jnp.abs(h2["l2"]["w"] - 4.0)))
+    assert err_l1_f < 1e-6 and err_l2_f < 1e-6
+
+    print("PASS: nested pytree")
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("Derived Newton-targeted optimizer functional tests")
@@ -244,6 +512,22 @@ if __name__ == "__main__":
     test_params_none()
     print()
     test_rosenbrock_convergence()
+    print()
+    test_group_leaves()
+    print()
+    test_per_leaf_hutchinson_multi_group()
+    print()
+    test_per_leaf_matches_global_single_leaf()
+    print()
+    test_loss_grad_hvp_multi_group()
+    print()
+    test_fused_matches_separate()
+    print()
+    test_variance_reduction()
+    print()
+    test_three_groups()
+    print()
+    test_nested_pytree()
     print()
     print("=" * 60)
     print("ALL TESTS PASSED")
