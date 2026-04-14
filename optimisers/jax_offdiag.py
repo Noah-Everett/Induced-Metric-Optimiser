@@ -96,7 +96,7 @@ def _tree_dot(tree_a, tree_b):
     )
 
 
-def _apply_inverse_rank2(r_tree, l_tree, a_tree, b_tree, gamma, xi):
+def _apply_inverse_rank2(r_tree, l_tree, a_tree, b_tree, gamma, xi, eps):
     r"""Apply :math:`(\\gamma I + \\xi (a l^T + l b^T + l l^T))^{-1} r`
     entirely in PyTree space (rank-2 Woodbury with Cramer's rule).
 
@@ -123,7 +123,7 @@ def _apply_inverse_rank2(r_tree, l_tree, a_tree, b_tree, gamma, xi):
     # When det ≈ 0 the metric is near-singular; fall back to identity
     # scaling (w0 = w1 = 0  ⟹  y = z = r/γ) to avoid inf/NaN.
     det = M00 * M11 - M01 * M10
-    safe = jnp.abs(det) > 1e-8
+    safe = jnp.abs(det) > eps
     inv_det = jnp.where(safe, 1.0 / jnp.where(safe, det, 1.0), 0.0)
     w0 = inv_det * (M11 * rhs0 - M01 * rhs1)
     w1 = inv_det * (M00 * rhs1 - M10 * rhs0)
@@ -136,7 +136,7 @@ def _apply_inverse_rank2(r_tree, l_tree, a_tree, b_tree, gamma, xi):
     return y_tree
 
 
-def _apply_inverse_rank1_a_zero(r_tree, l_tree, b_tree, gamma, xi):
+def _apply_inverse_rank1_a_zero(r_tree, l_tree, b_tree, gamma, xi, eps):
     r"""Sherman-Morrison for ``a = 0``.
 
     :math:`g_{pb} = \\gamma I + \\xi\\, l\\,(b+l)^T`  (rank-1).
@@ -159,14 +159,14 @@ def _apply_inverse_rank1_a_zero(r_tree, l_tree, b_tree, gamma, xi):
     bl_dot_l = _tree_dot(bl_tree, l_tree)
 
     denom = 1.0 + alpha * bl_dot_l
-    safe = jnp.abs(denom) > 1e-8
+    safe = jnp.abs(denom) > eps
     scale = jnp.where(safe, alpha * bl_dot_z / jnp.where(safe, denom, 1.0), 0.0)
 
     y_tree = jax.tree.map(lambda z, l: z - scale * l, z_tree, l_tree)
     return y_tree
 
 
-def _apply_inverse_rank1_b_zero(r_tree, l_tree, a_tree, gamma, xi):
+def _apply_inverse_rank1_b_zero(r_tree, l_tree, a_tree, gamma, xi, eps):
     r"""Sherman-Morrison for ``b = 0``.
 
     :math:`g_{pb} = \\gamma I + \\xi\\,(a+l)\\, l^T`  (rank-1).
@@ -187,7 +187,7 @@ def _apply_inverse_rank1_b_zero(r_tree, l_tree, a_tree, gamma, xi):
     l_dot_al = _tree_dot(l_tree, al_tree)
 
     denom = 1.0 + alpha * l_dot_al
-    safe = jnp.abs(denom) > 1e-8
+    safe = jnp.abs(denom) > eps
     scale = jnp.where(safe, alpha * l_dot_z / jnp.where(safe, denom, 1.0), 0.0)
 
     y_tree = jax.tree.map(lambda z, al: z - scale * al, z_tree, al_tree)
@@ -255,6 +255,7 @@ def custom_sgd_offdiag(
     b_static: Optional[Any] = None,
     a_fn: Optional[Callable[[Any, Any, Any, jnp.ndarray], Any]] = None,
     b_fn: Optional[Callable[[Any, Any, Any, jnp.ndarray], Any]] = None,
+    eps: float = 1e-8,
 ):
     """Custom SGD with a non-zero off-diagonal induced metric.
 
@@ -284,6 +285,9 @@ def custom_sgd_offdiag(
         b_static: Optional PyTree to use as fixed b.
         a_fn: Optional callable a_fn(params, grads, m_hat, step) -> PyTree for a.
         b_fn: Optional callable b_fn(params, grads, m_hat, step) -> PyTree for b.
+        eps: Singularity guard threshold for near-zero determinants/denominators
+            in the metric inverse.  Smaller values allow closer-to-singular
+            metrics before falling back to identity scaling.
 
     Precedence:
         a: a_fn -> a_static -> a_mode
@@ -387,17 +391,17 @@ def custom_sgd_offdiag(
         if a_is_zero:
             # Rank-1 Sherman-Morrison: g_pb = gamma*I + xi*l*(b+l)^T
             y_tree = _apply_inverse_rank1_a_zero(
-                r_tree, l_tree, b_tree, s_gamma, s_xi,
+                r_tree, l_tree, b_tree, s_gamma, s_xi, eps,
             )
         elif b_is_zero:
             # Rank-1 Sherman-Morrison: g_pb = gamma*I + xi*(a+l)*l^T
             y_tree = _apply_inverse_rank1_b_zero(
-                r_tree, l_tree, a_tree, s_gamma, s_xi,
+                r_tree, l_tree, a_tree, s_gamma, s_xi, eps,
             )
         else:
             # Full rank-2 Woodbury with Cramer's rule
             y_tree = _apply_inverse_rank2(
-                r_tree, l_tree, a_tree, b_tree, s_gamma, s_xi,
+                r_tree, l_tree, a_tree, b_tree, s_gamma, s_xi, eps,
             )
 
         # delta_theta = -lr * y - lr * weight_decay * theta
