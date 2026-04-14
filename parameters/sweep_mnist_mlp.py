@@ -102,7 +102,7 @@ def train(config, seed, logger):
         print(f"JAX devices: {jax.devices()}", flush=True)
         print(f"Training batches: {n_train_batches} x {batch_size} (via jax.lax.scan)", flush=True)
         print(f"Data on device: {x_train.devices()}", flush=True)
-        print(f"Params on device: {jax.tree_util.tree_leaves(params)[0].devices()}", flush=True)
+        print(f"Params on device: {jax.tree.leaves(params)[0].devices()}", flush=True)
         print("=" * 40 + "\n", flush=True)
 
     optimizer = create_optimizer(args.optimiser, config)

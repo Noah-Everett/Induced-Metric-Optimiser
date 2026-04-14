@@ -52,7 +52,7 @@ def _path_str(key_path):
 
 def _tree_norm(tree):
     """Global L2 norm of a pytree."""
-    leaves = jax.tree_util.tree_leaves(tree)
+    leaves = jax.tree.leaves(tree)
     if not leaves:
         return 0.0
     return _scalar(jnp.sqrt(sum(jnp.sum(l ** 2) for l in leaves)))
@@ -60,19 +60,19 @@ def _tree_norm(tree):
 
 def _tree_dot(tree_a, tree_b):
     """Dot product across two pytrees of matching structure."""
-    a_leaves = jax.tree_util.tree_leaves(tree_a)
-    b_leaves = jax.tree_util.tree_leaves(tree_b)
+    a_leaves = jax.tree.leaves(tree_a)
+    b_leaves = jax.tree.leaves(tree_b)
     return sum(_scalar(jnp.sum(a * b)) for a, b in zip(a_leaves, b_leaves))
 
 
 def _count_params(tree):
     """Total number of scalar elements in a pytree."""
-    return sum(l.size for l in jax.tree_util.tree_leaves(tree))
+    return sum(l.size for l in jax.tree.leaves(tree))
 
 
 def _global_stats(tree, prefix):
     """Mean / std / min / max / norm across all leaves."""
-    leaves = jax.tree_util.tree_leaves(tree)
+    leaves = jax.tree.leaves(tree)
     if not leaves:
         return {}
     all_flat = jnp.concatenate([l.ravel() for l in leaves])
@@ -89,7 +89,7 @@ def _per_leaf_stats(tree, prefix):
     """Mean / std / min / max per leaf (per layer)."""
     metrics = {}
     try:
-        key_leaves, _ = jax.tree_util.tree_flatten_with_path(tree)
+        key_leaves, _ = jax.tree.flatten_with_path(tree)
     except Exception:
         return metrics
     for key_path, leaf in key_leaves:
@@ -106,9 +106,9 @@ def _full_tensor(tree, prefix):
     """Log individual values for small pytrees (2D problems, etc.)."""
     metrics = {}
     try:
-        key_leaves, _ = jax.tree_util.tree_flatten_with_path(tree)
+        key_leaves, _ = jax.tree.flatten_with_path(tree)
     except Exception:
-        leaves = jax.tree_util.tree_leaves(tree)
+        leaves = jax.tree.leaves(tree)
         if leaves and leaves[0].size <= 100:
             for i, v in enumerate(leaves[0].ravel().tolist()):
                 metrics[f'{prefix}/{i}'] = v
@@ -187,7 +187,7 @@ def _extract_optax_adam(opt_state, config):
             lr = config.get('learning_rate', 0.001)
             if count > 0:
                 bc2 = 1.0 - b2 ** count
-                nu_leaves = jax.tree_util.tree_leaves(adam.nu)
+                nu_leaves = jax.tree.leaves(adam.nu)
                 nu_hat_all = jnp.concatenate([
                     (nu_l / bc2).ravel() for nu_l in nu_leaves
                 ])
@@ -222,7 +222,7 @@ def _extract_fixed(opt_state, config, is_log=False, is_rms=False):
         eps = config.get('eps', 1e-8)
         if step_val > 0 and beta_rms < 1.0:
             rms_bc = 1.0 - beta_rms ** step_val
-            rms_leaves = jax.tree_util.tree_leaves(opt_state.rms_ema)
+            rms_leaves = jax.tree.leaves(opt_state.rms_ema)
             rms_corr_all = jnp.concatenate([
                 (r_l / rms_bc).ravel() for r_l in rms_leaves
             ])
@@ -233,7 +233,7 @@ def _extract_fixed(opt_state, config, is_log=False, is_rms=False):
 
             # Per-layer condition number: max(sqrt(rms)) / min(sqrt(rms))
             try:
-                kl, _ = jax.tree_util.tree_flatten_with_path(opt_state.rms_ema)
+                kl, _ = jax.tree.flatten_with_path(opt_state.rms_ema)
                 for kp, leaf in kl:
                     corr = jnp.sqrt(leaf / rms_bc + eps)
                     c_max = _scalar(jnp.max(corr))
@@ -265,7 +265,7 @@ def _extract_learnable_scalar(opt_state, config, is_log=False, grads=None):
     if grads is not None:
         xi = config.get('xi', 0.1)
         g_sq_sum = sum(_scalar(jnp.sum(g ** 2))
-                       for g in jax.tree_util.tree_leaves(grads))
+                       for g in jax.tree.leaves(grads))
         if mp == "exp_norm_grad":
             m['grad_s'] = xi * g_sq_sum
         elif mp == "softplus":
@@ -296,7 +296,7 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
     metric_lr = config.get('metric_lr', 1e-3)
     metric_reg = config.get('metric_reg', 1e-4)
 
-    diag_leaves = jax.tree_util.tree_leaves(opt_state.log_diag)
+    diag_leaves = jax.tree.leaves(opt_state.log_diag)
     all_s = jnp.concatenate([l.ravel() for l in diag_leaves])
     all_sigma_s = _sigma(mp, all_s)
 
@@ -314,7 +314,7 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
 
     # Per-layer condition numbers
     try:
-        kl, _ = jax.tree_util.tree_flatten_with_path(opt_state.log_diag)
+        kl, _ = jax.tree.flatten_with_path(opt_state.log_diag)
         for kp, leaf in kl:
             es = _sigma(mp, leaf.ravel())
             m[f'metric_condition/{_path_str(kp)}'] = (
@@ -337,7 +337,7 @@ def _extract_learnable_diag(opt_state, config, is_log=False, grads=None):
 
     # --- Quantities requiring grads ---
     if grads is not None:
-        g_leaves = jax.tree_util.tree_leaves(grads)
+        g_leaves = jax.tree.leaves(grads)
         s_leaves = diag_leaves
 
         # g_tilde = sigma(s) * g  (preconditioned gradient)
@@ -386,11 +386,11 @@ def _extract_learnable_diag_curv(opt_state, config, is_log=False,
     curv_beta = config.get('curv_beta', 0.05)
     xi = config.get('xi', 0.1)
 
-    g_leaves  = jax.tree_util.tree_leaves(grads)
-    pg_leaves = jax.tree_util.tree_leaves(opt_state.prev_grads)
-    p_leaves  = jax.tree_util.tree_leaves(params)
-    pp_leaves = jax.tree_util.tree_leaves(opt_state.prev_params)
-    s_leaves  = jax.tree_util.tree_leaves(opt_state.log_diag)
+    g_leaves  = jax.tree.leaves(grads)
+    pg_leaves = jax.tree.leaves(opt_state.prev_grads)
+    p_leaves  = jax.tree.leaves(params)
+    pp_leaves = jax.tree.leaves(opt_state.prev_params)
+    s_leaves  = jax.tree.leaves(opt_state.log_diag)
 
     mp = config.get('metric_param', 'exp')
 
@@ -464,7 +464,7 @@ def _extract_newton_diag(opt_state, config, grads=None, h_diag=None):
     m.update(_global_stats(opt_state.log_diag, 'log_diag'))
     m.update(_per_leaf_stats(opt_state.log_diag, 'log_diag'))
 
-    diag_leaves = jax.tree_util.tree_leaves(opt_state.log_diag)
+    diag_leaves = jax.tree.leaves(opt_state.log_diag)
     all_s = jnp.concatenate([l.ravel() for l in diag_leaves])
     all_exp_s = jnp.exp(all_s)
 
@@ -493,13 +493,13 @@ def _extract_newton_diag(opt_state, config, grads=None, h_diag=None):
 
     # Preconditioned gradient stats
     if grads is not None:
-        g_leaves = jax.tree_util.tree_leaves(grads)
+        g_leaves = jax.tree.leaves(grads)
         g_tilde_parts = [jnp.exp(s) * g for s, g in zip(diag_leaves, g_leaves)]
         m.update(_global_stats(g_tilde_parts, 'g_tilde'))
 
     # --- Hutchinson Hessian diagonal estimate ---
     if h_diag is not None:
-        h_leaves = jax.tree_util.tree_leaves(h_diag)
+        h_leaves = jax.tree.leaves(h_diag)
         if h_leaves:
             all_h = jnp.concatenate([l.ravel() for l in h_leaves])
 
@@ -530,7 +530,7 @@ def _extract_newton_diag(opt_state, config, grads=None, h_diag=None):
 
             # Per-leaf stats and rho
             try:
-                key_leaves, _ = jax.tree_util.tree_flatten_with_path(h_diag)
+                key_leaves, _ = jax.tree.flatten_with_path(h_diag)
             except Exception:
                 key_leaves = []
             for key_path, leaf in key_leaves:
@@ -844,10 +844,10 @@ def collect_diagnostics(
             if step_val > 1:
                 secant_eps = config.get('secant_eps', 1e-5)
                 curv_tau = config.get('curv_tau', 1.0)
-                g_leaves = jax.tree_util.tree_leaves(grads)
-                pg_leaves = jax.tree_util.tree_leaves(opt_state.prev_grads)
-                p_leaves = jax.tree_util.tree_leaves(params)
-                pp_leaves = jax.tree_util.tree_leaves(opt_state.prev_params)
+                g_leaves = jax.tree.leaves(grads)
+                pg_leaves = jax.tree.leaves(opt_state.prev_grads)
+                p_leaves = jax.tree.leaves(params)
+                pp_leaves = jax.tree.leaves(opt_state.prev_params)
                 h_parts, cs_parts = [], []
                 for g, pg, p, pp in zip(g_leaves, pg_leaves, p_leaves, pp_leaves):
                     dt = p - pp

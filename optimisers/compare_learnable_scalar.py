@@ -13,7 +13,7 @@ def main():
 
     # JAX
     params_j = {"w": jnp.array(w), "b": jnp.array(b)}
-    grads_j = jax.tree_util.tree_map(lambda x: jnp.ones_like(x)*0.1, params_j)
+    grads_j = jax.tree.map(lambda x: jnp.ones_like(x)*0.1, params_j)
     opt_j = custom_sgd_learnable_scalar(learning_rate=0.01, momentum=0.9, xi=0.1, beta=0.8,
                                         weight_decay=0.01, metric_lr=1e-3, metric_reg=1e-4, metric_clip=4.0)
     st = opt_j.init(params_j)
