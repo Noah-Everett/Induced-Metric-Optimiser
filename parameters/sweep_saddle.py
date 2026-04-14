@@ -7,8 +7,6 @@ per-step trajectory data (position, loss, s_i values, Hessian estimates).
 Test functions:
 - saddle:          x^2 - y^2  (known saddle at origin, H = diag(2, -2))
 - weighted_saddle: 3x^2 - y^2 (asymmetric eigenvalues, H = diag(6, -2))
-- rosenbrock:      (1-x)^2 + 100(y-x^2)^2 (ill-conditioned valley)
-- quartic_well:    x^4+y^4-2x^2-2y^2 (four minima, varying curvature sign)
 
 Usage::
 

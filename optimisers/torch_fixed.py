@@ -25,7 +25,7 @@ but follow PyTorch's optimizer interface conventions.
 
 import torch
 from torch.optim.optimizer import Optimizer
-from typing import Optional, Union
+from typing import Optional
 
 
 class CustomSGD(Optimizer):

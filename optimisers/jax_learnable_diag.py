@@ -27,7 +27,7 @@ References to repo paper (algorithms & denominator EMA, momentum, decoupled WD):
 - Algorithm 1 & 2 update structure; denominator estimated by short EMA.
 """
 
-from typing import NamedTuple, Optional, Tuple, Any
+from typing import NamedTuple, Optional, Any
 import jax
 import jax.numpy as jnp
 import optax

@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import jax
 import jax.numpy as jnp
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
 import warnings
 
 from jax_offdiag import custom_sgd_offdiag

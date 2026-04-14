@@ -126,7 +126,7 @@ def main():
     for json_file in json_files:
         # Skip if CSV already exists (already migrated)
         csv_file = json_file.with_suffix(".csv")
-        if csv_file.exists() and not args.dry_run:
+        if csv_file.exists():
             print(f"  SKIP {json_file.relative_to(root)} (CSV already exists)")
             continue
 
