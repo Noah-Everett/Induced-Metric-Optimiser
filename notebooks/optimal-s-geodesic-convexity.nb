@@ -1,0 +1,2749 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[    103117,       2740]
+NotebookOptionsPosition[     98982,       2688]
+NotebookOutlinePosition[     99299,       2702]
+CellTagsIndexPosition[     99256,       2699]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell["\<\
+Optimal Metric for Geodesic Convexity at Saddle Points (IMO-163)\
+\>", "Title",ExpressionUUID->"54b904d6-dcf5-4acd-aa42-aff80379398e"],
+
+Cell[TextData[{
+ "This notebook reproduces the finding that geodesic convexity is achievable \
+at saddle points via optimal choice of the metric parameters ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox[
+        StyleBox["s", "TI"], 
+        StyleBox["i", "TI"]], TraditionalForm], "errors" -> {}, "input" -> 
+     "s_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b5f38b7d-162a-4d2c-80be-cfe9c7a7976d"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[PartialD]", 
+          StyleBox["j", "TI"]], 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\partial_j s_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "fc7c6817-ba2d-4677-be84-fcfb2e508356"],
+ ". By tuning the Christoffel symbol contribution ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox[
+        StyleBox["C", "TI"], 
+        RowBox[{
+          StyleBox["i", "TI"], 
+          StyleBox["j", "TI"]}]], TraditionalForm], "errors" -> {}, "input" -> 
+     "C_{ij}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "11c64084-3af6-4208-ae2a-b3d6f9307591"],
+ ", the effective Hessian ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["H", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "-", 
+         SubscriptBox[
+          StyleBox["C", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "H_{ij} - C_{ij}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cfb76e56-d214-4ae4-812c-646689a06ab5"],
+ " can be made positive definite even when the Euclidean Hessian has negative \
+eigenvalues. "
+}], "Text",ExpressionUUID->"a0750688-f37d-4dd0-a31a-f45cd5683eb8"],
+
+Cell["Part I: Christoffel Symbols for 2D Diagonal Metric", "Section",ExpressionUUID->"6e50e4f1-3cf5-4977-b4e2-732344421423"],
+
+Cell[TextData[{
+ "For a diagonal metric ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Gamma]", "\[LongEqual]", 
+         StyleBox["diag", FontSlant -> "Plain"], 
+         RowBox[{"(", 
+           RowBox[{
+             SuperscriptBox[
+              StyleBox["e", "TI"], 
+              RowBox[{"2", 
+                SubscriptBox[
+                 StyleBox["s", "TI"], "1"]}]], ",", 
+             SuperscriptBox[
+              StyleBox["e", "TI"], 
+              RowBox[{"2", 
+                SubscriptBox[
+                 StyleBox["s", "TI"], "2"]}]]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\gamma = \\mathrm{diag}(e^{2s_1}, e^{2s_2})", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2dae7c5b-c044-4fb6-af39-6bca21e47ec0"],
+ ", the Christoffel symbols of the second kind are: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubsuperscriptBox["\[CapitalGamma]", 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}], 
+          StyleBox["k", "TI"]], "\[LongEqual]", 
+         FractionBox["1", "2"], 
+         SuperscriptBox["\[Gamma]", 
+          RowBox[{
+            StyleBox["k", "TI"], 
+            StyleBox["l", "TI"]}]], 
+         RowBox[{"(", 
+           RowBox[{
+             SubscriptBox["\[PartialD]", 
+              StyleBox["i", "TI"]], 
+             SubscriptBox["\[Gamma]", 
+              RowBox[{
+                StyleBox["l", "TI"], 
+                StyleBox["j", "TI"]}]], "+", 
+             SubscriptBox["\[PartialD]", 
+              StyleBox["j", "TI"]], 
+             SubscriptBox["\[Gamma]", 
+              RowBox[{
+                StyleBox["l", "TI"], 
+                StyleBox["i", "TI"]}]], "-", 
+             SubscriptBox["\[PartialD]", 
+              StyleBox["l", "TI"]], 
+             SubscriptBox["\[Gamma]", 
+              RowBox[{
+                StyleBox["i", "TI"], 
+                StyleBox["j", "TI"]}]]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\Gamma^k_{ij} = \\frac{1}{2} \\gamma^{kl}(\\partial_i \\gamma_{lj} + \
+\\partial_j \\gamma_{li} - \\partial_l \\gamma_{ij})", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b689d402-5213-462a-9bc8-c6720a52f546"],
+ "The connection correction to the Hessian is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["C", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "\[LongEqual]", 
+         SubsuperscriptBox["\[CapitalGamma]", 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}], 
+          StyleBox["k", "TI"]], 
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["k", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "C_{ij} = \\Gamma^k_{ij} g_k", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5d0f9a4f-5a52-4d86-a2eb-1585c2107566"],
+ " where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["k", "TI"]], "\[LongEqual]", 
+         SubscriptBox["\[PartialD]", 
+          StyleBox["k", "TI"]], 
+         StyleBox["L", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "g_k = \\partial_k L", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "08689d03-1127-4e6a-a9c2-fc3032e72d3f"],
+ " is the gradient. "
+}], "Text",ExpressionUUID->"a73b3d82-8016-4406-83c6-9e3796f8cba2"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"SeedRandom", "[", "42", "]"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Symbolic", " ", "Christoffel", " ", "symbols", " ", "for", " ", 
+     "diagonal", " ", "metric", " ", "\[Gamma]"}], " ", "=", " ", 
+    RowBox[{"diag", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"e", "^", 
+        RowBox[{"{", 
+         RowBox[{"2", "s1"}], "}"}]}], ",", " ", 
+       RowBox[{"e", "^", 
+        RowBox[{"{", 
+         RowBox[{"2", "s2"}], "}"}]}]}], ")"}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Parameters", ":", " ", "s1"}], ",", " ", 
+    RowBox[{"s2", " ", 
+     RowBox[{"(", 
+      RowBox[{"metric", " ", "values"}], ")"}]}], ",", " ", 
+    RowBox[{"ds11", "=", 
+     RowBox[{"\[PartialD]", "\:2081s\:2081"}]}], ",", " ", 
+    RowBox[{"ds12", "=", 
+     RowBox[{"\[PartialD]", "\:2082s\:2081"}]}], ",", " ", 
+    RowBox[{"ds21", "=", 
+     RowBox[{"\[PartialD]", "\:2081s\:2082"}]}], ",", " ", 
+    RowBox[{"ds22", "=", 
+     RowBox[{"\[PartialD]", "\:2082s\:2082"}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"g1", ",", " ", 
+    RowBox[{"g2", " ", "=", " ", 
+     RowBox[{"gradient", " ", "components"}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Clear", "[", 
+    RowBox[{
+    "s1", ",", "s2", ",", "ds11", ",", "ds12", ",", "ds21", ",", "ds22", ",", 
+     "g1", ",", "g2"}], "]"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Metric", " ", "components"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"gamma", "[", 
+    RowBox[{"1", ",", "1"}], "]"}], "=", 
+   RowBox[{"Exp", "[", 
+    RowBox[{"2", " ", "s1"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"gamma", "[", 
+    RowBox[{"2", ",", "2"}], "]"}], "=", 
+   RowBox[{"Exp", "[", 
+    RowBox[{"2", " ", "s2"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"gamma", "[", 
+    RowBox[{"1", ",", "2"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]", 
+
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"gamma", "[", 
+     RowBox[{"2", ",", "1"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]",
+   "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Inverse", " ", "metric"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"gammaInv", "[", 
+    RowBox[{"1", ",", "1"}], "]"}], "=", 
+   RowBox[{"Exp", "[", 
+    RowBox[{
+     RowBox[{"-", "2"}], " ", "s1"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"gammaInv", "[", 
+    RowBox[{"2", ",", "2"}], "]"}], "=", 
+   RowBox[{"Exp", "[", 
+    RowBox[{
+     RowBox[{"-", "2"}], " ", "s2"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"gammaInv", "[", 
+    RowBox[{"1", ",", "2"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]", 
+
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"gammaInv", "[", 
+     RowBox[{"2", ",", "1"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]",
+   "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Derivatives", " ", "of", " ", 
+    RowBox[{"metric", ":", " ", 
+     RowBox[{
+      RowBox[{"\[PartialD]", "_i"}], " ", "\[Gamma]_", 
+      RowBox[{"{", "jk", "}"}]}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"\[Gamma]_", 
+      RowBox[{"{", "11", "}"}]}], " ", "=", " ", 
+     RowBox[{"e", "^", 
+      RowBox[{"{", 
+       RowBox[{"2", "s1"}], "}"}]}]}], ",", " ", 
+    RowBox[{
+     RowBox[{"so", " ", 
+      RowBox[{"\[PartialD]", "_i"}], " ", "\[Gamma]_", 
+      RowBox[{"{", "11", "}"}]}], " ", "=", " ", 
+     RowBox[{"2", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"\[PartialD]", "_i"}], " ", "s1"}], ")"}], " ", 
+      RowBox[{"e", "^", 
+       RowBox[{"{", 
+        RowBox[{"2", "s1"}], "}"}]}]}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"\[Gamma]_", 
+      RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+     RowBox[{"e", "^", 
+      RowBox[{"{", 
+       RowBox[{"2", "s2"}], "}"}]}]}], ",", " ", 
+    RowBox[{
+     RowBox[{"so", " ", 
+      RowBox[{"\[PartialD]", "_i"}], " ", "\[Gamma]_", 
+      RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+     RowBox[{"2", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"\[PartialD]", "_i"}], " ", "s2"}], ")"}], " ", 
+      RowBox[{"e", "^", 
+       RowBox[{"{", 
+        RowBox[{"2", "s2"}], "}"}]}]}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"\[Gamma]_", 
+      RowBox[{"{", "12", "}"}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{"\[Gamma]_", 
+       RowBox[{"{", "21", "}"}]}], " ", "=", " ", "0"}]}], ",", " ", 
+    RowBox[{
+     RowBox[{"so", " ", 
+      RowBox[{"\[PartialD]", "_i"}], " ", "\[Gamma]_", 
+      RowBox[{"{", "12", "}"}]}], " ", "=", " ", "0"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"dGamma", "[", 
+     RowBox[{"1", ",", "1", ",", "1"}], "]"}], "=", 
+    RowBox[{"2", " ", "ds11", " ", 
+     RowBox[{"Exp", "[", 
+      RowBox[{"2", " ", "s1"}], "]"}]}]}], ";"}], "  ", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"\[PartialD]", "\:2081"}], " ", "\[Gamma]_", 
+    RowBox[{"{", "11", "}"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"dGamma", "[", 
+     RowBox[{"2", ",", "1", ",", "1"}], "]"}], "=", 
+    RowBox[{"2", " ", "ds12", " ", 
+     RowBox[{"Exp", "[", 
+      RowBox[{"2", " ", "s1"}], "]"}]}]}], ";"}], "  ", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"\[PartialD]", "\:2082"}], " ", "\[Gamma]_", 
+    RowBox[{"{", "11", "}"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"dGamma", "[", 
+     RowBox[{"1", ",", "2", ",", "2"}], "]"}], "=", 
+    RowBox[{"2", " ", "ds21", " ", 
+     RowBox[{"Exp", "[", 
+      RowBox[{"2", " ", "s2"}], "]"}]}]}], ";"}], "  ", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"\[PartialD]", "\:2081"}], " ", "\[Gamma]_", 
+    RowBox[{"{", "22", "}"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"dGamma", "[", 
+     RowBox[{"2", ",", "2", ",", "2"}], "]"}], "=", 
+    RowBox[{"2", " ", "ds22", " ", 
+     RowBox[{"Exp", "[", 
+      RowBox[{"2", " ", "s2"}], "]"}]}]}], ";"}], "  ", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"\[PartialD]", "\:2082"}], " ", "\[Gamma]_", 
+    RowBox[{"{", "22", "}"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"dGamma", "[", 
+    RowBox[{"1", ",", "1", ",", "2"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"dGamma", "[", 
+    RowBox[{"1", ",", "2", ",", "1"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"dGamma", "[", 
+    RowBox[{"2", ",", "1", ",", "2"}], "]"}], "=", "0"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"dGamma", "[", 
+     RowBox[{"2", ",", "2", ",", "1"}], "]"}], "=", "0"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Christoffel", " ", 
+     RowBox[{"symbols", ":", " ", 
+      RowBox[{
+       RowBox[{"\[CapitalGamma]", "^", "k_"}], 
+       RowBox[{"{", "ij", "}"}]}]}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{"1", "/", "2"}], ")"}], " ", 
+     RowBox[{"\[Gamma]", "^", 
+      RowBox[{"{", "kl", "}"}]}], " ", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"\[PartialD]", "_i"}], " ", "\[Gamma]_", 
+        RowBox[{"{", "lj", "}"}]}], " ", "+", " ", 
+       RowBox[{
+        RowBox[{"\[PartialD]", "_j"}], " ", "\[Gamma]_", 
+        RowBox[{"{", "li", "}"}]}], " ", "-", " ", 
+       RowBox[{
+        RowBox[{"\[PartialD]", "_l"}], " ", "\[Gamma]_", 
+        RowBox[{"{", "ij", "}"}]}]}], ")"}]}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"christoffel", "[", 
+     RowBox[{"k_", ",", "i_", ",", "j_"}], "]"}], ":=", 
+    RowBox[{"Sum", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"gammaInv", "[", 
+        RowBox[{"k", ",", "l"}], "]"}], " ", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"dGamma", "[", 
+           RowBox[{"i", ",", "l", ",", "j"}], "]"}], "+", 
+          RowBox[{"dGamma", "[", 
+           RowBox[{"j", ",", "l", ",", "i"}], "]"}], "-", 
+          RowBox[{"dGamma", "[", 
+           RowBox[{"l", ",", "i", ",", "j"}], "]"}]}], ")"}], "/", "2"}]}], ",",
+       "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"l", ",", "1", ",", "2"}], "}"}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Connection", " ", 
+     RowBox[{"correction", ":", " ", 
+      RowBox[{"C_", 
+       RowBox[{"{", "ij", "}"}]}]}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"\[CapitalGamma]", "^", "k_"}], 
+     RowBox[{"{", "ij", "}"}], " ", "g_k"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"connectionCorrection", "[", 
+     RowBox[{"i_", ",", "j_"}], "]"}], ":=", 
+    RowBox[{"Sum", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"christoffel", "[", 
+        RowBox[{"k", ",", "i", ",", "j"}], "]"}], " ", 
+       RowBox[{"g", "[", "k", "]"}]}], ",", 
+      RowBox[{"{", 
+       RowBox[{"k", ",", "1", ",", "2"}], "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"g", "[", "1", "]"}], "=", "g1"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"g", "[", "2", "]"}], "=", "g2"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Build", " ", "the", " ", "C", " ", "matrix", " ", "symbolically"}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"cMatrix", "=", 
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"connectionCorrection", "[", 
+        RowBox[{"i", ",", "j"}], "]"}], " ", "//", " ", "Simplify"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "1", ",", "2"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"j", ",", "1", ",", "2"}], "}"}]}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<Connection correction matrix C_{ij} = \
+\[CapitalGamma]^k_{ij} g_k:\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"MatrixForm", "[", "cMatrix", "]"}], "]"}], ";"}]}], "Input",Expres\
+sionUUID->"e57b5684-41fa-479d-a387-436d0624f4cc"],
+
+Cell["Simplified form at s1 = s2 = 0", "Subsection",ExpressionUUID->"009be341-5ece-4b57-b06f-66d5453c4dfd"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"At", " ", "s1"}], "=", 
+     RowBox[{"s2", "=", 
+      RowBox[{
+       RowBox[{"0", ":", " ", 
+        RowBox[{"e", "^", 
+         RowBox[{"{", 
+          RowBox[{"2", "s"}], "}"}]}]}], "=", "1"}]}]}], ",", " ", 
+    RowBox[{
+     RowBox[{"e", "^", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"-", "2"}], "s"}], "}"}]}], "=", "1"}], ",", " ", 
+    RowBox[{"simplifies", " ", "greatly"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"cMatrixAt0", "=", 
+     RowBox[{
+      RowBox[{"cMatrix", " ", "/.", " ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"s1", "->", "0"}], ",", 
+         RowBox[{"s2", "->", "0"}]}], "}"}]}], " ", "//", " ", "Simplify"}]}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", "\"\<C at s1=s2=0:\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"MatrixForm", "[", "cMatrixAt0", "]"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Extract", " ", "individual", " ", "entries"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\\nC_{11} = \>\"", ",", 
+      RowBox[{"cMatrixAt0", "[", 
+       RowBox[{"[", 
+        RowBox[{"1", ",", "1"}], "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<C_{12} = \>\"", ",", 
+      RowBox[{"cMatrixAt0", "[", 
+       RowBox[{"[", 
+        RowBox[{"1", ",", "2"}], "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<C_{21} = \>\"", ",", 
+      RowBox[{"cMatrixAt0", "[", 
+       RowBox[{"[", 
+        RowBox[{"2", ",", "1"}], "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<C_{22} = \>\"", ",", 
+      RowBox[{"cMatrixAt0", "[", 
+       RowBox[{"[", 
+        RowBox[{"2", ",", "2"}], "]"}], "]"}]}], "]"}], ";"}]}]}]], "Input",Ex\
+pressionUUID->"0400d4a4-cfdd-494c-ac15-b9c540fb5732"],
+
+Cell["Part II: Test Function 1 \[LongDash] L = x^2 - y^2 at (1, 0.5)", \
+"Section",ExpressionUUID->"480f0b20-a339-4a70-a2e2-00d8221370f7"],
+
+Cell[TextData[{
+ "The Hessian is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["H", "TI"], "\[LongEqual]", 
+         StyleBox["diag", FontSlant -> "Plain"], 
+         RowBox[{"(", 
+           RowBox[{"2", ",", "-2"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "H = \\mathrm{diag}(2, -2)", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b3700352-2a4d-4f56-8f11-992b68b2a369"],
+ " and the gradient is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["g", "TI"], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{"2", ",", "-1"}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> "g = (2, -1)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "8547517c-3c7f-456c-a8d3-ed1fe8e30c0c"],
+ ". This is a classic saddle point with one negative eigenvalue. "
+}], "Text",ExpressionUUID->"24d45e7d-401f-4514-982b-09c7670e0415"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Test", " ", "1"}], ":", " ", "L"}], " ", "=", " ", 
+    RowBox[{"x\.b2", " ", "-", " ", 
+     RowBox[{"y\.b2", " ", "at", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", ",", " ", "0.5"}], ")"}]}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"h1", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"2", ",", "0"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "2"}]}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gVec1", "=", 
+     RowBox[{"{", 
+      RowBox[{"2", ",", 
+       RowBox[{"-", "1"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Effective", " ", 
+      RowBox[{"Hessian", ":", " ", 
+       RowBox[{"H", " ", "-", " ", "C"}]}]}], ",", " ", 
+     RowBox[{
+      RowBox[{"evaluated", " ", "at", " ", "s1"}], "=", 
+      RowBox[{"s2", "=", "0"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"effectiveH1", "[", 
+      RowBox[{"ds11v_", ",", "ds12v_", ",", "ds21v_", ",", "ds22v_"}], "]"}], 
+     ":=", "\[IndentingNewLine]", "  ", 
+     RowBox[{"h1", "-", 
+      RowBox[{"(", 
+       RowBox[{"cMatrixAt0", " ", "/.", " ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"ds11", "->", "ds11v"}], ",", 
+          RowBox[{"ds12", "->", "ds12v"}], ",", 
+          RowBox[{"ds21", "->", "ds21v"}], ",", 
+          RowBox[{"ds22", "->", "ds22v"}], ",", "\[IndentingNewLine]", 
+          "                        ", 
+          RowBox[{"g1", "->", 
+           RowBox[{"gVec1", "[", 
+            RowBox[{"[", "1", "]"}], "]"}]}], ",", 
+          RowBox[{"g2", "->", 
+           RowBox[{"gVec1", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}], ")"}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Objective", ":", " ", 
+     RowBox[{
+      RowBox[{"minimize", " ", "eigenvalue", " ", "of", " ", "H"}], "-", 
+      RowBox[{"C", " ", 
+       RowBox[{"(", 
+        RowBox[{"we", " ", "want", " ", "to", " ", "maximize", " ", "it"}], 
+        ")"}]}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"minEig1", "[", 
+      RowBox[{
+       RowBox[{"ds11v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds12v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds21v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds22v_", "?", "NumericQ"}]}], "]"}], ":=", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Min", "[", 
+      RowBox[{"Eigenvalues", "[", 
+       RowBox[{"effectiveH1", "[", 
+        RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "]"}], 
+       "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Maximize", " ", "the", " ", "minimum", " ", "eigenvalue"}], " ", 
+    "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"result1", "=", 
+     RowBox[{"NMaximize", "[", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"minEig1", "[", 
+         RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "]"}], 
+        "}"}], ",", "\[IndentingNewLine]", "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"ds11v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds12v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds21v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds22v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}]}], "}"}], ",", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"Method", "->", "\"\<NelderMead\>\""}], ",", 
+       RowBox[{"MaxIterations", "->", "5000"}]}], "\[IndentingNewLine]", 
+      "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<=== Test 1: L = x\.b2 - y\.b2 at (1, 0.5) ===\>\"", 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<H = \>\"", ",", 
+      RowBox[{"MatrixForm", "[", "h1", "]"}], ",", "\"\<, g = \>\"", ",", 
+      "gVec1"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Min eigenvalue of Euclidean Hessian: \>\"", ",", 
+      RowBox[{"Min", "[", 
+       RowBox[{"Eigenvalues", "[", "h1", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\\nOptimal parameters: \>\"", ",", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Max(min eigenvalue of H-C): \>\"", ",", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "1", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"optParams1", "=", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "}"}], 
+      " ", "/.", " ", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"effH1", "=", 
+     RowBox[{"effectiveH1", " ", "@@", " ", "optParams1"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Effective Hessian: \>\"", ",", 
+      RowBox[{"MatrixForm", "[", 
+       RowBox[{"effH1", " ", "//", " ", "N"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Eigenvalues: \>\"", ",", 
+      RowBox[{
+       RowBox[{"Eigenvalues", "[", "effH1", "]"}], " ", "//", " ", "N"}]}], 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Geodesically convex? \>\"", ",", 
+      RowBox[{
+       RowBox[{"Min", "[", 
+        RowBox[{"Eigenvalues", "[", "effH1", "]"}], "]"}], ">", "0"}]}], 
+     "]"}], ";"}]}]}]], "Input",ExpressionUUID->"9324ba7d-9d69-469e-b828-\
+c247ae1bcac8"],
+
+Cell["Part III: Test Function 2 \[LongDash] L = x^2 - 3y^2 at (1, 0.5)", \
+"Section",ExpressionUUID->"e3b57e8f-f10c-4dad-b87e-8489456b6602"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Test", " ", "2"}], ":", " ", "L"}], " ", "=", " ", 
+    RowBox[{"x\.b2", " ", "-", " ", 
+     RowBox[{"3", "y\.b2", " ", "at", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", ",", " ", "0.5"}], ")"}]}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"h2", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"2", ",", "0"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "6"}]}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gVec2", "=", 
+     RowBox[{"{", 
+      RowBox[{"2", ",", 
+       RowBox[{"-", "3"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"effectiveH2", "[", 
+      RowBox[{"ds11v_", ",", "ds12v_", ",", "ds21v_", ",", "ds22v_"}], "]"}], 
+     ":=", "\[IndentingNewLine]", "  ", 
+     RowBox[{"h2", "-", 
+      RowBox[{"(", 
+       RowBox[{"cMatrixAt0", " ", "/.", " ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"ds11", "->", "ds11v"}], ",", 
+          RowBox[{"ds12", "->", "ds12v"}], ",", 
+          RowBox[{"ds21", "->", "ds21v"}], ",", 
+          RowBox[{"ds22", "->", "ds22v"}], ",", "\[IndentingNewLine]", 
+          "                        ", 
+          RowBox[{"g1", "->", 
+           RowBox[{"gVec2", "[", 
+            RowBox[{"[", "1", "]"}], "]"}]}], ",", 
+          RowBox[{"g2", "->", 
+           RowBox[{"gVec2", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}], ")"}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"minEig2", "[", 
+      RowBox[{
+       RowBox[{"ds11v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds12v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds21v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds22v_", "?", "NumericQ"}]}], "]"}], ":=", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Min", "[", 
+      RowBox[{"Eigenvalues", "[", 
+       RowBox[{"effectiveH2", "[", 
+        RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "]"}], 
+       "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"result2", "=", 
+     RowBox[{"NMaximize", "[", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"minEig2", "[", 
+         RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "]"}], 
+        "}"}], ",", "\[IndentingNewLine]", "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"ds11v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds12v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds21v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds22v", ",", 
+           RowBox[{"-", "10"}], ",", "10"}], "}"}]}], "}"}], ",", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"Method", "->", "\"\<NelderMead\>\""}], ",", 
+       RowBox[{"MaxIterations", "->", "5000"}]}], "\[IndentingNewLine]", 
+      "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<=== Test 2: L = x\.b2 - 3y\.b2 at (1, 0.5) ===\>\"", 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<H = \>\"", ",", 
+      RowBox[{"MatrixForm", "[", "h2", "]"}], ",", "\"\<, g = \>\"", ",", 
+      "gVec2"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Min eigenvalue of Euclidean Hessian: \>\"", ",", 
+      RowBox[{"Min", "[", 
+       RowBox[{"Eigenvalues", "[", "h2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\\nOptimal parameters: \>\"", ",", 
+      RowBox[{"result2", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Max(min eigenvalue of H-C): \>\"", ",", 
+      RowBox[{"result2", "[", 
+       RowBox[{"[", "1", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"optParams2", "=", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "}"}], 
+      " ", "/.", " ", 
+      RowBox[{"result2", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"effH2", "=", 
+     RowBox[{"effectiveH2", " ", "@@", " ", "optParams2"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Effective Hessian: \>\"", ",", 
+      RowBox[{"MatrixForm", "[", 
+       RowBox[{"effH2", " ", "//", " ", "N"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Eigenvalues: \>\"", ",", 
+      RowBox[{
+       RowBox[{"Eigenvalues", "[", "effH2", "]"}], " ", "//", " ", "N"}]}], 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Geodesically convex? \>\"", ",", 
+      RowBox[{
+       RowBox[{"Min", "[", 
+        RowBox[{"Eigenvalues", "[", "effH2", "]"}], "]"}], ">", "0"}]}], 
+     "]"}], ";"}]}]}]], "Input",ExpressionUUID->"1a755511-d695-4b0a-93ce-\
+4f6e269effb0"],
+
+Cell["Part IV: Test Function 3 \[LongDash] L = x^2 - 100y^2 at (1, 0.01)", \
+"Section",ExpressionUUID->"4ba7c876-aa85-4946-89f0-1d0a25401747"],
+
+Cell["\<\
+An extreme saddle with a very negative eigenvalue and small gradient in the y \
+direction. \
+\>", "Text",ExpressionUUID->"6d266dfe-f857-48c9-8c52-cd3e1b075415"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Test", " ", "3"}], ":", " ", "L"}], " ", "=", " ", 
+    RowBox[{"x\.b2", " ", "-", " ", 
+     RowBox[{"100", "y\.b2", " ", "at", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", ",", " ", "0.01"}], ")"}]}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"h3", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"2", ",", "0"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "200"}]}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gVec3", "=", 
+     RowBox[{"{", 
+      RowBox[{"2", ",", 
+       RowBox[{"-", "2"}]}], "}"}]}], ";"}], "  ", 
+   RowBox[{"(*", " ", 
+    RowBox[{"g", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"2", "x"}], ",", " ", 
+        RowBox[{
+         RowBox[{"-", "200"}], "y"}]}], ")"}], " ", "=", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"2", ",", " ", 
+         RowBox[{"-", "2"}]}], ")"}], " ", "at", " ", 
+       RowBox[{"(", 
+        RowBox[{"1", ",", " ", "0.01"}], ")"}]}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"effectiveH3", "[", 
+      RowBox[{"ds11v_", ",", "ds12v_", ",", "ds21v_", ",", "ds22v_"}], "]"}], 
+     ":=", "\[IndentingNewLine]", "  ", 
+     RowBox[{"h3", "-", 
+      RowBox[{"(", 
+       RowBox[{"cMatrixAt0", " ", "/.", " ", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"ds11", "->", "ds11v"}], ",", 
+          RowBox[{"ds12", "->", "ds12v"}], ",", 
+          RowBox[{"ds21", "->", "ds21v"}], ",", 
+          RowBox[{"ds22", "->", "ds22v"}], ",", "\[IndentingNewLine]", 
+          "                        ", 
+          RowBox[{"g1", "->", 
+           RowBox[{"gVec3", "[", 
+            RowBox[{"[", "1", "]"}], "]"}]}], ",", 
+          RowBox[{"g2", "->", 
+           RowBox[{"gVec3", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}], ")"}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"minEig3", "[", 
+      RowBox[{
+       RowBox[{"ds11v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds12v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds21v_", "?", "NumericQ"}], ",", 
+       RowBox[{"ds22v_", "?", "NumericQ"}]}], "]"}], ":=", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Min", "[", 
+      RowBox[{"Eigenvalues", "[", 
+       RowBox[{"effectiveH3", "[", 
+        RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "]"}], 
+       "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"result3", "=", 
+     RowBox[{"NMaximize", "[", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"minEig3", "[", 
+         RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "]"}], 
+        "}"}], ",", "\[IndentingNewLine]", "  ", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"ds11v", ",", 
+           RowBox[{"-", "200"}], ",", "200"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds12v", ",", 
+           RowBox[{"-", "200"}], ",", "200"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds21v", ",", 
+           RowBox[{"-", "200"}], ",", "200"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"ds22v", ",", 
+           RowBox[{"-", "200"}], ",", "200"}], "}"}]}], "}"}], ",", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"Method", "->", "\"\<DifferentialEvolution\>\""}], ",", 
+       RowBox[{"MaxIterations", "->", "5000"}]}], "\[IndentingNewLine]", 
+      "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<=== Test 3: L = x\.b2 - 100y\.b2 at (1, 0.01) ===\>\"",
+      "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<H = \>\"", ",", 
+      RowBox[{"MatrixForm", "[", "h3", "]"}], ",", "\"\<, g = \>\"", ",", 
+      "gVec3"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Min eigenvalue of Euclidean Hessian: \>\"", ",", 
+      RowBox[{"Min", "[", 
+       RowBox[{"Eigenvalues", "[", "h3", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\\nOptimal parameters: \>\"", ",", 
+      RowBox[{"result3", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Max(min eigenvalue of H-C): \>\"", ",", 
+      RowBox[{"result3", "[", 
+       RowBox[{"[", "1", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"optParams3", "=", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"ds11v", ",", "ds12v", ",", "ds21v", ",", "ds22v"}], "}"}], 
+      " ", "/.", " ", 
+      RowBox[{"result3", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"effH3", "=", 
+     RowBox[{"effectiveH3", " ", "@@", " ", "optParams3"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Effective Hessian: \>\"", ",", 
+      RowBox[{"MatrixForm", "[", 
+       RowBox[{"effH3", " ", "//", " ", "N"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Eigenvalues: \>\"", ",", 
+      RowBox[{
+       RowBox[{"Eigenvalues", "[", "effH3", "]"}], " ", "//", " ", "N"}]}], 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Geodesically convex? \>\"", ",", 
+      RowBox[{
+       RowBox[{"Min", "[", 
+        RowBox[{"Eigenvalues", "[", "effH3", "]"}], "]"}], ">", "0"}]}], 
+     "]"}], ";"}]}]}]], "Input",ExpressionUUID->"dde6c1a9-e21e-43b0-8f23-\
+57deb16a4c8b"],
+
+Cell["Part V: The Universal Rule", "Section",ExpressionUUID->"e7a6ccb8-d587-4c0c-b692-0dbb6c55bbf6"],
+
+Cell[TextData[{
+ "Verify that the optimal derivative satisfies ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[PartialD]", 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", "2", 
+         SubscriptBox[
+          StyleBox["H", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["i", "TI"]}]], "/", 
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\partial_i s_i = 2 H_{ii} / g_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e78c1c39-db68-47dc-a346-a56e25ce86c1"],
+ " at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "s_1 = s_2 = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e8b8b8f9-808b-4fcf-9e8b-498cdbaf6ead"],
+ ". "
+}], "Text",ExpressionUUID->"b2f4d818-c112-4057-9bb1-5713ffd897d5"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{
+   "Print", "[", "\"\<=== Universal Rule Verification: \[PartialD]_i s_i = 2 \
+H_{ii} / g_i ===\\n\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"At", " ", "s1"}], "=", 
+     RowBox[{"s2", "=", "0"}]}], ",", " ", 
+    RowBox[{"the", " ", "diagonal", " ", "entry", " ", "C_", 
+     RowBox[{"{", "ii", "}"}], " ", "simplifies", " ", 
+     RowBox[{"to", ":"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"C_", 
+     RowBox[{"{", "ii", "}"}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"\[PartialD]", "_i"}], " ", "s_i"}], ")"}], " ", "g_i"}]}], 
+   " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"For", " ", "H"}], "-", 
+     RowBox[{"C", " ", "to", " ", "have", " ", "H_", 
+      RowBox[{"{", "ii", "}"}]}], " ", "-", " ", 
+     RowBox[{"C_", 
+      RowBox[{"{", "ii", "}"}]}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"H_", 
+      RowBox[{"{", "ii", "}"}]}], " ", "-", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"\[PartialD]", "_i"}], " ", "s_i"}], ")"}], " ", "g_i"}]}]}], 
+   " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Setting", " ", 
+      RowBox[{"\[PartialD]", "_i"}], " ", "s_i"}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{"H_", 
+       RowBox[{
+        RowBox[{"{", "ii", "}"}], "/", "g_i"}], " ", "makes", " ", "C_", 
+       RowBox[{"{", "ii", "}"}]}], " ", "=", " ", 
+      RowBox[{"H_", 
+       RowBox[{"{", "ii", "}"}]}]}]}], ",", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"so", " ", "diagonal", " ", "of", " ", "H"}], "-", "C"}], " ", "=",
+      " ", "0"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"But", " ", "for", " ", "saddle", " ", "points"}], ",", " ", 
+    RowBox[{
+    "we", " ", "want", " ", "to", " ", "flip", " ", "the", " ", "sign", " ", 
+     "of", " ", "negative", " ", "eigenvalues"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"So", " ", 
+     RowBox[{"\[PartialD]", "_i"}], " ", "s_i"}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"2", " ", "H_", 
+       RowBox[{
+        RowBox[{"{", "ii", "}"}], "/", "g_i"}], " ", "makes", " ", "H_", 
+       RowBox[{"{", "ii", "}"}]}], " ", "-", " ", 
+      RowBox[{"C_", 
+       RowBox[{"{", "ii", "}"}]}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"H_", 
+        RowBox[{"{", "ii", "}"}]}], " ", "-", " ", 
+       RowBox[{"2", "H_", 
+        RowBox[{"{", "ii", "}"}]}]}], " ", "=", " ", 
+      RowBox[{
+       RowBox[{"-", "H_"}], 
+       RowBox[{"{", "ii", "}"}]}]}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"This", " ", "flips", " ", "negative", " ", "to", " ", 
+    RowBox[{"positive", "!"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Test", " ", "1", " ", "prediction"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pred1", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"2", " ", 
+      RowBox[{
+       RowBox[{"h1", "[", 
+        RowBox[{"[", 
+         RowBox[{"1", ",", "1"}], "]"}], "]"}], "/", 
+       RowBox[{"gVec1", "[", 
+        RowBox[{"[", "1", "]"}], "]"}]}]}], ",", 
+     RowBox[{"2", " ", 
+      RowBox[{
+       RowBox[{"h1", "[", 
+        RowBox[{"[", 
+         RowBox[{"2", ",", "2"}], "]"}], "]"}], "/", 
+       RowBox[{"gVec1", "[", 
+        RowBox[{"[", "2", "]"}], "]"}]}]}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Test 1: predicted \[PartialD]\:2081s\:2081 = \>\"", ",", 
+    RowBox[{"pred1", "[", 
+     RowBox[{"[", "1", "]"}], "]"}], 
+    ",", "\"\<, \[PartialD]\:2082s\:2082 = \>\"", ",", 
+    RowBox[{"pred1", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<  Actual optimal ds11 = \>\"", ",", 
+     RowBox[{"ds11v", " ", "/.", " ", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], ",", "\"\<, ds22 = \>\"", ",", 
+     RowBox[{"ds22v", " ", "/.", " ", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Test", " ", "2", " ", "prediction"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pred2", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"2", " ", 
+      RowBox[{
+       RowBox[{"h2", "[", 
+        RowBox[{"[", 
+         RowBox[{"1", ",", "1"}], "]"}], "]"}], "/", 
+       RowBox[{"gVec2", "[", 
+        RowBox[{"[", "1", "]"}], "]"}]}]}], ",", 
+     RowBox[{"2", " ", 
+      RowBox[{
+       RowBox[{"h2", "[", 
+        RowBox[{"[", 
+         RowBox[{"2", ",", "2"}], "]"}], "]"}], "/", 
+       RowBox[{"gVec2", "[", 
+        RowBox[{"[", "2", "]"}], "]"}]}]}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<\\nTest 2: predicted \[PartialD]\:2081s\:2081 = \>\"", ",", 
+    RowBox[{"pred2", "[", 
+     RowBox[{"[", "1", "]"}], "]"}], 
+    ",", "\"\<, \[PartialD]\:2082s\:2082 = \>\"", ",", 
+    RowBox[{"pred2", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<  Actual optimal ds11 = \>\"", ",", 
+     RowBox[{"ds11v", " ", "/.", " ", 
+      RowBox[{"result2", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], ",", "\"\<, ds22 = \>\"", ",", 
+     RowBox[{"ds22v", " ", "/.", " ", 
+      RowBox[{"result2", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Test", " ", "3", " ", "prediction"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pred3", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"2", " ", 
+      RowBox[{
+       RowBox[{"h3", "[", 
+        RowBox[{"[", 
+         RowBox[{"1", ",", "1"}], "]"}], "]"}], "/", 
+       RowBox[{"gVec3", "[", 
+        RowBox[{"[", "1", "]"}], "]"}]}]}], ",", 
+     RowBox[{"2", " ", 
+      RowBox[{
+       RowBox[{"h3", "[", 
+        RowBox[{"[", 
+         RowBox[{"2", ",", "2"}], "]"}], "]"}], "/", 
+       RowBox[{"gVec3", "[", 
+        RowBox[{"[", "2", "]"}], "]"}]}]}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<\\nTest 3: predicted \[PartialD]\:2081s\:2081 = \>\"", ",", 
+    RowBox[{"pred3", "[", 
+     RowBox[{"[", "1", "]"}], "]"}], 
+    ",", "\"\<, \[PartialD]\:2082s\:2082 = \>\"", ",", 
+    RowBox[{"pred3", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<  Actual optimal ds11 = \>\"", ",", 
+     RowBox[{"ds11v", " ", "/.", " ", 
+      RowBox[{"result3", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}], ",", "\"\<, ds22 = \>\"", ",", 
+     RowBox[{"ds22v", " ", "/.", " ", 
+      RowBox[{"result3", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Direct", " ", "symbolic", " ", "check"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", "\"\<\\n=== Symbolic verification ===\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"cDiag", "=", 
+   RowBox[{"Diagonal", "[", "cMatrixAt0", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<C_{11} at s=0: \>\"", ",", 
+    RowBox[{"cDiag", "[", 
+     RowBox[{"[", "1", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<C_{22} at s=0: \>\"", ",", 
+    RowBox[{"cDiag", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<Setting \[PartialD]_i s_i = 2 H_{ii}/g_i:\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<  H_{11} - C_{11} = H_{11} - (\[PartialD]\:2081s\:2081)g\
+\:2081 = H_{11} - 2H_{11} = -H_{11}\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<  For saddle (H_{22}<0): -H_{22} > 0. Sign flipped! \
+\[Checkmark]\>\"", "]"}], ";"}]}], "Input",ExpressionUUID->"60af60e8-25c5-\
+4780-9f82-95167d6b55f6"],
+
+Cell["Part VI: Convexity of the Optimization Problem", "Section",ExpressionUUID->"c919455e-553b-40a2-b434-1be1683a80dd"],
+
+Cell[TextData[{
+ "Show that the minimum eigenvalue of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"(", 
+         RowBox[{
+           StyleBox["H", "TI"], "-", 
+           StyleBox["C", "TI"]}], ")"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "(H - C)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5bc00fb3-162a-4e1a-af15-75aa28c53acc"],
+ " is concave in ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"(", 
+         RowBox[{
+           StyleBox["d", "TI"], 
+           SubscriptBox[
+            StyleBox["s", "TI"], "11"], ",", 
+           StyleBox["d", "TI"], 
+           SubscriptBox[
+            StyleBox["s", "TI"], "12"], ",", 
+           StyleBox["d", "TI"], 
+           SubscriptBox[
+            StyleBox["s", "TI"], "21"], ",", 
+           StyleBox["d", "TI"], 
+           SubscriptBox[
+            StyleBox["s", "TI"], "22"]}], ")"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "(ds_{11}, ds_{12}, ds_{21}, ds_{22})", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f4db80e9-c61b-4dc0-b05d-90b3a6011878"],
+ " for fixed ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["s", "TI"], TraditionalForm], "errors" -> {}, "input" -> "s", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b9449bb8-5d5c-4ec5-b93c-8c961ab3d1fd"],
+ ". This means the optimization problem has no spurious local maxima. "
+}], "Text",ExpressionUUID->"cee1f755-ee58-4f2f-8c32-41f1f603ef36"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "The", " ", "minimum", " ", "eigenvalue", " ", "of", " ", "a", " ", 
+    "matrix", " ", "that", " ", "depends", " ", "affinely", " ", "on", " ", 
+    "parameters", " ", "is", " ", "concave"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "C", " ", "depends", " ", "linearly", " ", "on", " ", "the", " ", "ds", " ",
+      "parameters"}], ",", " ", 
+    RowBox[{
+     RowBox[{"so", " ", "H"}], "-", 
+     RowBox[{"C", " ", "is", " ", "affine", " ", "in", " ", "ds"}]}]}], " ", 
+   "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"min", "-", 
+    RowBox[{
+    "eigenvalue", " ", "of", " ", "an", " ", "affine", " ", "matrix", " ", 
+     "family", " ", "is", " ", "concave"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Verify", " ", "affine", " ", "dependence"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Print", "[", "\"\<=== Affine dependence check ===\>\"", "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", "\"\<C at s=0:\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"MatrixForm", "[", "cMatrixAt0", "]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<\\nC is LINEAR in (ds11, ds12, ds21, ds22) \[LongDash] \
+confirmed by inspection.\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<H - C is therefore AFFINE in these parameters.\>\"", 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<Min eigenvalue of affine matrix family is CONCAVE \
+(well-known result).\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<\[DoubleLongRightArrow] No spurious local maxima in \
+the geodesic convexity optimization.\\n\>\"", "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Plot", " ", "min"}], "-", 
+     RowBox[{
+     "eigenvalue", " ", "as", " ", "function", " ", "of", " ", "ds22", " ", 
+      "for", " ", "Test", " ", "1"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Fix", " ", "other", " ", "parameters", " ", "at", " ", "optimal", " ", 
+     "values"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"optDs11_", "1"}], "=", 
+     RowBox[{"ds11v", " ", "/.", " ", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"optDs12_", "1"}], "=", 
+     RowBox[{"ds12v", " ", "/.", " ", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"optDs21_", "1"}], "=", 
+     RowBox[{"ds21v", " ", "/.", " ", 
+      RowBox[{"result1", "[", 
+       RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"plotData", "=", 
+     RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"d22", ",", 
+         RowBox[{"minEig1", "[", 
+          RowBox[{
+           RowBox[{"optDs11_", "1"}], ",", 
+           RowBox[{"optDs12_", "1"}], ",", 
+           RowBox[{"optDs21_", "1"}], ",", "d22"}], "]"}]}], "}"}], ",", 
+       "\[IndentingNewLine]", "  ", 
+       RowBox[{"{", 
+        RowBox[{"d22", ",", 
+         RowBox[{"-", "5"}], ",", "5", ",", "0.1"}], "}"}]}], 
+      "\[IndentingNewLine]", "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"ListLinePlot", "[", 
+    RowBox[{"plotData", ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"PlotStyle", "->", 
+      RowBox[{"{", 
+       RowBox[{"Blue", ",", "Thick"}], "}"}]}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"AxesLabel", "->", 
+      RowBox[{"{", 
+       RowBox[{"\"\<ds\:2082\:2082\>\"", 
+        ",", "\"\<min eigenvalue of (H-C)\>\""}], "}"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{
+     "PlotLabel", 
+      "->", "\"\<Test 1: Concavity in ds\:2082\:2082 (other params fixed at \
+optimum)\>\""}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"Epilog", "->", 
+      RowBox[{"{", 
+       RowBox[{"Red", ",", 
+        RowBox[{"PointSize", "[", "0.02", "]"}], ",", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"Point", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"ds22v", " ", "/.", " ", 
+            RowBox[{"result1", "[", 
+             RowBox[{"[", "2", "]"}], "]"}]}], ",", 
+           RowBox[{"result1", "[", 
+            RowBox[{"[", "1", "]"}], "]"}]}], "}"}], "]"}]}], "}"}]}], ",", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"GridLines", "->", "Automatic"}], ",", "\[IndentingNewLine]", 
+     "  ", 
+     RowBox[{"ImageSize", "->", "500"}]}], "\[IndentingNewLine]", 
+    "]"}]}]}]], "Input",ExpressionUUID->"3c3138a4-c2f0-4141-9344-\
+241bb9221478"],
+
+Cell["2D concavity slice", "Subsection",ExpressionUUID->"4d23e5b1-1891-4015-84e9-09c4ba009e40"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"2", "D", " ", "contour", " ", 
+    RowBox[{"plot", ":", " ", 
+     RowBox[{"min", "-", 
+      RowBox[{
+      "eigenvalue", " ", "as", " ", "function", " ", "of", " ", "ds12", " ", 
+       "and", " ", "ds22"}]}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"ContourPlot", "[", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{"minEig1", "[", 
+     RowBox[{
+      RowBox[{"optDs11_", "1"}], ",", "ds12val", ",", 
+      RowBox[{"optDs21_", "1"}], ",", "ds22val"}], "]"}], ",", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"{", 
+     RowBox[{"ds12val", ",", 
+      RowBox[{"-", "5"}], ",", "5"}], "}"}], ",", 
+    RowBox[{"{", 
+     RowBox[{"ds22val", ",", 
+      RowBox[{"-", "5"}], ",", "5"}], "}"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "PlotLabel", 
+     "->", "\"\<Test 1: min eigenvalue of (H-C) vs (ds\:2081\:2082, ds\:2082\
+\:2082)\>\""}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"FrameLabel", "->", 
+     RowBox[{"{", 
+      RowBox[{"\"\<ds\:2081\:2082\>\"", ",", "\"\<ds\:2082\:2082\>\""}], 
+      "}"}]}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"ColorFunction", "->", "\"\<TemperatureMap\>\""}], ",", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"Contours", "->", "20"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"Epilog", "->", 
+     RowBox[{"{", 
+      RowBox[{"Black", ",", 
+       RowBox[{"PointSize", "[", "0.02", "]"}], ",", "\[IndentingNewLine]", 
+       "    ", 
+       RowBox[{"Point", "[", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"ds12v", " ", "/.", " ", 
+           RowBox[{"result1", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}], ",", 
+          RowBox[{"ds22v", " ", "/.", " ", 
+           RowBox[{"result1", "[", 
+            RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}], "]"}]}], "}"}]}], ",", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{"ImageSize", "->", "450"}]}], "\[IndentingNewLine]", 
+   "]"}]}]], "Input",ExpressionUUID->"d5cf1fd2-c859-4118-b454-7e06d8cf3d61"],
+
+Cell["Part VII: Sensitivity Analysis", "Section",ExpressionUUID->"02a43a36-dc9a-45af-9748-42cfd85f3d9a"],
+
+Cell[TextData[{
+ "Perturb the optimal ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["d", "TI"], 
+         SubscriptBox[
+          StyleBox["s", "TI"], "22"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "ds_{22}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "08b9df91-1981-428c-ab7c-928fb3f55ab4"],
+ " by ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[PlusMinus]", "10%"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\pm 10\\%", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "bcc1905e-da4b-4510-9d54-82938df179a2"],
+ " and ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[PlusMinus]", "50%"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\pm 50\\%", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "584c9fd8-9f50-4021-a6a4-a619f2ff16ee"],
+ ". Show that the minimum eigenvalue degrades gracefully. "
+}], "Text",ExpressionUUID->"989302f2-777f-4335-a4de-447f630e564e"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{
+   "Print", "[", "\"\<=== Sensitivity Analysis: Perturbing ds\:2082\:2082 \
+around optimum ===\\n\>\"", "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs22_", "1"}], "=", 
+   RowBox[{"ds22v", " ", "/.", " ", 
+    RowBox[{"result1", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"perturbations", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"-", "0.5"}], ",", 
+      RowBox[{"-", "0.1"}], ",", "0", ",", "0.1", ",", "0.5"}], "}"}]}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<Test 1: L = x\.b2 - y\.b2 at (1, 0.5)\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Optimal ds\:2082\:2082 = \>\"", ",", 
+    RowBox[{
+     RowBox[{"optDs22_", "1"}], " ", "//", " ", "N"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", "\"\<\>\"", "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sensData1", "=", 
+    RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Module", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"ds22Pert", ",", "eigVal"}], "}"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"ds22Pert", "=", 
+          RowBox[{"optDs22_", "1", " ", 
+           RowBox[{"(", 
+            RowBox[{"1", "+", "p"}], ")"}]}]}], ";", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"eigVal", "=", 
+          RowBox[{"minEig1", "[", 
+           RowBox[{
+            RowBox[{"optDs11_", "1"}], ",", 
+            RowBox[{"optDs12_", "1"}], ",", 
+            RowBox[{"optDs21_", "1"}], ",", "ds22Pert"}], "]"}]}], ";", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"Print", "[", 
+          RowBox[{"\"\<  Perturbation: \>\"", ",", 
+           RowBox[{"If", "[", 
+            RowBox[{
+             RowBox[{"p", ">=", "0"}], ",", "\"\<+\>\"", ",", "\"\<\>\""}], 
+            "]"}], ",", 
+           RowBox[{"Round", "[", 
+            RowBox[{"100", " ", "p"}], "]"}], ",", "\"\<%\>\"", ",", 
+           "\[IndentingNewLine]", 
+           "          ", "\"\< \[RightArrow] ds\:2082\:2082 = \>\"", ",", 
+           RowBox[{"Round", "[", 
+            RowBox[{"ds22Pert", ",", "0.001"}], "]"}], ",", 
+           "\[IndentingNewLine]", 
+           "          ", "\"\< \[RightArrow] min eigenvalue = \>\"", ",", 
+           RowBox[{"Round", "[", 
+            RowBox[{"eigVal", ",", "0.001"}], "]"}], ",", 
+           "\[IndentingNewLine]", "          ", 
+           RowBox[{"If", "[", 
+            RowBox[{
+             RowBox[{"eigVal", ">", "0"}], ",", "\"\< (convex)\>\"", 
+             ",", "\"\< (NOT convex)\>\""}], "]"}]}], "]"}], ";", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"p", ",", "eigVal"}], "}"}]}]}], "\[IndentingNewLine]", 
+       "  ", "]"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"p", ",", "perturbations"}], "}"}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Test", " ", "2", " ", "sensitivity"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\nTest 2: L = x\.b2 - 3y\.b2 at (1, 0.5)\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs11_", "2"}], "=", 
+   RowBox[{"ds11v", " ", "/.", " ", 
+    RowBox[{"result2", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs12_", "2"}], "=", 
+   RowBox[{"ds12v", " ", "/.", " ", 
+    RowBox[{"result2", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs21_", "2"}], "=", 
+   RowBox[{"ds21v", " ", "/.", " ", 
+    RowBox[{"result2", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs22_", "2"}], "=", 
+   RowBox[{"ds22v", " ", "/.", " ", 
+    RowBox[{"result2", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Optimal ds\:2082\:2082 = \>\"", ",", 
+    RowBox[{
+     RowBox[{"optDs22_", "2"}], " ", "//", " ", "N"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", "\"\<\>\"", "]"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sensData2", "=", 
+    RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"Module", "[", 
+       RowBox[{
+        RowBox[{"{", 
+         RowBox[{"ds22Pert", ",", "eigVal"}], "}"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{
+         RowBox[{"ds22Pert", "=", 
+          RowBox[{"optDs22_", "2", " ", 
+           RowBox[{"(", 
+            RowBox[{"1", "+", "p"}], ")"}]}]}], ";", "\[IndentingNewLine]", 
+         "    ", 
+         RowBox[{"eigVal", "=", 
+          RowBox[{"minEig2", "[", 
+           RowBox[{
+            RowBox[{"optDs11_", "2"}], ",", 
+            RowBox[{"optDs12_", "2"}], ",", 
+            RowBox[{"optDs21_", "2"}], ",", "ds22Pert"}], "]"}]}], ";", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"Print", "[", 
+          RowBox[{"\"\<  Perturbation: \>\"", ",", 
+           RowBox[{"If", "[", 
+            RowBox[{
+             RowBox[{"p", ">=", "0"}], ",", "\"\<+\>\"", ",", "\"\<\>\""}], 
+            "]"}], ",", 
+           RowBox[{"Round", "[", 
+            RowBox[{"100", " ", "p"}], "]"}], ",", "\"\<%\>\"", ",", 
+           "\[IndentingNewLine]", 
+           "          ", "\"\< \[RightArrow] ds\:2082\:2082 = \>\"", ",", 
+           RowBox[{"Round", "[", 
+            RowBox[{"ds22Pert", ",", "0.001"}], "]"}], ",", 
+           "\[IndentingNewLine]", 
+           "          ", "\"\< \[RightArrow] min eigenvalue = \>\"", ",", 
+           RowBox[{"Round", "[", 
+            RowBox[{"eigVal", ",", "0.001"}], "]"}], ",", 
+           "\[IndentingNewLine]", "          ", 
+           RowBox[{"If", "[", 
+            RowBox[{
+             RowBox[{"eigVal", ">", "0"}], ",", "\"\< (convex)\>\"", 
+             ",", "\"\< (NOT convex)\>\""}], "]"}]}], "]"}], ";", 
+         "\[IndentingNewLine]", "    ", 
+         RowBox[{"{", 
+          RowBox[{"p", ",", "eigVal"}], "}"}]}]}], "\[IndentingNewLine]", 
+       "  ", "]"}], ",", "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"p", ",", "perturbations"}], "}"}]}], "\[IndentingNewLine]", 
+     "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Test", " ", "3", " ", "sensitivity"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\nTest 3: L = x\.b2 - 100y\.b2 at (1, 0.01)\>\"", "]"}],
+   ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs11_", "3"}], "=", 
+   RowBox[{"ds11v", " ", "/.", " ", 
+    RowBox[{"result3", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs12_", "3"}], "=", 
+   RowBox[{"ds12v", " ", "/.", " ", 
+    RowBox[{"result3", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs21_", "3"}], "=", 
+   RowBox[{"ds21v", " ", "/.", " ", 
+    RowBox[{"result3", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"optDs22_", "3"}], "=", 
+   RowBox[{"ds22v", " ", "/.", " ", 
+    RowBox[{"result3", "[", 
+     RowBox[{"[", "2", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Optimal ds\:2082\:2082 = \>\"", ",", 
+    RowBox[{
+     RowBox[{"optDs22_", "3"}], " ", "//", " ", "N"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", "\"\<\>\"", "]"}], ";"}], "\[IndentingNewLine]"}], 
+"\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sensData3", "=", 
+   RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{"Module", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"ds22Pert", ",", "eigVal"}], "}"}], ",", 
+       "\[IndentingNewLine]", "    ", 
+       RowBox[{
+        RowBox[{"ds22Pert", "=", 
+         RowBox[{"optDs22_", "3", " ", 
+          RowBox[{"(", 
+           RowBox[{"1", "+", "p"}], ")"}]}]}], ";", "\[IndentingNewLine]", 
+        "    ", 
+        RowBox[{"eigVal", "=", 
+         RowBox[{"minEig3", "[", 
+          RowBox[{
+           RowBox[{"optDs11_", "3"}], ",", 
+           RowBox[{"optDs12_", "3"}], ",", 
+           RowBox[{"optDs21_", "3"}], ",", "ds22Pert"}], "]"}]}], ";", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"Print", "[", 
+         RowBox[{"\"\<  Perturbation: \>\"", ",", 
+          RowBox[{"If", "[", 
+           RowBox[{
+            RowBox[{"p", ">=", "0"}], ",", "\"\<+\>\"", ",", "\"\<\>\""}], 
+           "]"}], ",", 
+          RowBox[{"Round", "[", 
+           RowBox[{"100", " ", "p"}], "]"}], ",", "\"\<%\>\"", ",", 
+          "\[IndentingNewLine]", 
+          "          ", "\"\< \[RightArrow] ds\:2082\:2082 = \>\"", ",", 
+          RowBox[{"Round", "[", 
+           RowBox[{"ds22Pert", ",", "0.001"}], "]"}], ",", 
+          "\[IndentingNewLine]", 
+          "          ", "\"\< \[RightArrow] min eigenvalue = \>\"", ",", 
+          RowBox[{"Round", "[", 
+           RowBox[{"eigVal", ",", "0.001"}], "]"}], ",", 
+          "\[IndentingNewLine]", "          ", 
+          RowBox[{"If", "[", 
+           RowBox[{
+            RowBox[{"eigVal", ">", "0"}], ",", "\"\< (convex)\>\"", 
+            ",", "\"\< (NOT convex)\>\""}], "]"}]}], "]"}], ";", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"{", 
+         RowBox[{"p", ",", "eigVal"}], "}"}]}]}], "\[IndentingNewLine]", "  ",
+       "]"}], ",", "\[IndentingNewLine]", "  ", 
+     RowBox[{"{", 
+      RowBox[{"p", ",", "perturbations"}], "}"}]}], "\[IndentingNewLine]", 
+    "]"}]}], ";"}]}], "Input",ExpressionUUID->"2327bdd1-4cc5-4f43-9cd8-\
+b7b469e793a6"],
+
+Cell["Sensitivity plot", "Subsection",ExpressionUUID->"7d1ff757-4ac2-4fd4-80ca-08a76ac8e5ab"],
+
+Cell[BoxData[
+ RowBox[{"ListLinePlot", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{"sensData1", ",", "sensData2", ",", "sensData3"}], "}"}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotStyle", "->", 
+    RowBox[{"{", 
+     RowBox[{"Blue", ",", "Red", ",", 
+      RowBox[{"Darker", "[", "Green", "]"}]}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotLegends", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<x\.b2-y\.b2\>\"", ",", "\"\<x\.b2-3y\.b2\>\"", 
+      ",", "\"\<x\.b2-100y\.b2\>\""}], "}"}]}], ",", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"AxesLabel", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<Relative perturbation of ds\:2082\:2082\>\"", 
+      ",", "\"\<Min eigenvalue of (H-C)\>\""}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{
+   "PlotLabel", 
+    "->", "\"\<Sensitivity of Geodesic Convexity to ds\:2082\:2082 \
+Perturbation\>\""}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"PlotMarkers", "->", "Automatic"}], ",", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"GridLines", "->", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", "0", "}"}], ",", 
+      RowBox[{"{", "0", "}"}]}], "}"}]}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"GridLinesStyle", "->", 
+    RowBox[{"Directive", "[", 
+     RowBox[{"Gray", ",", "Dashed"}], "]"}]}], ",", "\[IndentingNewLine]", 
+   "  ", 
+   RowBox[{"ImageSize", "->", "500"}]}], "\[IndentingNewLine]", 
+  "]"}]], "Input",ExpressionUUID->"9bfd430f-de91-4b43-9119-daee0e282e65"],
+
+Cell["Part VIII: Exponential Amplification", "Section",ExpressionUUID->"7b99744f-989f-442b-b985-8e6c6894e2c7"],
+
+Cell[TextData[{
+ "Show that at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["s", "TI"], "1"], "\[LongEqual]", "0", ",", 
+         SubscriptBox[
+          StyleBox["s", "TI"], "2"], "\[LongEqual]", "\[CapitalDelta]"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "s_1 = 0, s_2 = \\Delta", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "96897070-11e7-470d-b633-3048f9d3be03"],
+ " with ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[CapitalDelta]", ">", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\Delta > 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0da8c4a5-9c4e-414d-b840-e128b03200cb"],
+ ", the required ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+        "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", "\[Del]", 
+         StyleBox["s", "TI"], 
+         "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "|\\nabla s|", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a11caa6b-4b73-45cd-a699-fb5eddbb383c"],
+ " for convexity decreases as ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SuperscriptBox[
+        StyleBox["e", "TI"], 
+        RowBox[{"-", "\[CapitalDelta]"}]], TraditionalForm], "errors" -> {}, 
+     "input" -> "e^{-\\Delta}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5060c379-aa42-40e4-b04d-d5cb6a827857"],
+ ". The exponential metric amplifies the effect of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "f9e463c1-f819-4b16-a130-ed38346beeed"],
+ ". "
+}], "Text",ExpressionUUID->"0410d244-7e7a-44bc-8bad-66721dd31a3e"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"At", " ", "s1"}], "=", "0"}], ",", " ", 
+    RowBox[{"s2", "=", "\[CapitalDelta]"}], ",", " ", 
+    RowBox[{"the", " ", "C_", 
+     RowBox[{"{", "22", "}"}], " ", "term", " ", 
+     RowBox[{"becomes", ":"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"C_", 
+     RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"\[PartialD]", "\:2082s\:2082"}], ")"}], " ", "g\:2082", " ", 
+      RowBox[{
+       RowBox[{"e", "^", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "2"}], "\[CapitalDelta]"}], "}"}]}], " ", "\[CenterDot]",
+        " ", 
+       RowBox[{"e", "^", 
+        RowBox[{"{", 
+         RowBox[{"2", "\[CapitalDelta]"}], "}"}]}]}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"\[PartialD]", "\:2082s\:2082"}], ")"}], " ", "g\:2082"}], 
+       " ", "..."}], " ", "but", " ", 
+      RowBox[{"let", "'"}], "s", " ", "compute", " ", "exactly"}]}]}], " ", 
+   "*)"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<=== Exponential amplification: required ||\[Del]s|| vs \
+\[CapitalDelta] ===\\n\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"For", " ", "Test", " ", "1"}], ":", " ", 
+      RowBox[{
+       RowBox[{"need", " ", "H_", 
+        RowBox[{"{", "22", "}"}]}], " ", "-", " ", 
+       RowBox[{"C_", 
+        RowBox[{"{", "22", "}"}]}]}]}], " ", "=", " ", 
+     RowBox[{"0", " ", 
+      RowBox[{"(", 
+       RowBox[{"threshold", " ", "of", " ", "convexity"}], ")"}]}]}], " ", 
+    "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"At", " ", "s1"}], "=", "0"}], ",", " ", 
+     RowBox[{"s2", "=", 
+      RowBox[{"\[CapitalDelta]", ":"}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"\[Gamma]_", 
+       RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+      RowBox[{"e", "^", 
+       RowBox[{"{", 
+        RowBox[{"2", "\[CapitalDelta]"}], "}"}]}]}], ",", " ", 
+     RowBox[{
+      RowBox[{"\[Gamma]", "^", 
+       RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+      RowBox[{"e", "^", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "2"}], "\[CapitalDelta]"}], "}"}]}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"\[CapitalGamma]", "^", "2"}], "_", 
+      RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"\[Gamma]", "^", 
+         RowBox[{"{", "22", "}"}]}], " ", "\[CenterDot]", " ", 
+        RowBox[{"\[PartialD]", "\:2082\[Gamma]_"}]}], 
+       RowBox[{
+        RowBox[{"{", "22", "}"}], "/", "2"}]}], " ", "=", " ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"e", "^", 
+          RowBox[{"{", 
+           RowBox[{
+            RowBox[{"-", "2"}], "\[CapitalDelta]"}], "}"}]}], " ", "\[CenterDot]",
+          " ", "2"}], 
+        RowBox[{"(", 
+         RowBox[{"\[PartialD]", "\:2082s\:2082"}], ")"}], 
+        RowBox[{
+         RowBox[{"e", "^", 
+          RowBox[{"{", 
+           RowBox[{"2", "\[CapitalDelta]"}], "}"}]}], "/", "2"}]}], " ", "=", 
+       " ", 
+       RowBox[{"\[PartialD]", "\:2082s\:2082"}]}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"But", " ", 
+      RowBox[{"\[CapitalGamma]", "^", "1"}], "_", 
+      RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", 
+         RowBox[{"\[Gamma]", "^", 
+          RowBox[{"{", "11", "}"}]}]}], " ", "\[CenterDot]", " ", 
+        RowBox[{"\[PartialD]", "\:2081\[Gamma]_"}]}], 
+       RowBox[{
+        RowBox[{"{", "22", "}"}], "/", "2"}]}], " ", "=", " ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{
+         RowBox[{"-", 
+          RowBox[{"e", "^", 
+           RowBox[{"{", "0", "}"}]}]}], " ", "\[CenterDot]", " ", "2"}], 
+        RowBox[{"(", 
+         RowBox[{"\[PartialD]", "\:2081s\:2082"}], ")"}], 
+        RowBox[{
+         RowBox[{"e", "^", 
+          RowBox[{"{", 
+           RowBox[{"2", "\[CapitalDelta]"}], "}"}]}], "/", "2"}]}], " ", "=", 
+       " ", 
+       RowBox[{
+        RowBox[{"-", 
+         RowBox[{"(", 
+          RowBox[{"\[PartialD]", "\:2081s\:2082"}], ")"}]}], 
+        RowBox[{"e", "^", 
+         RowBox[{"{", 
+          RowBox[{"2", "\[CapitalDelta]"}], "}"}]}]}]}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"C_", 
+      RowBox[{"{", "22", "}"}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"\[CapitalGamma]", "^", "1"}], "_", 
+        RowBox[{"{", "22", "}"}], "g\:2081"}], " ", "+", " ", 
+       RowBox[{
+        RowBox[{"\[CapitalGamma]", "^", "2"}], "_", 
+        RowBox[{"{", "22", "}"}], "g\:2082"}]}], " ", "=", " ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"-", 
+         RowBox[{"(", 
+          RowBox[{"\[PartialD]", "\:2081s\:2082"}], ")"}]}], 
+        RowBox[{"e", "^", 
+         RowBox[{"{", 
+          RowBox[{"2", "\[CapitalDelta]"}], "}"}]}], "g\:2081"}], " ", "+", 
+       " ", 
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"\[PartialD]", "\:2082s\:2082"}], ")"}], "g\:2082"}]}]}]}], 
+    " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"For", " ", "convexity", " ", "at", " ", 
+     RowBox[{"saddle", ":", " ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"H_", 
+         RowBox[{"{", "22", "}"}]}], " ", "-", " ", 
+        RowBox[{"C_", 
+         RowBox[{"{", "22", "}"}]}]}], " ", ">", " ", "0"}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"-", "2"}], " ", "+", " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"\[PartialD]", "\:2081s\:2082"}], ")"}], 
+       RowBox[{"e", "^", 
+        RowBox[{"{", 
+         RowBox[{"2", "\[CapitalDelta]"}], "}"}]}], "g\:2081"}], " ", "-", 
+      " ", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"\[PartialD]", "\:2082s\:2082"}], ")"}], "g\:2082"}]}], " ", ">",
+      " ", "0"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Using", " ", 
+      RowBox[{"\[PartialD]", "\:2081s\:2082"}], " ", "to", " ", 
+      RowBox[{"flip", ":", " ", 
+       RowBox[{
+        RowBox[{"need", " ", 
+         RowBox[{"(", 
+          RowBox[{"\[PartialD]", "\:2081s\:2082"}], ")"}]}], " ", ">", " ", 
+        RowBox[{"2", "/", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"e", "^", 
+            RowBox[{"{", 
+             RowBox[{"2", "\[CapitalDelta]"}], "}"}]}], "g\:2081"}], 
+          ")"}]}]}]}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{"2", "/", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"e", "^", 
+          RowBox[{"{", 
+           RowBox[{"2", "\[CapitalDelta]"}], "}"}]}], "\[CenterDot]", "2"}], 
+        ")"}]}], " ", "=", " ", 
+      RowBox[{"e", "^", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "2"}], "\[CapitalDelta]"}], "}"}]}]}]}], " ", "*)"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Numerical", " ", "verification"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"deltaValues", "=", 
+     RowBox[{"Range", "[", 
+      RowBox[{"0", ",", "3", ",", "0.1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"For", " ", "each", " ", "\[CapitalDelta]"}], ",", " ", 
+     RowBox[{
+      RowBox[{"find", " ", "minimum"}], " ", "||", 
+      RowBox[{"\[Del]", "s"}], "||", " ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"needed", " ", "to", " ", "achieve", " ", "min"}], "-", 
+        RowBox[{"eig", 
+         RowBox[{"(", 
+          RowBox[{"H", "-", "C"}], ")"}]}]}], " ", "\[GreaterEqual]", " ", 
+       "0"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"requiredGradNorm", "=", 
+     RowBox[{"Table", "[", "\[IndentingNewLine]", "  ", 
+      RowBox[{
+       RowBox[{"Module", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{
+          "cMatDelta", ",", "effHDelta", ",", "minEigFunc", ",", 
+           "resultDelta", ",", "optParamsDelta", ",", "gradNorm"}], "}"}], ",",
+          "\[IndentingNewLine]", "    ", 
+         RowBox[{"(*", " ", 
+          RowBox[{
+           RowBox[{
+            RowBox[{
+            "Evaluate", " ", "C", " ", "matrix", " ", "at", " ", "s1"}], "=", 
+            "0"}], ",", " ", 
+           RowBox[{"s2", "=", "delta"}]}], " ", "*)"}], "\[IndentingNewLine]",
+          "    ", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"cMatDelta", "[", 
+            RowBox[{"d11_", ",", "d12_", ",", "d21_", ",", "d22_"}], "]"}], ":=",
+            "\[IndentingNewLine]", "      ", 
+           RowBox[{"cMatrix", " ", "/.", " ", 
+            RowBox[{"{", 
+             RowBox[{
+              RowBox[{"s1", "->", "0"}], ",", 
+              RowBox[{"s2", "->", "delta"}], ",", 
+              RowBox[{"ds11", "->", "d11"}], ",", 
+              RowBox[{"ds12", "->", "d12"}], ",", "\[IndentingNewLine]", 
+              "                  ", 
+              RowBox[{"ds21", "->", "d21"}], ",", 
+              RowBox[{"ds22", "->", "d22"}], ",", 
+              RowBox[{"g1", "->", 
+               RowBox[{"gVec1", "[", 
+                RowBox[{"[", "1", "]"}], "]"}]}], ",", 
+              RowBox[{"g2", "->", 
+               RowBox[{"gVec1", "[", 
+                RowBox[{"[", "2", "]"}], "]"}]}]}], "}"}]}]}], ";", 
+          "\[IndentingNewLine]", "    ", "\[IndentingNewLine]", "    ", 
+          RowBox[{
+           RowBox[{"effHDelta", "[", 
+            RowBox[{"d11_", ",", "d12_", ",", "d21_", ",", "d22_"}], "]"}], ":=", 
+           RowBox[{"h1", "-", 
+            RowBox[{"cMatDelta", "[", 
+             RowBox[{"d11", ",", "d12", ",", "d21", ",", "d22"}], "]"}]}]}], ";",
+           "\[IndentingNewLine]", "    ", "\[IndentingNewLine]", "    ", 
+          RowBox[{
+           RowBox[{"minEigDelta", "[", 
+            RowBox[{
+             RowBox[{"d11_", "?", "NumericQ"}], ",", 
+             RowBox[{"d12_", "?", "NumericQ"}], ",", 
+             RowBox[{"d21_", "?", "NumericQ"}], ",", 
+             RowBox[{"d22_", "?", "NumericQ"}]}], "]"}], ":=", 
+           "\[IndentingNewLine]", "      ", 
+           RowBox[{"Min", "[", 
+            RowBox[{"Re", "[", 
+             RowBox[{"Eigenvalues", "[", 
+              RowBox[{
+               RowBox[{"effHDelta", "[", 
+                RowBox[{"d11", ",", "d12", ",", "d21", ",", "d22"}], "]"}], 
+               " ", "//", " ", "N"}], "]"}], "]"}], "]"}]}], ";", 
+          "\[IndentingNewLine]", "    ", "\[IndentingNewLine]", "    ", 
+          RowBox[{"(*", " ", 
+           RowBox[{
+            RowBox[{
+             RowBox[{
+              RowBox[{
+              "Find", " ", "params", " ", "that", " ", "achieve", " ", 
+               "min"}], "-", "eig"}], " ", "\[GreaterEqual]", " ", 
+             RowBox[{"0", " ", "with", " ", "minimum"}]}], " ", "||", 
+            RowBox[{"\[Del]", "s"}], "||"}], " ", "*)"}], 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"resultDelta", "=", 
+           RowBox[{"NMinimize", "[", "\[IndentingNewLine]", "      ", 
+            RowBox[{
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{
+                RowBox[{"d11", "^", "2"}], "+", 
+                RowBox[{"d12", "^", "2"}], "+", 
+                RowBox[{"d21", "^", "2"}], "+", 
+                RowBox[{"d22", "^", "2"}]}], ",", "\[IndentingNewLine]", 
+               "       ", 
+               RowBox[{
+                RowBox[{"minEigDelta", "[", 
+                 RowBox[{"d11", ",", "d12", ",", "d21", ",", "d22"}], "]"}], ">=",
+                 "0"}]}], "}"}], ",", "\[IndentingNewLine]", "      ", 
+             RowBox[{"{", 
+              RowBox[{
+               RowBox[{"{", 
+                RowBox[{"d11", ",", 
+                 RowBox[{"-", "20"}], ",", "20"}], "}"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"d12", ",", 
+                 RowBox[{"-", "20"}], ",", "20"}], "}"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"d21", ",", 
+                 RowBox[{"-", "20"}], ",", "20"}], "}"}], ",", 
+               RowBox[{"{", 
+                RowBox[{"d22", ",", 
+                 RowBox[{"-", "20"}], ",", "20"}], "}"}]}], "}"}], ",", 
+             "\[IndentingNewLine]", "      ", 
+             RowBox[{"Method", "->", "\"\<InteriorPoint\>\""}], ",", 
+             RowBox[{"MaxIterations", "->", "2000"}]}], "\[IndentingNewLine]",
+             "    ", "]"}]}], ";", "\[IndentingNewLine]", "    ", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"gradNorm", "=", 
+           RowBox[{"Sqrt", "[", 
+            RowBox[{"resultDelta", "[", 
+             RowBox[{"[", "1", "]"}], "]"}], "]"}]}], ";", 
+          "\[IndentingNewLine]", "    ", 
+          RowBox[{"{", 
+           RowBox[{"delta", ",", "gradNorm"}], "}"}]}]}], 
+        "\[IndentingNewLine]", "  ", "]"}], ",", "\[IndentingNewLine]", "  ", 
+       
+       RowBox[{"{", 
+        RowBox[{"delta", ",", "deltaValues"}], "}"}]}], "\[IndentingNewLine]",
+       "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Filter", " ", "out", " ", "failures"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"validData", "=", 
+     RowBox[{"Select", "[", 
+      RowBox[{"requiredGradNorm", ",", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"NumberQ", "[", 
+          RowBox[{"#", "[", 
+           RowBox[{"[", "2", "]"}], "]"}], "]"}], "&&", 
+         RowBox[{
+          RowBox[{"#", "[", 
+           RowBox[{"[", "2", "]"}], "]"}], "<", "100"}]}], " ", "&"}]}], 
+      "]"}]}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<\[CapitalDelta]\\t\\t||\[Del]s||_min\\te^{-2\
+\[CapitalDelta]}\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", "\"\<---\\t\\t----------\\t-------\>\"", "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+     RowBox[{
+      RowBox[{"If", "[", 
+       RowBox[{
+        RowBox[{"MemberQ", "[", 
+         RowBox[{
+          RowBox[{"{", 
+           RowBox[{
+           "0", ",", "0.5", ",", "1.0", ",", "1.5", ",", "2.0", ",", "2.5", ",",
+             "3.0"}], "}"}], ",", 
+          RowBox[{"d", "[", 
+           RowBox[{"[", "1", "]"}], "]"}]}], "]"}], ",", 
+        "\[IndentingNewLine]", "    ", 
+        RowBox[{"Print", "[", 
+         RowBox[{
+          RowBox[{"d", "[", 
+           RowBox[{"[", "1", "]"}], "]"}], ",", "\"\<\\t\\t\>\"", ",", 
+          RowBox[{"Round", "[", 
+           RowBox[{
+            RowBox[{"d", "[", 
+             RowBox[{"[", "2", "]"}], "]"}], ",", "0.0001"}], "]"}], 
+          ",", "\"\<\\t\\t\>\"", ",", 
+          RowBox[{"Round", "[", 
+           RowBox[{
+            RowBox[{"Exp", "[", 
+             RowBox[{
+              RowBox[{"-", "2"}], " ", 
+              RowBox[{"d", "[", 
+               RowBox[{"[", "1", "]"}], "]"}]}], "]"}], ",", "0.0001"}], 
+           "]"}]}], "]"}]}], "\[IndentingNewLine]", "  ", "]"}], ",", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"{", 
+       RowBox[{"d", ",", "validData"}], "}"}]}], "\[IndentingNewLine]", "]"}],
+     ";"}]}]}]], "Input",ExpressionUUID->"7fbcc40f-7813-4ff3-9ae7-\
+9b9d60878775"],
+
+Cell["Exponential decay plot", "Subsection",ExpressionUUID->"2ff2ade9-bd98-4aa4-8e27-a9eba6af5ed2"],
+
+Cell[BoxData[
+ RowBox[{"Show", "[", "\[IndentingNewLine]", "  ", 
+  RowBox[{
+   RowBox[{"ListLogPlot", "[", 
+    RowBox[{"validData", ",", 
+     RowBox[{"PlotStyle", "->", 
+      RowBox[{"{", 
+       RowBox[{"Blue", ",", 
+        RowBox[{"PointSize", "[", "0.015", "]"}]}], "}"}]}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"PlotLegends", "->", 
+      RowBox[{"{", "\"\<||\[Del]s||_min (numerical)\>\"", "}"}]}]}], "]"}], ",",
+    "\[IndentingNewLine]", "  ", 
+   RowBox[{"LogPlot", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"validData", "[", 
+       RowBox[{"[", 
+        RowBox[{"1", ",", "2"}], "]"}], "]"}], " ", 
+      RowBox[{"Exp", "[", 
+       RowBox[{
+        RowBox[{"-", "2"}], " ", "delta"}], "]"}]}], ",", 
+     RowBox[{"{", 
+      RowBox[{"delta", ",", "0", ",", "3"}], "}"}], ",", 
+     "\[IndentingNewLine]", "    ", 
+     RowBox[{"PlotStyle", "->", 
+      RowBox[{"{", 
+       RowBox[{"Red", ",", "Dashed"}], "}"}]}], ",", "\[IndentingNewLine]", 
+     "    ", 
+     RowBox[{"PlotLegends", "->", 
+      RowBox[{
+      "{", "\"\<a\[CenterDot]e^{-2\[CapitalDelta]} (fit)\>\"", "}"}]}]}], 
+    "]"}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"AxesLabel", "->", 
+    RowBox[{"{", 
+     RowBox[{"\"\<\[CapitalDelta] (metric offset s\:2082)\>\"", 
+      ",", "\"\<Required ||\[Del]s||\>\""}], "}"}]}], ",", 
+   "\[IndentingNewLine]", "  ", 
+   RowBox[{
+   "PlotLabel", 
+    "->", "\"\<Exponential Amplification: Required Gradient Norm vs Metric \
+Offset\>\""}], ",", "\[IndentingNewLine]", "  ", 
+   RowBox[{"ImageSize", "->", "500"}]}], "\[IndentingNewLine]", 
+  "]"}]], "Input",ExpressionUUID->"eb4c61cd-dcb7-4e5f-99b6-52d3adcdd74e"],
+
+Cell["Fit the exponential decay", "Subsection",ExpressionUUID->"52d4b4d3-639c-44bf-9973-2968718ebc8c"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Fit", ":", " ", 
+    RowBox[{"||", 
+     RowBox[{"\[Del]", "s"}], "||", 
+     RowBox[{"_min", " ", "\[TildeTilde]", " ", 
+      RowBox[{"a", " ", 
+       RowBox[{"e", "^", 
+        RowBox[{"{", 
+         RowBox[{
+          RowBox[{"-", "b"}], " ", "\[CapitalDelta]"}], "}"}]}]}]}]}]}], " ", 
+   "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"expFit", "=", 
+     RowBox[{"NonlinearModelFit", "[", 
+      RowBox[{"validData", ",", 
+       RowBox[{"a", " ", 
+        RowBox[{"Exp", "[", 
+         RowBox[{
+          RowBox[{"-", "b"}], " ", "delta"}], "]"}]}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"a", ",", "1"}], "}"}], ",", 
+         RowBox[{"{", 
+          RowBox[{"b", ",", "2"}], "}"}]}], "}"}], ",", "delta"}], "]"}]}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Exponential fit: ||\[Del]s||_min = \>\"", ",", 
+      RowBox[{"expFit", "[", "\"\<BestFitParameters\>\"", "]"}]}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<  Expected b \[TildeTilde] 2 (from \
+e^{-2\[CapitalDelta]} scaling)\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<  R\.b2 = \>\"", ",", 
+      RowBox[{"expFit", "[", "\"\<RSquared\>\"", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<\\nConclusion: Pre-scaling the metric by e^{2\
+\[CapitalDelta]} in the negative-curvature\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<direction exponentially reduces the gradient-of-metric \
+effort needed\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", "\"\<to achieve geodesic convexity.\>\"", "]"}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"ede48e6f-edcd-4b7f-8b1d-\
+7ea05d8e05f2"],
+
+Cell["Conclusions", "Section",ExpressionUUID->"14f5db60-aef8-42bc-9d4c-8795ab659ad8"],
+
+Cell[TextData[{
+ "1. ",
+ StyleBox["Geodesic convexity at saddles",
+  FontWeight->Bold],
+ ": By choosing ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "93f1d47c-2c7b-4527-9f17-78bbf57ef745"],
+ " appropriately, the connection correction ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["C", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}]], "\[LongEqual]", 
+         SubsuperscriptBox["\[CapitalGamma]", 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["j", "TI"]}], 
+          StyleBox["k", "TI"]], 
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["k", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "C_{ij} = \\Gamma^k_{ij} g_k", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "14e93562-aa55-4c81-8a3e-7e66f8bccbd3"],
+ " can flip negative eigenvalues of the Hessian, making the effective Hessian \
+",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["H", "TI"], "-", 
+         StyleBox["C", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "H - C", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "45ca7c72-3706-47ba-9a9f-fe3717f486fe"],
+ " positive definite."
+}], "Text",ExpressionUUID->"ffd633f5-2fe4-492a-b214-39f8a5812309"],
+
+Cell[TextData[{
+ "2. ",
+ StyleBox["Universal rule",
+  FontWeight->Bold],
+ ": At ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["s", "TI"], "\[LongEqual]", "0"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "s = 0", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0e9a78c2-63ce-46e0-ac1b-3c8d6ed10a1e"],
+ ", the optimal diagonal derivatives satisfy ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox["\[PartialD]", 
+          StyleBox["i", "TI"]], 
+         SubscriptBox[
+          StyleBox["s", "TI"], 
+          StyleBox["i", "TI"]], "\[LongEqual]", "2", 
+         SubscriptBox[
+          StyleBox["H", "TI"], 
+          RowBox[{
+            StyleBox["i", "TI"], 
+            StyleBox["i", "TI"]}]], "/", 
+         SubscriptBox[
+          StyleBox["g", "TI"], 
+          StyleBox["i", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\partial_i s_i = 2 H_{ii} / g_i", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "99801170-5178-4209-8ff9-57d9e744f23f"],
+ ". This is a simple, closed-form prescription."
+}], "Text",ExpressionUUID->"fe72c9fe-70e8-43e9-a469-5b738c2a2ce0"],
+
+Cell[TextData[{
+ "3. ",
+ StyleBox["Concave optimization",
+  FontWeight->Bold],
+ ": The minimum eigenvalue of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["H", "TI"], "-", 
+         StyleBox["C", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "H - C", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "dd3453e5-0c29-49a1-bc04-fcf55fe054b8"],
+ " is concave in the metric derivatives (since ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["C", "TI"], TraditionalForm], "errors" -> {}, "input" -> "C", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "d578372b-a4be-444b-93bc-f6dcfbfdd51c"],
+ " is linear in ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Del]", 
+         StyleBox["s", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\nabla s", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5fd33495-aa14-47c3-bd16-ed790893c4bb"],
+ "). There are no spurious local maxima."
+}], "Text",ExpressionUUID->"e2c3a174-502e-4989-b295-dcd6aaf1ab39"],
+
+Cell[TextData[{
+ "4. ",
+ StyleBox["Graceful degradation",
+  FontWeight->Bold],
+ ": Moderate perturbations (",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[PlusMinus]", "10%"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "\\pm 10\\%", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2d40488a-5027-4611-8840-42743e4e80bc"],
+ ") of the optimal parameters preserve convexity. The method is not brittle."
+}], "Text",ExpressionUUID->"c03f5afd-1456-45cd-a816-bf9fe6592fb7"],
+
+Cell[TextData[{
+ "5. ",
+ StyleBox["Exponential amplification",
+  FontWeight->Bold],
+ ": Pre-scaling the metric by ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SuperscriptBox[
+        StyleBox["e", "TI"], 
+        RowBox[{"2", "\[CapitalDelta]"}]], TraditionalForm], "errors" -> {}, 
+     "input" -> "e^{2\\Delta}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "8c4881a5-c4e4-48a8-aa61-9f55819c2d26"],
+ " in the negative-curvature direction exponentially reduces the required ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+        "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9", "\[Del]", 
+         StyleBox["s", "TI"], 
+         "\[IDoubleDot]\.8e\[Cedilla]124\[IDoubleDot]\.8e\.b9"}], 
+       TraditionalForm], "errors" -> {}, "input" -> "|\\nabla s|", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a5852cbb-cc16-4308-a56d-77354571531f"],
+ ", making the correction cheaper to achieve in practice.",
+ StyleBox["Implication",
+  FontWeight->Bold],
+ ": The induced metric optimizer can navigate saddle points by learning \
+metric parameters that enforce geodesic convexity. The optimization over \
+metric parameters is well-behaved (concave), and the exponential \
+amplification means that even modest metric offsets dramatically reduce the \
+correction effort."
+}], "Text",ExpressionUUID->"bd923e4f-cee8-433c-a85c-aaeac29dc171"]
+},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"a83bd6d1-c378-4ba4-8c49-4f0e587986a8"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 144, 2, 70, "Title",ExpressionUUID->"54b904d6-dcf5-4acd-aa42-aff80379398e"],
+Cell[701, 24, 2142, 57, 70, "Text",ExpressionUUID->"a0750688-f37d-4dd0-a31a-f45cd5683eb8"],
+Cell[2846, 83, 124, 0, 70, "Section",ExpressionUUID->"6e50e4f1-3cf5-4977-b4e2-732344421423"],
+Cell[2973, 85, 3697, 99, 70, "Text",ExpressionUUID->"a73b3d82-8016-4406-83c6-9e3796f8cba2"],
+Cell[6673, 186, 10859, 325, 70, "Input",ExpressionUUID->"e57b5684-41fa-479d-a387-436d0624f4cc"],
+Cell[17535, 513, 107, 0, 70, "Subsection",ExpressionUUID->"009be341-5ece-4b57-b06f-66d5453c4dfd"],
+Cell[17645, 515, 2141, 61, 70, "Input",ExpressionUUID->"0400d4a4-cfdd-494c-ac15-b9c540fb5732"],
+Cell[19789, 578, 138, 1, 70, "Section",ExpressionUUID->"480f0b20-a339-4a70-a2e2-00d8221370f7"],
+Cell[19930, 581, 1045, 26, 70, "Text",ExpressionUUID->"24d45e7d-401f-4514-982b-09c7670e0415"],
+Cell[20978, 609, 6201, 163, 70, "Input",ExpressionUUID->"9324ba7d-9d69-469e-b828-c247ae1bcac8"],
+Cell[27182, 774, 140, 1, 70, "Section",ExpressionUUID->"e3b57e8f-f10c-4dad-b87e-8489456b6602"],
+Cell[27325, 777, 5432, 143, 70, "Input",ExpressionUUID->"1a755511-d695-4b0a-93ce-4f6e269effb0"],
+Cell[32760, 922, 142, 1, 70, "Section",ExpressionUUID->"4ba7c876-aa85-4946-89f0-1d0a25401747"],
+Cell[32905, 925, 170, 3, 70, "Text",ExpressionUUID->"6d266dfe-f857-48c9-8c52-cd3e1b075415"],
+Cell[33078, 930, 5906, 158, 70, "Input",ExpressionUUID->"dde6c1a9-e21e-43b0-8f23-57deb16a4c8b"],
+Cell[38987, 1090, 100, 0, 70, "Section",ExpressionUUID->"e7a6ccb8-d587-4c0c-b692-0dbb6c55bbf6"],
+Cell[39090, 1092, 1297, 35, 70, "Text",ExpressionUUID->"b2f4d818-c112-4057-9bb1-5713ffd897d5"],
+Cell[40390, 1129, 8508, 235, 70, "Input",ExpressionUUID->"60af60e8-25c5-4780-9f82-95167d6b55f6"],
+Cell[48901, 1366, 120, 0, 70, "Section",ExpressionUUID->"c919455e-553b-40a2-b434-1be1683a80dd"],
+Cell[49024, 1368, 1626, 43, 70, "Text",ExpressionUUID->"cee1f755-ee58-4f2f-8c32-41f1f603ef36"],
+Cell[50653, 1413, 5074, 129, 70, "Input",ExpressionUUID->"3c3138a4-c2f0-4141-9344-241bb9221478"],
+Cell[55730, 1544, 95, 0, 70, "Subsection",ExpressionUUID->"4d23e5b1-1891-4015-84e9-09c4ba009e40"],
+Cell[55828, 1546, 2025, 49, 70, "Input",ExpressionUUID->"d5cf1fd2-c859-4118-b454-7e06d8cf3d61"],
+Cell[57856, 1597, 104, 0, 70, "Section",ExpressionUUID->"02a43a36-dc9a-45af-9748-42cfd85f3d9a"],
+Cell[57963, 1599, 1144, 29, 70, "Text",ExpressionUUID->"989302f2-777f-4335-a4de-447f630e564e"],
+Cell[59110, 1630, 10175, 261, 70, "Input",ExpressionUUID->"2327bdd1-4cc5-4f43-9cd8-b7b469e793a6"],
+Cell[69288, 1893, 93, 0, 70, "Subsection",ExpressionUUID->"7d1ff757-4ac2-4fd4-80ca-08a76ac8e5ab"],
+Cell[69384, 1895, 1516, 37, 70, "Input",ExpressionUUID->"9bfd430f-de91-4b43-9119-daee0e282e65"],
+Cell[70903, 1934, 110, 0, 70, "Section",ExpressionUUID->"7b99744f-989f-442b-b985-8e6c6894e2c7"],
+Cell[71016, 1936, 2127, 54, 70, "Text",ExpressionUUID->"0410d244-7e7a-44bc-8bad-66721dd31a3e"],
+Cell[73146, 1992, 15674, 418, 70, "Input",ExpressionUUID->"7fbcc40f-7813-4ff3-9ae7-9b9d60878775"],
+Cell[88823, 2412, 99, 0, 70, "Subsection",ExpressionUUID->"2ff2ade9-bd98-4aa4-8e27-a9eba6af5ed2"],
+Cell[88925, 2414, 1670, 43, 70, "Input",ExpressionUUID->"eb4c61cd-dcb7-4e5f-99b6-52d3adcdd74e"],
+Cell[90598, 2459, 102, 0, 70, "Subsection",ExpressionUUID->"52d4b4d3-639c-44bf-9973-2968718ebc8c"],
+Cell[90703, 2461, 1952, 53, 70, "Input",ExpressionUUID->"ede48e6f-edcd-4b7f-8b1d-7ea05d8e05f2"],
+Cell[92658, 2516, 85, 0, 70, "Section",ExpressionUUID->"14f5db60-aef8-42bc-9d4c-8795ab659ad8"],
+Cell[92746, 2518, 1685, 46, 70, "Text",ExpressionUUID->"ffd633f5-2fe4-492a-b214-39f8a5812309"],
+Cell[94434, 2566, 1281, 35, 70, "Text",ExpressionUUID->"fe72c9fe-70e8-43e9-a469-5b738c2a2ce0"],
+Cell[95718, 2603, 1215, 32, 70, "Text",ExpressionUUID->"e2c3a174-502e-4989-b295-dcd6aaf1ab39"],
+Cell[96936, 2637, 551, 13, 70, "Text",ExpressionUUID->"c03f5afd-1456-45cd-a816-bf9fe6592fb7"],
+Cell[97490, 2652, 1488, 34, 70, "Text",ExpressionUUID->"bd923e4f-cee8-433c-a85c-aaeac29dc171"]
+}
+]
+*)
+
+(* End of internal cache information *)

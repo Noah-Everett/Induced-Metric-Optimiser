@@ -1,0 +1,2392 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[     90514,       2383]
+NotebookOptionsPosition[     84519,       2312]
+NotebookOutlinePosition[     84836,       2326]
+CellTagsIndexPosition[     84793,       2323]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell["\<\
+Output Embedding Recovers Gauss-Newton \[LongDash] Verification (IMO-157)\
+\>", "Title",ExpressionUUID->"412153fe-230b-4758-adba-c246751edd48"],
+
+Cell[TextData[{
+ "This notebook verifies that the output embedding ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[CurlyPhi]", 
+         RowBox[{"(", "\[Theta]", ")"}], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{"\[Theta]", ",", 
+             SqrtBox["\[Xi]"], " ", 
+             StyleBox["f", "TI"], 
+             RowBox[{"(", "\[Theta]", ")"}]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\varphi(\\theta) = (\\theta, \\sqrt{\\xi}\\, f(\\theta))", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "77e36dd4-8de0-4fb4-99e3-9eeab3056f2f"],
+ " recovers the Gauss-Newton Hessian as a pullback metric. We check the \
+pullback formula, matrix identities, spectral structure, gradient clipping \
+bound, and the large-",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "0f554090-e7cc-44a1-9df4-170fbd887f22"],
+ " limit. "
+}], "Text",ExpressionUUID->"ccf39011-acaf-4329-9403-66e360709f21"],
+
+Cell["1. Pullback Metric Derivation", "Section",ExpressionUUID->"275543fb-e3e1-471e-89df-3ed0ea1fa131"],
+
+Cell[TextData[{
+ "The Jacobian of the embedding ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[CurlyPhi]", 
+         RowBox[{"(", "\[Theta]", ")"}], "\[LongEqual]", 
+         RowBox[{"(", 
+           RowBox[{"\[Theta]", ",", 
+             SqrtBox["\[Xi]"], " ", 
+             StyleBox["f", "TI"], 
+             RowBox[{"(", "\[Theta]", ")"}]}], ")"}]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "\\varphi(\\theta) = (\\theta, \\sqrt{\\xi}\\, f(\\theta))", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cd4069f1-09ee-44f7-937c-ad4f166da108"],
+ " is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["D", "TI"], "\[CurlyPhi]", "\[LongEqual]", 
+         RowBox[{"(", 
+           Cell[
+            BoxData[
+             FormBox[
+              GridBox[{{
+                 Cell[
+                  TextData[{" ", 
+                    Cell[
+                    BoxData[
+                    SubscriptBox[
+                    StyleBox["I", "TI"], 
+                    StyleBox["N", "TI"]]], "InlineFormula"], " "}]]}, {
+                 Cell[
+                  TextData[{" ", 
+                    Cell[
+                    BoxData[
+                    RowBox[{
+                    SqrtBox["\[Xi]"], " ", 
+                    StyleBox["J", "TI"]}]], "InlineFormula"], " "}]]}}], 
+              TraditionalForm]]], ")"}]}], TraditionalForm], "errors" -> {}, 
+     "input" -> 
+     "D\\varphi = \\begin{pmatrix} I_N \\\\ \\sqrt{\\xi}\\, J \\end{pmatrix}",
+      "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "43825e8e-5bf8-4f09-be09-64b150b849a4"],
+ " where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["J", "TI"], TraditionalForm], "errors" -> {}, "input" -> "J", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "44896634-a0cc-4ac3-bf44-b68e208a9531"],
+ " is the ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["C", "TI"], "\[Cross]", 
+         StyleBox["N", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "C \\times N", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2ec395fa-f7d8-4605-bc1b-16ee250c88ca"],
+ " Jacobian of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["f", "TI"], TraditionalForm], "errors" -> {}, "input" -> "f", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ae61bcbb-ad4d-4df2-9ce4-d3ef1f3bfa02"],
+ ". The pullback metric is ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["G", "TI"], "\[LongEqual]", 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              StyleBox["D", "TI"], "\[CurlyPhi]"}], ")"}], 
+          StyleBox["T", "TI"]], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["D", "TI"], "\[CurlyPhi]"}], ")"}], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["I", "TI"], 
+          StyleBox["N", "TI"]], "+", "\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["J", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "G = (D\\varphi)^T (D\\varphi) = I_N + \\xi\\, J^T J", "state" -> 
+     "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "fe7e38ec-61e6-4d26-9e26-38e481a37913"],
+ ". "
+}], "Text",ExpressionUUID->"e5d355c7-b62c-4a5d-9ffe-b5045964a298"],
+
+Cell["1a. Symbolic verification: 2x2 case (C=2, N=2)", "Subsection",ExpressionUUID->"196e42b9-a57b-4730-8f5e-4e09e5494af5"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"2", "x2", " ", "Jacobian"}], " ", "\[LongDash]", " ", 
+    RowBox[{"fully", " ", "symbolic"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  
+  RowBox[{
+   RowBox[{
+    RowBox[{"Clear", "[", 
+     RowBox[{"j11", ",", "j12", ",", "j21", ",", "j22", ",", "\[Xi]"}], "]"}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"jMat", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"j11", ",", "j12"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"j21", ",", "j22"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gComputed", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+       RowBox[{"\[Xi]", " ", 
+        RowBox[{
+         RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", "jMat"}]}]}],
+       " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<G (2\[Times]2) = \>\"", ",", 
+      RowBox[{"MatrixForm", "[", "gComputed", "]"}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Verify", " ", "it", " ", "equals", " ", "I"}], " ", "+", " ", 
+     RowBox[{"\[Xi]", " ", 
+      RowBox[{"J", "^", "T"}], " ", "J", " ", "entry", " ", "by", " ", 
+      "entry"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gExpected", "=", 
+     RowBox[{
+      RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+      RowBox[{"\[Xi]", " ", 
+       RowBox[{
+        RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+        "jMat"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Matches I + \[Xi] J^T J? \>\"", ",", 
+      RowBox[{
+       RowBox[{"gComputed", "==", "gExpected"}], " ", "//", " ", 
+       "Simplify"}]}], "]"}], ";"}]}]}]], "Input",ExpressionUUID->"146d8273-\
+01f0-4be2-a4e0-698eb477770b"],
+
+Cell["1b. Symbolic verification: 2x3 case (C=2, N=3)", "Subsection",ExpressionUUID->"1f0ee8ec-f428-4c26-80e3-c42e6ac52b37"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"2", "x3", " ", "Jacobian"}], " ", "\[LongDash]", " ", 
+    RowBox[{"fully", " ", "symbolic"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  
+  RowBox[{
+   RowBox[{
+    RowBox[{"Clear", "[", 
+     RowBox[{
+     "j11", ",", "j12", ",", "j13", ",", "j21", ",", "j22", ",", "j23", ",", 
+      "\[Xi]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"jMat23", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"j11", ",", "j12", ",", "j13"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"j21", ",", "j22", ",", "j23"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"dphi23", "=", 
+     RowBox[{"Join", "[", 
+      RowBox[{
+       RowBox[{"IdentityMatrix", "[", "3", "]"}], ",", 
+       RowBox[{
+        RowBox[{"Sqrt", "[", "\[Xi]", "]"}], " ", "jMat23"}]}], "]"}]}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gPullback23", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Transpose", "[", "dphi23", "]"}], " ", ".", " ", "dphi23"}], 
+      " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gDirect23", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"IdentityMatrix", "[", "3", "]"}], "+", 
+       RowBox[{"\[Xi]", " ", 
+        RowBox[{
+         RowBox[{"Transpose", "[", "jMat23", "]"}], " ", ".", " ", 
+         "jMat23"}]}]}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<G via pullback = \>\"", ",", 
+      RowBox[{"MatrixForm", "[", "gPullback23", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<G via I + \[Xi] J^T J = \>\"", ",", 
+      RowBox[{"MatrixForm", "[", "gDirect23", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Difference is zero? \>\"", ",", 
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"gPullback23", "-", "gDirect23"}], " ", "//", " ", 
+         "Simplify"}], ")"}], "===", 
+       RowBox[{"ConstantArray", "[", 
+        RowBox[{"0", ",", 
+         RowBox[{"{", 
+          RowBox[{"3", ",", "3"}], "}"}]}], "]"}]}]}], "]"}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"aa181f64-1f30-4ba2-bfb2-\
+9f0154975738"],
+
+Cell["2. Woodbury Inverse Identity", "Section",ExpressionUUID->"1cb78d25-7e77-4a3c-9309-5873c6b6d288"],
+
+Cell[TextData[{
+ "We verify ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["N", "TI"]], "+", "\[Xi] ", 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]], 
+              StyleBox["J", "TI"]}], ")"}], "-1"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["I", "TI"], 
+          StyleBox["N", "TI"]], "-", "\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["C", "TI"]], "+", "\[Xi] ", 
+              StyleBox["J", "TI"], 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]]}], ")"}], "-1"], 
+         StyleBox["J", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "(I_N + \\xi\\, J^T J)^{-1} = I_N - \\xi\\, J^T (I_C + \\xi\\, J \
+J^T)^{-1} J", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "62588d98-8584-4f47-a030-5aa6cefe1c74"],
+ " symbolically. This is the matrix inversion lemma (Woodbury identity) \
+applied to the pullback metric. "
+}], "Text",ExpressionUUID->"b975ade4-4ed0-4450-996f-172447a44397"],
+
+Cell["2a. Symbolic verification (2x2)", "Subsection",ExpressionUUID->"483898a9-00b9-4887-9a36-951d015831d0"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{"j11", ",", "j12", ",", "j21", ",", "j22", ",", "\[Xi]"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jMat", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"j11", ",", "j12"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"j21", ",", "j22"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"n", "=", "2"}], ";", " ", 
+   RowBox[{"c", "=", "2"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Left", "-", 
+    RowBox[{"hand", " ", 
+     RowBox[{"side", ":", " ", 
+      RowBox[{"direct", " ", "inverse"}]}]}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gMat", "=", 
+   RowBox[{
+    RowBox[{"IdentityMatrix", "[", "n", "]"}], "+", 
+    RowBox[{"\[Xi]", " ", 
+     RowBox[{
+      RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", "jMat"}]}]}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"lhs", "=", 
+    RowBox[{
+     RowBox[{"Inverse", "[", "gMat", "]"}], " ", "//", " ", "Simplify"}]}], 
+   ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Right", "-", 
+    RowBox[{"hand", " ", 
+     RowBox[{"side", ":", " ", 
+      RowBox[{"Woodbury", " ", "form"}]}]}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rhs", "=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"IdentityMatrix", "[", "n", "]"}], "-", 
+      RowBox[{"\[Xi]", " ", 
+       RowBox[{
+        RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+        RowBox[{"Inverse", "[", 
+         RowBox[{
+          RowBox[{"IdentityMatrix", "[", "c", "]"}], "+", 
+          RowBox[{"\[Xi]", " ", 
+           RowBox[{"jMat", " ", ".", " ", 
+            RowBox[{"Transpose", "[", "jMat", "]"}]}]}]}], "]"}], " ", ".", 
+        " ", "jMat"}]}]}], " ", "//", " ", "Simplify"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"diff22", "=", 
+   RowBox[{
+    RowBox[{"lhs", "-", "rhs"}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<LHS (direct inverse): \>\"", ",", 
+    RowBox[{"MatrixForm", "[", "lhs", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<RHS (Woodbury): \>\"", ",", 
+    RowBox[{"MatrixForm", "[", "rhs", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Difference = \>\"", ",", 
+    RowBox[{"MatrixForm", "[", "diff22", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Woodbury identity holds (2\[Times]2)? \>\"", ",", 
+    RowBox[{"diff22", "===", 
+     RowBox[{"ConstantArray", "[", 
+      RowBox[{"0", ",", 
+       RowBox[{"{", 
+        RowBox[{"n", ",", "n"}], "}"}]}], "]"}]}]}], "]"}], ";"}]}], "Input",E\
+xpressionUUID->"e27b3fe2-491f-461f-91e2-487d448882d7"],
+
+Cell["2b. Symbolic verification (2x3)", "Subsection",ExpressionUUID->"a4085f37-4b37-4c3d-9717-e7b614541aab"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{
+   "j11", ",", "j12", ",", "j13", ",", "j21", ",", "j22", ",", "j23", ",", 
+    "\[Xi]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jMat23", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"j11", ",", "j12", ",", "j13"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"j21", ",", "j22", ",", "j23"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"n2", "=", "3"}], ";", " ", 
+   RowBox[{"c2", "=", "2"}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"lhs23", "=", 
+   RowBox[{
+    RowBox[{"Inverse", "[", 
+     RowBox[{
+      RowBox[{"IdentityMatrix", "[", "n2", "]"}], "+", 
+      RowBox[{"\[Xi]", " ", 
+       RowBox[{
+        RowBox[{"Transpose", "[", "jMat23", "]"}], " ", ".", " ", 
+        "jMat23"}]}]}], "]"}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rhs23", "=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"IdentityMatrix", "[", "n2", "]"}], "-", 
+      RowBox[{"\[Xi]", " ", 
+       RowBox[{
+        RowBox[{"Transpose", "[", "jMat23", "]"}], " ", ".", " ", 
+        RowBox[{"Inverse", "[", 
+         RowBox[{
+          RowBox[{"IdentityMatrix", "[", "c2", "]"}], "+", 
+          RowBox[{"\[Xi]", " ", 
+           RowBox[{"jMat23", " ", ".", " ", 
+            RowBox[{"Transpose", "[", "jMat23", "]"}]}]}]}], "]"}], " ", ".", 
+        " ", "jMat23"}]}]}], " ", "//", " ", "Simplify"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"diff23", "=", 
+   RowBox[{
+    RowBox[{"lhs23", "-", "rhs23"}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Woodbury identity holds (2\[Times]3)? \>\"", ",", 
+    RowBox[{"diff23", "===", 
+     RowBox[{"ConstantArray", "[", 
+      RowBox[{"0", ",", 
+       RowBox[{"{", 
+        RowBox[{"n2", ",", "n2"}], "}"}]}], "]"}]}]}], "]"}], ";"}]}], "Input",\
+ExpressionUUID->"abefbc66-8c14-4bfe-93f8-7e5b76e6d847"],
+
+Cell[TextData[{
+ "This is important in practice because when ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["C", "TI"], "<", 
+         StyleBox["N", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "C < N", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "17e0dafc-4e2d-4f69-b7de-2b50e37e6fe3"],
+ " (more parameters than outputs), the Woodbury form inverts a ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["C", "TI"], "\[Cross]", 
+         StyleBox["C", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "C \\times C", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "6315b34a-5c79-4831-a2e0-4a2acc0c82b0"],
+ " matrix instead of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["N", "TI"], "\[Cross]", 
+         StyleBox["N", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "N \\times N", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2faf503c-5161-4e19-a8f6-86f7ad4a8522"],
+ ", reducing cost from ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["O", "TI"], "(", 
+         SuperscriptBox[
+          StyleBox["N", "TI"], "3"], ")"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "O(N^3)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cc41fa83-155b-4df6-9408-592ad306f82a"],
+ " to ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["O", "TI"], "(", 
+         SuperscriptBox[
+          StyleBox["C", "TI"], "3"], ")"}], TraditionalForm], "errors" -> {}, 
+     "input" -> "O(C^3)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "e2694381-62c1-4be9-b557-2a14f471e77b"],
+ ". "
+}], "Text",ExpressionUUID->"102a3f4c-c201-48fb-bcb9-74bea7eb31d6"],
+
+Cell["3. Push-Through Identity", "Section",ExpressionUUID->"9a4b532e-a0f4-416d-bcc6-c7e446b81286"],
+
+Cell[TextData[{
+ "We verify ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["C", "TI"]], "+", "\[Xi] ", 
+              StyleBox["J", "TI"], 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]]}], ")"}], "-1"], 
+         StyleBox["J", "TI"], "\[LongEqual]", 
+         StyleBox["J", "TI"], " ", 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["N", "TI"]], "+", "\[Xi] ", 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]], 
+              StyleBox["J", "TI"]}], ")"}], "-1"]}], TraditionalForm], 
+     "errors" -> {}, "input" -> 
+     "(I_C + \\xi\\, J J^T)^{-1} J = J\\, (I_N + \\xi\\, J^T J)^{-1}", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a7230a7b-cc04-4436-a350-087cf61a4711"],
+ " symbolically. This \"push-through\" identity lets us move the inverse from \
+output space to parameter space. "
+}], "Text",ExpressionUUID->"e410a0cc-371f-4dc6-b54e-4ef0914de160"],
+
+Cell["3a. Symbolic verification (2x2)", "Subsection",ExpressionUUID->"39f173d5-b82b-48f8-a838-cee38677f79b"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{"j11", ",", "j12", ",", "j21", ",", "j22", ",", "\[Xi]"}], "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"jMat", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"j11", ",", "j12"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"j21", ",", "j22"}], "}"}]}], "}"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pushLHS", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Inverse", "[", 
+      RowBox[{
+       RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+       RowBox[{"\[Xi]", " ", 
+        RowBox[{"jMat", " ", ".", " ", 
+         RowBox[{"Transpose", "[", "jMat", "]"}]}]}]}], "]"}], " ", ".", " ", 
+     "jMat"}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"pushRHS", "=", 
+    RowBox[{
+     RowBox[{"jMat", " ", ".", " ", 
+      RowBox[{"Inverse", "[", 
+       RowBox[{
+        RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+        RowBox[{"\[Xi]", " ", 
+         RowBox[{
+          RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+          "jMat"}]}]}], "]"}]}], " ", "//", " ", "Simplify"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pushDiff22", "=", 
+   RowBox[{
+    RowBox[{"pushLHS", "-", "pushRHS"}], " ", "//", " ", "Simplify"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Push-through difference (2\[Times]2): \>\"", ",", 
+    RowBox[{"MatrixForm", "[", "pushDiff22", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Identity holds? \>\"", ",", 
+    RowBox[{"pushDiff22", "===", 
+     RowBox[{"ConstantArray", "[", 
+      RowBox[{"0", ",", 
+       RowBox[{"{", 
+        RowBox[{"2", ",", "2"}], "}"}]}], "]"}]}]}], "]"}], ";"}]}], "Input",E\
+xpressionUUID->"0308ac18-cb6d-42cd-9887-d03e0659befa"],
+
+Cell["3b. Symbolic verification (2x3)", "Subsection",ExpressionUUID->"083cdacb-1e00-4f94-aa0c-8e7c663af168"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{
+   "j11", ",", "j12", ",", "j13", ",", "j21", ",", "j22", ",", "j23", ",", 
+    "\[Xi]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"jMat23", "=", 
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"j11", ",", "j12", ",", "j13"}], "}"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"j21", ",", "j22", ",", "j23"}], "}"}]}], "}"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pushLHS23", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Inverse", "[", 
+      RowBox[{
+       RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+       RowBox[{"\[Xi]", " ", 
+        RowBox[{"jMat23", " ", ".", " ", 
+         RowBox[{"Transpose", "[", "jMat23", "]"}]}]}]}], "]"}], " ", ".", 
+     " ", "jMat23"}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"pushRHS23", "=", 
+    RowBox[{
+     RowBox[{"jMat23", " ", ".", " ", 
+      RowBox[{"Inverse", "[", 
+       RowBox[{
+        RowBox[{"IdentityMatrix", "[", "3", "]"}], "+", 
+        RowBox[{"\[Xi]", " ", 
+         RowBox[{
+          RowBox[{"Transpose", "[", "jMat23", "]"}], " ", ".", " ", 
+          "jMat23"}]}]}], "]"}]}], " ", "//", " ", "Simplify"}]}], ";"}], 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"pushDiff23", "=", 
+   RowBox[{
+    RowBox[{"pushLHS23", "-", "pushRHS23"}], " ", "//", " ", "Simplify"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Push-through difference (2\[Times]3): \>\"", ",", 
+    RowBox[{"MatrixForm", "[", "pushDiff23", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Identity holds? \>\"", ",", 
+    RowBox[{"pushDiff23", "===", 
+     RowBox[{"ConstantArray", "[", 
+      RowBox[{"0", ",", 
+       RowBox[{"{", 
+        RowBox[{"2", ",", "3"}], "}"}]}], "]"}]}]}], "]"}], ";"}]}], "Input",E\
+xpressionUUID->"8d4964bc-41c3-411f-b284-7a69c8384f43"],
+
+Cell["4. Preconditioned Gradient", "Section",ExpressionUUID->"23ed0b01-de32-4f2b-9655-e120bb73fd29"],
+
+Cell[TextData[{
+ "We verify that ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          StyleBox["G", "TI"], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"], "\[LongEqual]", 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["N", "TI"]], "+", "\[Xi] ", 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]], 
+              StyleBox["J", "TI"]}], ")"}], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "G^{-1} J^T r = (I_N + \\xi\\, J^T J)^{-1} J^T r", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ca775b49-2597-436d-829b-5bebf477c816"],
+ ", i.e., the preconditioned gradient under the pullback metric is the \
+Gauss-Newton-regularized gradient. "
+}], "Text",ExpressionUUID->"e1bb3890-0958-4ad5-94d5-7afb8beee763"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{
+   "j11", ",", "j12", ",", "j21", ",", "j22", ",", "r1", ",", "r2", ",", 
+    "\[Xi]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jMat", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"j11", ",", "j12"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"j21", ",", "j22"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rVec", "=", 
+    RowBox[{"{", 
+     RowBox[{"r1", ",", "r2"}], "}"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gMat", "=", 
+   RowBox[{
+    RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+    RowBox[{"\[Xi]", " ", 
+     RowBox[{
+      RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", "jMat"}]}]}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"precondGrad", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Inverse", "[", "gMat", "]"}], " ", ".", " ", 
+     RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", "rVec"}], " ", "//",
+     " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"directGrad", "=", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Inverse", "[", 
+       RowBox[{
+        RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+        RowBox[{"\[Xi]", " ", 
+         RowBox[{
+          RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+          "jMat"}]}]}], "]"}], " ", ".", " ", 
+      RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", "rVec"}], " ", "//",
+      " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gradDiff", "=", 
+   RowBox[{
+    RowBox[{"precondGrad", "-", "directGrad"}], " ", "//", " ", 
+    "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<G^{-1} J^T r: \>\"", ",", "precondGrad"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<(I + \[Xi] J^T J)^{-1} J^T r: \>\"", ",", "directGrad"}], 
+   "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Difference: \>\"", ",", "gradDiff"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Preconditioned gradient identity holds? \>\"", ",", 
+    RowBox[{"gradDiff", "===", 
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0"}], "}"}]}]}], "]"}], ";"}]}], "Input",ExpressionUU\
+ID->"a7e2f2cc-030d-4864-9c45-72ecf9eccee4"],
+
+Cell[TextData[{
+ "We can also verify the Woodbury form of the preconditioned gradient: ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          StyleBox["G", "TI"], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"], "\[LongEqual]", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"], "-", "\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["C", "TI"]], "+", "\[Xi] ", 
+              StyleBox["J", "TI"], 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]]}], ")"}], "-1"], 
+         StyleBox["J", "TI"], " ", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"], "\[LongEqual]", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SubscriptBox[
+               StyleBox["I", "TI"], 
+               StyleBox["C", "TI"]], "+", "\[Xi] ", 
+              StyleBox["J", "TI"], 
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]]}], ")"}], "-1"], 
+         StyleBox["r", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "G^{-1} J^T r = J^T r - \\xi\\, J^T (I_C + \\xi\\, J J^T)^{-1} J\\, J^T \
+r = J^T (I_C + \\xi\\, J J^T)^{-1} r", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "56f0edb7-9b01-4300-8ebc-9767c0df9c73"],
+ ". "
+}], "Text",ExpressionUUID->"a8bca6c4-2207-4296-abed-83a8f15bacc6"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Woodbury", " ", "form", " ", "of", " ", "preconditioned", " ", 
+    "gradient"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"woodburyGrad", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+       RowBox[{"Inverse", "[", 
+        RowBox[{
+         RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+         RowBox[{"\[Xi]", " ", 
+          RowBox[{"jMat", " ", ".", " ", 
+           RowBox[{"Transpose", "[", "jMat", "]"}]}]}]}], "]"}], " ", ".", 
+       " ", "rVec"}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"woodburyDiff", "=", 
+     RowBox[{
+      RowBox[{"precondGrad", "-", "woodburyGrad"}], " ", "//", " ", 
+      "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Woodbury form of preconditioned gradient matches? \>\"", ",", 
+      RowBox[{"woodburyDiff", "===", 
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0"}], "}"}]}]}], "]"}], ";"}]}]}]], "Input",Express\
+ionUUID->"1f7c79eb-ce0a-48b3-bfaf-fdbfd077a2dc"],
+
+Cell["5. Large-xi Limit", "Section",ExpressionUUID->"febae0c7-bc6f-4f6f-9149-32d352c3b6df"],
+
+Cell[TextData[{
+ "As ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Xi]", "\[Rule]", "\[Infinity]"}], TraditionalForm], 
+     "errors" -> {}, "input" -> "\\xi \\to \\infty", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "07c1ff01-cf46-44e0-8308-a2bb546a3633"],
+ ", the preconditioned gradient ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["G", "TI"], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi\\, G^{-1} J^T r", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cae69668-21f8-4acd-9941-355f69b6cb4c"],
+ " should approach the Gauss-Newton step ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]], 
+              StyleBox["J", "TI"]}], ")"}], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "(J^T J)^{-1} J^T r", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "02e7d198-8932-4d57-ba9c-1e46d3d52c62"],
+ " (least-squares solution). We verify this numerically. "
+}], "Text",ExpressionUUID->"210106e4-a3ce-43f0-8426-21bb2786fcf9"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SeedRandom", "[", "42", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"nParams", "=", "5"}], ";", " ", 
+  RowBox[{"nOutputs", "=", "3"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jNum", "=", 
+   RowBox[{"RandomReal", "[", 
+    RowBox[{
+     RowBox[{"NormalDistribution", "[", "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"nOutputs", ",", "nParams"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"rNum", "=", 
+    RowBox[{"RandomReal", "[", 
+     RowBox[{
+      RowBox[{"NormalDistribution", "[", "]"}], ",", "nOutputs"}], "]"}]}], 
+   ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Gauss", "-", 
+    RowBox[{"Newton", " ", 
+     RowBox[{"step", ":", " ", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"J", "^", "T"}], " ", "J"}], ")"}], "^", 
+        RowBox[{"{", 
+         RowBox[{"-", "1"}], "}"}]}], " ", 
+       RowBox[{"J", "^", "T"}], " ", "r"}]}]}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gnStep", "=", 
+   RowBox[{
+    RowBox[{"PseudoInverse", "[", "jNum", "]"}], " ", ".", " ", "rNum"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<GN step (J^T J)^{-1} J^T r = \>\"", ",", "gnStep"}], "]"}], 
+   ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "Preconditioned", " ", "gradient", " ", "for", " ", "increasing", " ", 
+    "\[Xi]"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"xiValues", "=", 
+   RowBox[{"{", 
+    RowBox[{
+    "1", ",", "10", ",", "100", ",", "1000", ",", "10000", ",", "100000", ",",
+      "1000000"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\n\[Xi]-scaling convergence to GN step:\>\"", "]"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"gNum", "=", 
+       RowBox[{
+        RowBox[{"IdentityMatrix", "[", "nParams", "]"}], "+", 
+        RowBox[{"xi", " ", 
+         RowBox[{
+          RowBox[{"Transpose", "[", "jNum", "]"}], " ", ".", " ", 
+          "jNum"}]}]}]}], ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"precondStep", "=", 
+       RowBox[{"xi", " ", 
+        RowBox[{
+         RowBox[{"Inverse", "[", "gNum", "]"}], " ", ".", " ", 
+         RowBox[{"Transpose", "[", "jNum", "]"}], " ", ".", " ", "rNum"}]}]}],
+       ";", "\[IndentingNewLine]", "  ", 
+      RowBox[{"err", "=", 
+       RowBox[{"Norm", "[", 
+        RowBox[{"precondStep", "-", "gnStep"}], "]"}]}], ";", 
+      "\[IndentingNewLine]", "  ", 
+      RowBox[{"Print", "[", 
+       RowBox[{"\"\<\[Xi] = \>\"", ",", "xi", ",", "\"\<  ||error|| = \>\"", ",", 
+        RowBox[{"ScientificForm", "[", 
+         RowBox[{"err", ",", "4"}], "]"}]}], "]"}], ";"}], 
+     "\[IndentingNewLine]", "  ", ",", 
+     RowBox[{"{", 
+      RowBox[{"xi", ",", "xiValues"}], "}"}]}], "\[IndentingNewLine]", "]"}], 
+   ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Verify", " ", 
+    RowBox[{"1", "/", "\[Xi]"}], " ", "convergence", " ", "rate"}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+  "Print", "[", "\"\<\\nConvergence rate check (error \[Times] \[Xi] should \
+be approximately constant):\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Do", "[", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"gNum", "=", 
+      RowBox[{
+       RowBox[{"IdentityMatrix", "[", "nParams", "]"}], "+", 
+       RowBox[{"xi", " ", 
+        RowBox[{
+         RowBox[{"Transpose", "[", "jNum", "]"}], " ", ".", " ", 
+         "jNum"}]}]}]}], ";", "\[IndentingNewLine]", "  ", 
+     RowBox[{"precondStep", "=", 
+      RowBox[{"xi", " ", 
+       RowBox[{
+        RowBox[{"Inverse", "[", "gNum", "]"}], " ", ".", " ", 
+        RowBox[{"Transpose", "[", "jNum", "]"}], " ", ".", " ", "rNum"}]}]}], 
+     ";", "\[IndentingNewLine]", "  ", 
+     RowBox[{"err", "=", 
+      RowBox[{"Norm", "[", 
+       RowBox[{"precondStep", "-", "gnStep"}], "]"}]}], ";", 
+     "\[IndentingNewLine]", "  ", 
+     RowBox[{"Print", "[", 
+      RowBox[{"\"\<\[Xi] = \>\"", ",", "xi", 
+       ",", "\"\<  error \[Times] \[Xi] = \>\"", ",", 
+       RowBox[{
+        RowBox[{"err", " ", "xi"}], " ", "//", " ", "N"}]}], "]"}], ";"}], 
+    "\[IndentingNewLine]", "  ", ",", 
+    RowBox[{"{", 
+     RowBox[{"xi", ",", "xiValues"}], "}"}]}], "\[IndentingNewLine]", "]"}], 
+  ";"}]}], "Input",ExpressionUUID->"a1f73b60-b6ab-4770-b94c-431b2a754157"],
+
+Cell[TextData[{
+ "The error decreases as ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["O", "TI"], "(", 
+         RowBox[{"1", "/", "\[Xi]"}], ")"}], TraditionalForm], "errors" -> {},
+      "input" -> "O(1/\\xi)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7efe1b8f-533f-4a11-b8d2-2e2559548315"],
+ ", confirming that ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["G", "TI"], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"], "\[Rule]", 
+         SuperscriptBox[
+          RowBox[{"(", 
+            RowBox[{
+              SuperscriptBox[
+               StyleBox["J", "TI"], 
+               StyleBox["T", "TI"]], 
+              StyleBox["J", "TI"]}], ")"}], "-1"], 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["r", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\xi\\, G^{-1} J^T r \\to (J^T J)^{-1} J^T r", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7888ca03-c14e-4932-9a7d-1580d44a844b"],
+ ". "
+}], "Text",ExpressionUUID->"e5b4b635-5763-4ae1-9692-7c2f18c1d013"],
+
+Cell["6. Weighted Embedding and Generalized Gauss-Newton", "Section",ExpressionUUID->"75a8525d-86f6-4721-906d-e3bf5a00b157"],
+
+Cell[TextData[{
+ "For a weighted embedding with metric ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[CapitalSigma]", TraditionalForm], "errors" -> {}, 
+     "input" -> "\\Sigma", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "50f8a171-8378-4e3c-a19b-e6390aaad16b"],
+ " on the output space, the pullback metric becomes ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SubscriptBox[
+          StyleBox["G", "TI"], 
+          StyleBox["w", "TI"]], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["I", "TI"], 
+          StyleBox["N", "TI"]], "+", "\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], "\[CapitalSigma] ", 
+         StyleBox["J", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "G_w = I_N + \\xi\\, J^T \\Sigma\\, J", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "b9c92c02-b84c-4d50-bde6-471a6df8a06e"],
+ ", where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|
+    "boxes" -> FormBox["\[CapitalSigma]", TraditionalForm], "errors" -> {}, 
+     "input" -> "\\Sigma", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "c05a8b6b-e4d4-4cbc-a3fa-89e09e9861ec"],
+ " encodes the loss curvature. When ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[CapitalSigma]", "\[LongEqual]", "diag", 
+         RowBox[{"(", 
+           StyleBox["p", "TI"], ")"}], "-", 
+         StyleBox["p", "TI"], 
+         SuperscriptBox[
+          StyleBox["p", "TI"], 
+          StyleBox["T", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\Sigma = \\text{diag}(p) - p p^T", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "75489b98-88b1-41d7-992d-50812c8008da"],
+ " (the Hessian of cross-entropy w.r.t. logits), this recovers the exact \
+generalized Gauss-Newton (GGN) Hessian. "
+}], "Text",ExpressionUUID->"f2127792-ea9c-4c33-8203-7630fd46ba3a"],
+
+Cell["6a. Symbolic verification of weighted pullback", "Subsection",ExpressionUUID->"7870259a-8b80-42ed-aa2f-4c5dce98108c"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{
+   "j11", ",", "j12", ",", "j21", ",", "j22", ",", "s1", ",", "s2", ",", 
+    "\[Xi]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jMat", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"j11", ",", "j12"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"j21", ",", "j22"}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"\[CapitalSigma]", "=", 
+    RowBox[{"DiagonalMatrix", "[", 
+     RowBox[{"{", 
+      RowBox[{"s1", ",", "s2"}], "}"}], "]"}]}], ";"}], "\[IndentingNewLine]",
+   "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Weighted", " ", 
+    RowBox[{"pullback", ":", " ", 
+     RowBox[{"I", " ", "+", " ", 
+      RowBox[{"\[Xi]", " ", 
+       RowBox[{"J", "^", "T"}], " ", "\[CapitalSigma]", " ", "J"}]}]}]}], " ",
+    "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gWeighted", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+     RowBox[{"\[Xi]", " ", 
+      RowBox[{
+       RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+       "\[CapitalSigma]", " ", ".", " ", "jMat"}]}]}], " ", "//", " ", 
+    "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Weighted pullback G_w = \>\"", ",", 
+     RowBox[{"MatrixForm", "[", "gWeighted", "]"}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Verify", " ", 
+     RowBox[{"structure", ":", " ", "G_w"}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"I", " ", "+", " ", 
+      RowBox[{"\[Xi]", " ", "H_GN", " ", "where", " ", "H_GN"}]}], " ", "=", 
+     " ", 
+     RowBox[{
+      RowBox[{"J", "^", "T"}], " ", "\[CapitalSigma]", " ", "J"}]}]}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hGN", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"Transpose", "[", "jMat", "]"}], " ", ".", " ", 
+     "\[CapitalSigma]", " ", ".", " ", "jMat"}], " ", "//", " ", 
+    "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gExpected", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"IdentityMatrix", "[", "2", "]"}], "+", 
+     RowBox[{"\[Xi]", " ", "hGN"}]}], " ", "//", " ", "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<I + \[Xi] H_GN = \>\"", ",", 
+    RowBox[{"MatrixForm", "[", "gExpected", "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Match? \>\"", ",", 
+    RowBox[{
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"gWeighted", "-", "gExpected"}], " ", "//", " ", "Simplify"}], 
+      ")"}], "===", 
+     RowBox[{"ConstantArray", "[", 
+      RowBox[{"0", ",", 
+       RowBox[{"{", 
+        RowBox[{"2", ",", "2"}], "}"}]}], "]"}]}]}], "]"}], ";"}]}], "Input",E\
+xpressionUUID->"e255f3f1-e648-44de-80a5-de3d86194836"],
+
+Cell["6b. Cross-entropy Hessian (softmax output)", "Subsection",ExpressionUUID->"4de06c68-8da7-4d18-964a-6b27620d8891"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Cross", "-", 
+     RowBox[{"entropy", ":", " ", "\[CapitalSigma]"}]}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"diag", 
+      RowBox[{"(", "p", ")"}]}], " ", "-", " ", 
+     RowBox[{"p", " ", 
+      RowBox[{"p", "^", "T"}]}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Clear", "[", 
+     RowBox[{"p1", ",", "p2"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"pVec", "=", 
+     RowBox[{"{", 
+      RowBox[{"p1", ",", "p2"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CapitalSigma]CE", "=", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"DiagonalMatrix", "[", "pVec", "]"}], "-", 
+       RowBox[{"Outer", "[", 
+        RowBox[{"Times", ",", "pVec", ",", "pVec"}], "]"}]}], " ", "//", " ", 
+      "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<Cross-entropy \[CapitalSigma] = diag(p) - p p^T:\>\"", 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"MatrixForm", "[", "\[CapitalSigma]CE", "]"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{"Verify", " ", "\[CapitalSigma]", " ", "is", " ", 
+     RowBox[{"PSD", ":", " ", "eigenvalues"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"eigsCE", "=", 
+     RowBox[{
+      RowBox[{"Eigenvalues", "[", "\[CapitalSigma]CE", "]"}], " ", "//", " ", 
+      "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Eigenvalues of \[CapitalSigma]_CE: \>\"", ",", "eigsCE"}], 
+     "]"}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+     RowBox[{"Numerical", " ", 
+      RowBox[{"check", ":", " ", 
+       RowBox[{"for", " ", "p"}]}]}], " ", "=", " ", 
+     RowBox[{"softmax", 
+      RowBox[{"(", "z", ")"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"zTest", "=", 
+     RowBox[{"{", 
+      RowBox[{"1.0", ",", "2.0"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"pTest", "=", 
+     RowBox[{
+      RowBox[{"Exp", "[", "zTest", "]"}], "/", 
+      RowBox[{"Total", "[", 
+       RowBox[{"Exp", "[", "zTest", "]"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CapitalSigma]Test", "=", 
+     RowBox[{
+      RowBox[{"DiagonalMatrix", "[", "pTest", "]"}], "-", 
+      RowBox[{"Outer", "[", 
+       RowBox[{"Times", ",", "pTest", ",", "pTest"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\\nNumerical \[CapitalSigma] for z = {1,2}: \>\"", ",", 
+      RowBox[{"MatrixForm", "[", 
+       RowBox[{"\[CapitalSigma]Test", " ", "//", " ", 
+        RowBox[{
+         RowBox[{"Round", "[", 
+          RowBox[{"#", ",", "0.0001"}], "]"}], " ", "&"}]}], "]"}]}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Eigenvalues: \>\"", ",", 
+      RowBox[{"Eigenvalues", "[", "\[CapitalSigma]Test", "]"}]}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<PSD? \>\"", ",", 
+      RowBox[{"AllTrue", "[", 
+       RowBox[{
+        RowBox[{"Eigenvalues", "[", "\[CapitalSigma]Test", "]"}], ",", 
+        RowBox[{
+         RowBox[{"#", ">=", 
+          RowBox[{"-", 
+           RowBox[{"10", "^", 
+            RowBox[{"-", "15"}]}]}]}], " ", "&"}]}], "]"}]}], "]"}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"d9dfdd79-57ef-4519-a0b9-\
+6d5faa577186"],
+
+Cell["6c. Full GGN for cross-entropy", "Subsection",ExpressionUUID->"0f5d7c35-f6c3-4e92-a10c-1f2817ca01b8"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Full", " ", "GGN"}], " ", "=", " ", 
+    RowBox[{
+     RowBox[{"J", "^", "T"}], " ", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{"diag", 
+        RowBox[{"(", "p", ")"}]}], " ", "-", " ", 
+       RowBox[{"pp", "^", "T"}]}], ")"}], " ", "J"}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"SeedRandom", "[", "7", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"jTest", "=", 
+     RowBox[{"RandomReal", "[", 
+      RowBox[{
+       RowBox[{"NormalDistribution", "[", "]"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"2", ",", "3"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"pSoftmax", "=", 
+     RowBox[{"{", 
+      RowBox[{"0.3", ",", "0.7"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"\[CapitalSigma]Full", "=", 
+     RowBox[{
+      RowBox[{"DiagonalMatrix", "[", "pSoftmax", "]"}], "-", 
+      RowBox[{"Outer", "[", 
+       RowBox[{"Times", ",", "pSoftmax", ",", "pSoftmax"}], "]"}]}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"hGGN", "=", 
+     RowBox[{
+      RowBox[{"Transpose", "[", "jTest", "]"}], " ", ".", " ", 
+      "\[CapitalSigma]Full", " ", ".", " ", "jTest"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"gFull", "=", 
+     RowBox[{
+      RowBox[{"IdentityMatrix", "[", "3", "]"}], "+", 
+      RowBox[{"1.0", " ", 
+       RowBox[{
+        RowBox[{"Transpose", "[", "jTest", "]"}], " ", ".", " ", 
+        "\[CapitalSigma]Full", " ", ".", " ", "jTest"}]}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<H_GGN = J^T \[CapitalSigma] J: \>\"", ",", 
+      RowBox[{"MatrixForm", "[", 
+       RowBox[{"hGGN", " ", "//", " ", 
+        RowBox[{
+         RowBox[{"Round", "[", 
+          RowBox[{"#", ",", "0.0001"}], "]"}], " ", "&"}]}], "]"}]}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<G = I + H_GGN: \>\"", ",", 
+      RowBox[{"MatrixForm", "[", 
+       RowBox[{"gFull", " ", "//", " ", 
+        RowBox[{
+         RowBox[{"Round", "[", 
+          RowBox[{"#", ",", "0.0001"}], "]"}], " ", "&"}]}], "]"}]}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<G is SPD? \>\"", ",", 
+      RowBox[{"PositiveDefiniteMatrixQ", "[", "gFull", "]"}]}], "]"}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"b6df43ba-aff1-4393-9689-\
+76dcace0024c"],
+
+Cell["7. Gradient Clipping Bound", "Section",ExpressionUUID->"bee30d6d-c8c9-485b-9122-2132467358a1"],
+
+Cell[TextData[{
+ "The singular value filter ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["h", "TI"], 
+         RowBox[{"(", "\[Sigma]", ")"}], "\[LongEqual]", "\[Sigma]", "/", 
+         RowBox[{"(", 
+           RowBox[{"1", "+", 
+             SuperscriptBox["\[Xi]\[Sigma]", "2"]}], ")"}]}], 
+       TraditionalForm], "errors" -> {}, "input" -> 
+     "h(\\sigma) = \\sigma / (1 + \\xi \\sigma^2)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "cc80757d-70f1-4e9d-b2f3-3cac3ade6d66"],
+ " arises from the preconditioned gradient in the SVD basis. We verify it has \
+maximum ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"1", "/", 
+         RowBox[{"(", 
+           RowBox[{"2", 
+             SqrtBox["\[Xi]"]}], ")"}]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "1/(2\\sqrt{\\xi})", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "238e35bc-c459-45e4-a8b9-e4ad7d82fd34"],
+ " at ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"\[Sigma]", "\[LongEqual]", "1", "/", 
+         SqrtBox["\[Xi]"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\sigma = 1/\\sqrt{\\xi}", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "5badf683-f928-41f4-a0d0-565a4558f173"],
+ ". "
+}], "Text",ExpressionUUID->"121bcc68-8e3a-4bf1-b299-cefaa815371d"],
+
+Cell["7a. Symbolic analysis", "Subsection",ExpressionUUID->"38a66ded-ea57-4eed-8aff-d75bbda166e7"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"Clear", "[", 
+   RowBox[{"s", ",", "\[Xi]"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{
+    RowBox[{"h", "[", 
+     RowBox[{"s_", ",", "\[Xi]_"}], "]"}], ":=", 
+    RowBox[{"s", "/", 
+     RowBox[{"(", 
+      RowBox[{"1", "+", 
+       RowBox[{"\[Xi]", " ", 
+        RowBox[{"s", "^", "2"}]}]}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"First", " ", "derivative"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"dh", "=", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{
+      RowBox[{"h", "[", 
+       RowBox[{"s", ",", "\[Xi]"}], "]"}], ",", "s"}], "]"}], " ", "//", " ", 
+    "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<h'(\[Sigma]) = \>\"", ",", "dh"}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Critical", " ", "point"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"critPoint", "=", 
+   RowBox[{
+    RowBox[{"Solve", "[", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"dh", "==", "0"}], "&&", 
+       RowBox[{"s", ">", "0"}]}], ",", "s"}], "]"}], " ", "//", " ", 
+    "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Critical point: \[Sigma]* = \>\"", ",", "critPoint"}], "]"}],
+    ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Maximum", " ", "value"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"hMax", "=", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"h", "[", 
+      RowBox[{"s", ",", "\[Xi]"}], "]"}], " ", "/.", " ", 
+     RowBox[{"critPoint", "[", 
+      RowBox[{"[", "1", "]"}], "]"}]}], " ", "//", " ", "Simplify"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<h(\[Sigma]*) = \>\"", ",", "hMax"}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<= 1/(2 Sqrt[\[Xi]])? \>\"", ",", 
+     RowBox[{"Simplify", "[", 
+      RowBox[{
+       RowBox[{"hMax", "-", 
+        RowBox[{"1", "/", 
+         RowBox[{"(", 
+          RowBox[{"2", " ", 
+           RowBox[{"Sqrt", "[", "\[Xi]", "]"}]}], ")"}]}]}], ",", 
+       RowBox[{"\[Xi]", ">", "0"}]}], "]"}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+    "Second", " ", "derivative", " ", "at", " ", "critical", " ", "point"}], 
+    " ", "\[LongDash]", " ", 
+    RowBox[{"confirm", " ", 
+     RowBox[{"it", "'"}], "s", " ", "a", " ", "maximum"}]}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"d2h", "=", 
+   RowBox[{
+    RowBox[{"D", "[", 
+     RowBox[{
+      RowBox[{"h", "[", 
+       RowBox[{"s", ",", "\[Xi]"}], "]"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"s", ",", "2"}], "}"}]}], "]"}], " ", "//", " ", 
+    "Simplify"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"d2hAtCrit", "=", 
+   RowBox[{
+    RowBox[{"d2h", " ", "/.", " ", 
+     RowBox[{"critPoint", "[", 
+      RowBox[{"[", "1", "]"}], "]"}]}], " ", "//", " ", "Simplify"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<h''(\[Sigma]*) = \>\"", ",", "d2hAtCrit", 
+    ",", "\"\< (negative \[Rule] maximum)\>\""}], "]"}], ";"}]}], "Input",Expr\
+essionUUID->"f93acc04-7f78-4d01-8ad0-e004f77e30b7"],
+
+Cell["7b. Plot of the singular value filter", "Subsection",ExpressionUUID->"e9af7ef9-2686-4423-9104-ccf458086589"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Plot", " ", "h", 
+    RowBox[{"(", "\[Sigma]", ")"}], " ", "for", " ", "several", " ", "\[Xi]", 
+    " ", "values"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"Plot", "[", "\[IndentingNewLine]", "  ", 
+   RowBox[{
+    RowBox[{"Evaluate", "[", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"s", "/", 
+        RowBox[{"(", 
+         RowBox[{"1", "+", 
+          RowBox[{"xi", " ", 
+           RowBox[{"s", "^", "2"}]}]}], ")"}]}], ",", 
+       RowBox[{"{", 
+        RowBox[{"xi", ",", 
+         RowBox[{"{", 
+          RowBox[{"0.1", ",", "1", ",", "10", ",", "100"}], "}"}]}], "}"}]}], 
+      "]"}], "]"}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"{", 
+     RowBox[{"s", ",", "0", ",", "3"}], "}"}], ",", "\[IndentingNewLine]", 
+    "  ", 
+    RowBox[{"PlotLegends", "->", 
+     RowBox[{"(", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"\"\<\[Xi] = \>\"", " ", "<>", " ", 
+         RowBox[{"ToString", "[", "#", "]"}]}], " ", "&"}], " ", "/@", " ", 
+       RowBox[{"{", 
+        RowBox[{"0.1", ",", "1", ",", "10", ",", "100"}], "}"}]}], ")"}]}], ",",
+     "\[IndentingNewLine]", "  ", 
+    RowBox[{"AxesLabel", "->", 
+     RowBox[{"{", 
+      RowBox[{"\"\<\[Sigma]\>\"", ",", "\"\<h(\[Sigma])\>\""}], "}"}]}], ",", 
+    "\[IndentingNewLine]", "  ", 
+    RowBox[{
+    "PlotLabel", 
+     "->", "\"\<Singular Value Filter h(\[Sigma]) = \[Sigma]/(1 + \[Xi]\
+\[Sigma]\\[Superscript]2)\>\""}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"PlotRange", "->", 
+     RowBox[{"{", 
+      RowBox[{"0", ",", "1.2"}], "}"}]}], ",", "\[IndentingNewLine]", "  ", 
+    RowBox[{"PlotStyle", "->", 
+     RowBox[{"{", 
+      RowBox[{"Blue", ",", "Red", ",", 
+       RowBox[{"Darker", "[", "Green", "]"}], ",", "Purple"}], "}"}]}]}], 
+   "\[IndentingNewLine]", "]"}]}]], "Input",ExpressionUUID->"8c4ec1b4-b81d-\
+429e-9df1-aebba7bd6808"],
+
+Cell["7c. Numerical verification of tight bound", "Subsection",ExpressionUUID->"4bc1fbc9-5a26-42e3-bd80-2def66d45e20"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Numerical", " ", 
+    RowBox[{"verification", ":", " ", 
+     RowBox[{"the", " ", "bound", " ", "is", " ", "tight"}]}]}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"xiTest", "=", "10.0"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sigmaOpt", "=", 
+     RowBox[{"1", "/", 
+      RowBox[{"Sqrt", "[", "xiTest", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   
+   RowBox[{
+    RowBox[{"hAtOpt", "=", 
+     RowBox[{"sigmaOpt", "/", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"xiTest", " ", 
+         RowBox[{"sigmaOpt", "^", "2"}]}]}], ")"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"boundValue", "=", 
+     RowBox[{"1", "/", 
+      RowBox[{"(", 
+       RowBox[{"2", " ", 
+        RowBox[{"Sqrt", "[", "xiTest", "]"}]}], ")"}]}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\[Xi] = \>\"", ",", "xiTest"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<\[Sigma]* = 1/\[Sqrt]\[Xi] = \>\"", ",", "sigmaOpt"}], 
+     "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<h(\[Sigma]*) = \>\"", ",", "hAtOpt"}], "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<1/(2\[Sqrt]\[Xi]) = \>\"", ",", "boundValue"}], "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Bound is tight? \>\"", ",", 
+      RowBox[{
+       RowBox[{"Abs", "[", 
+        RowBox[{"hAtOpt", "-", "boundValue"}], "]"}], "<", 
+       RowBox[{"10", "^", 
+        RowBox[{"-", "15"}]}]}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{"(*", " ", 
+    RowBox[{
+    "Check", " ", "bound", " ", "holds", " ", "for", " ", "many", " ", 
+     "random", " ", "sigma", " ", "values"}], " ", "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sigmaTests", "=", 
+     RowBox[{"RandomReal", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0.001", ",", "100"}], "}"}], ",", "10000"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"allBounded", "=", 
+     RowBox[{"AllTrue", "[", 
+      RowBox[{"sigmaTests", ",", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"#", "/", 
+          RowBox[{"(", 
+           RowBox[{"1", "+", 
+            RowBox[{"xiTest", " ", 
+             RowBox[{"#", "^", "2"}]}]}], ")"}]}], "<=", 
+         RowBox[{"boundValue", "+", 
+          RowBox[{"10", "^", 
+           RowBox[{"-", "15"}]}]}]}], " ", "&"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Bound holds for 10000 random \[Sigma]? \>\"", ",", 
+      "allBounded"}], "]"}], ";"}]}]}]], "Input",ExpressionUUID->"16e5a462-\
+5b7a-454d-a190-ff85356f94f7"],
+
+Cell[TextData[{
+ "This means the induced metric optimizer has a built-in gradient clipping \
+effect: regardless of the singular values of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["J", "TI"], TraditionalForm], "errors" -> {}, "input" -> "J", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "526e1581-2f23-4ede-af56-9095ca8d2672"],
+ ", the effective step contribution from each singular direction is bounded \
+by ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"1", "/", 
+         RowBox[{"(", 
+           RowBox[{"2", 
+             SqrtBox["\[Xi]"]}], ")"}]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "1/(2\\sqrt{\\xi})", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a640ec21-a502-495c-8e06-267066faef68"],
+ ". This provides implicit robustness without explicit gradient clipping. "
+}], "Text",ExpressionUUID->"8e56d3cd-640f-4891-8ed8-c0a939500329"],
+
+Cell["8. Spectral Structure", "Section",ExpressionUUID->"9edfea54-2f87-4bfd-8c05-894cbecf0ff3"],
+
+Cell[TextData[{
+ "We verify that the eigenvalues of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["G", "TI"], "\[LongEqual]", 
+         SubscriptBox[
+          StyleBox["I", "TI"], 
+          StyleBox["N", "TI"]], "+", "\[Xi] ", 
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["J", "TI"]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "G = I_N + \\xi\\, J^T J", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "74ada1f9-94ea-45f5-a96f-cebf812d741e"],
+ " are ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"1", "+", "\[Xi] ", 
+         SubsuperscriptBox["\[Sigma]", 
+          StyleBox["k", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "1 + \\xi\\, \\sigma_k^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "dcd52c21-23d7-4ca7-bdd3-56b02ccdeacc"],
+ ", where ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       SubscriptBox["\[Sigma]", 
+        StyleBox["k", "TI"]], TraditionalForm], "errors" -> {}, "input" -> 
+     "\\sigma_k", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "15b8331f-2908-46df-8929-d5e9ce78177c"],
+ " are the singular values of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["J", "TI"], TraditionalForm], "errors" -> {}, "input" -> "J", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "11bc527d-60dd-428c-8bec-f26fa74cacd0"],
+ ". "
+}], "Text",ExpressionUUID->"0c3ba4ab-6fcd-49ab-a812-95193957ad76"],
+
+Cell["8a. Analytical derivation", "Subsection",ExpressionUUID->"16f1397b-c4ca-412b-b162-4627ebe2b9f5"],
+
+Cell[TextData[{
+ "If ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["J", "TI"], "\[LongEqual]", 
+         StyleBox["U", "TI"], "\[CapitalSigma]", 
+         SuperscriptBox[
+          StyleBox["V", "TI"], 
+          StyleBox["T", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "J = U \\Sigma V^T", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "7d6f74e2-c299-472c-8ef0-846f23ff14fe"],
+ " is the SVD, then ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         SuperscriptBox[
+          StyleBox["J", "TI"], 
+          StyleBox["T", "TI"]], 
+         StyleBox["J", "TI"], "\[LongEqual]", 
+         StyleBox["V", "TI"], 
+         SuperscriptBox["\[CapitalSigma]", 
+          StyleBox["T", "TI"]], "\[CapitalSigma]", 
+         SuperscriptBox[
+          StyleBox["V", "TI"], 
+          StyleBox["T", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "J^T J = V \\Sigma^T \\Sigma V^T", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "2374df6d-927c-4570-936e-17ae1541c155"],
+ ", so ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["G", "TI"], "\[LongEqual]", 
+         StyleBox["V", "TI"], 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["I", "TI"], "+", "\[Xi] ", 
+             SuperscriptBox["\[CapitalSigma]", 
+              StyleBox["T", "TI"]], "\[CapitalSigma]"}], ")"}], 
+         SuperscriptBox[
+          StyleBox["V", "TI"], 
+          StyleBox["T", "TI"]]}], TraditionalForm], "errors" -> {}, "input" -> 
+     "G = V (I + \\xi\\, \\Sigma^T \\Sigma) V^T", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "ba27188e-5ed6-470e-8f08-d24b565fc9c7"],
+ ". The eigenvalues of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["G", "TI"], TraditionalForm], "errors" -> {}, "input" -> "G", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "3ccc5399-d6d2-4d77-b984-244a2014943b"],
+ " are ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{"1", "+", "\[Xi] ", 
+         SubsuperscriptBox["\[Sigma]", 
+          StyleBox["k", "TI"], "2"]}], TraditionalForm], "errors" -> {}, 
+     "input" -> "1 + \\xi\\, \\sigma_k^2", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "61e6bd26-68e7-48cd-9426-379763561437"],
+ " for ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["k", "TI"], "\[LongEqual]", "1", ",", "\[Ellipsis]", ",", 
+         "min", 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["C", "TI"], ",", 
+             StyleBox["N", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> "k = 1, \\ldots, \\min(C, N)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "a26c19d1-5062-48b7-82f4-f8c1761f4bed"],
+ ", plus eigenvalue 1 with multiplicity ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       RowBox[{
+         StyleBox["N", "TI"], "-", "min", 
+         RowBox[{"(", 
+           RowBox[{
+             StyleBox["C", "TI"], ",", 
+             StyleBox["N", "TI"]}], ")"}]}], TraditionalForm], "errors" -> {},
+      "input" -> "N - \\min(C, N)", "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "bd0fb892-7f20-48a1-a598-e0bc8dbd2fd2"],
+ " (the null-space directions of ",
+ Cell[BoxData[
+  FormBox[
+   TemplateBox[<|"boxes" -> FormBox[
+       StyleBox["J", "TI"], TraditionalForm], "errors" -> {}, "input" -> "J", 
+     "state" -> "Boxes"|>,
+    "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+  "483419b6-6fd6-484a-ab2e-4c65c687806b"],
+ "). "
+}], "Text",ExpressionUUID->"307c443f-97c0-444b-a96c-98316f133f9a"],
+
+Cell["8b. Numerical verification (tall J: C > N)", "Subsection",ExpressionUUID->"8e3d3118-7f55-403c-ad88-ecb511d78ca6"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SeedRandom", "[", "100", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"nN", "=", "4"}], ";", " ", 
+  RowBox[{"nC", "=", "6"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jTall", "=", 
+   RowBox[{"RandomReal", "[", 
+    RowBox[{
+     RowBox[{"NormalDistribution", "[", "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"nC", ",", "nN"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"xiVal", "=", "5.0"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Singular", " ", "values", " ", "of", " ", "J"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"svJ", "=", 
+   RowBox[{"SingularValueList", "[", "jTall", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Singular values of J (6\[Times]4): \>\"", ",", "svJ"}], 
+    "]"}], ";"}], "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Predicted", " ", "eigenvalues", " ", "of", " ", "G"}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eigsPredicted", "=", 
+   RowBox[{"Sort", "[", 
+    RowBox[{
+     RowBox[{"1", "+", 
+      RowBox[{"xiVal", " ", 
+       RowBox[{"svJ", "^", "2"}]}]}], ",", "Greater"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Predicted eigenvalues (1 + \[Xi] \[Sigma]_k^2): \>\"", ",", 
+     "eigsPredicted"}], "]"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{"Actual", " ", "eigenvalues", " ", "of", " ", "G"}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gTall", "=", 
+   RowBox[{
+    RowBox[{"IdentityMatrix", "[", "nN", "]"}], "+", 
+    RowBox[{"xiVal", " ", 
+     RowBox[{
+      RowBox[{"Transpose", "[", "jTall", "]"}], " ", ".", " ", 
+      "jTall"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eigsActual", "=", 
+   RowBox[{"Sort", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Eigenvalues", "[", "gTall", "]"}], " ", "//", " ", "N"}], ",", 
+     "Greater"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Actual eigenvalues of G: \>\"", ",", "eigsActual"}], "]"}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"diff", "=", 
+   RowBox[{"Norm", "[", 
+    RowBox[{"eigsPredicted", "-", "eigsActual"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<||predicted - actual|| = \>\"", ",", 
+    RowBox[{"ScientificForm", "[", 
+     RowBox[{"diff", ",", "4"}], "]"}]}], "]"}], ";"}]}], "Input",ExpressionUU\
+ID->"d38dc9ce-c744-4c88-8869-21edcf8d2f65"],
+
+Cell["8c. Numerical verification (wide J: C < N, has null space)", \
+"Subsection",ExpressionUUID->"aa9b28bc-2b3e-4d7e-8e37-b81154e42079"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SeedRandom", "[", "200", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"nN2", "=", "6"}], ";", " ", 
+  RowBox[{"nC2", "=", "3"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"jWide", "=", 
+   RowBox[{"RandomReal", "[", 
+    RowBox[{
+     RowBox[{"NormalDistribution", "[", "]"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"nC2", ",", "nN2"}], "}"}]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"xiVal2", "=", "3.0"}], ";"}], "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Singular", " ", "values", " ", "of", " ", "J"}], " ", "\[LongDash]",
+     " ", 
+    RowBox[{
+     RowBox[{"only", " ", "min", 
+      RowBox[{"(", 
+       RowBox[{"C", ",", "N"}], ")"}]}], " ", "=", " ", 
+     RowBox[{"3", " ", "nonzero"}]}]}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"svJ2", "=", 
+   RowBox[{"SingularValueList", "[", "jWide", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Singular values of J (3\[Times]6): \>\"", ",", "svJ2"}], 
+   "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Number of nonzero singular values: \>\"", ",", 
+     RowBox[{"Length", "[", "svJ2", "]"}]}], "]"}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Predicted", " ", 
+     RowBox[{"eigenvalues", ":", " ", 
+      RowBox[{
+       RowBox[{"3", " ", "values", " ", "of", " ", "1"}], " ", "+", " ", 
+       RowBox[{"\[Xi]\[Sigma]", "^", "2"}]}]}]}], ",", " ", 
+    RowBox[{
+     RowBox[{"plus", " ", "3", " ", "eigenvalues"}], " ", "=", " ", "1"}]}], 
+   " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eigsPredicted2", "=", 
+   RowBox[{"Sort", "[", 
+    RowBox[{
+     RowBox[{"Join", "[", 
+      RowBox[{
+       RowBox[{"1", "+", 
+        RowBox[{"xiVal2", " ", 
+         RowBox[{"svJ2", "^", "2"}]}]}], ",", 
+       RowBox[{"ConstantArray", "[", 
+        RowBox[{"1.0", ",", 
+         RowBox[{"nN2", "-", "nC2"}]}], "]"}]}], "]"}], ",", "Greater"}], 
+    "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Predicted eigenvalues: \>\"", ",", "eigsPredicted2"}], "]"}],
+    ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"gWide", "=", 
+   RowBox[{
+    RowBox[{"IdentityMatrix", "[", "nN2", "]"}], "+", 
+    RowBox[{"xiVal2", " ", 
+     RowBox[{
+      RowBox[{"Transpose", "[", "jWide", "]"}], " ", ".", " ", 
+      "jWide"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"eigsActual2", "=", 
+   RowBox[{"Sort", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Eigenvalues", "[", "gWide", "]"}], " ", "//", " ", "N"}], ",", 
+     "Greater"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Print", "[", 
+    RowBox[{"\"\<Actual eigenvalues: \>\"", ",", "eigsActual2"}], "]"}], 
+   ";"}], "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"diff2", "=", 
+   RowBox[{"Norm", "[", 
+    RowBox[{"eigsPredicted2", "-", "eigsActual2"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<||predicted - actual|| = \>\"", ",", 
+    RowBox[{"ScientificForm", "[", 
+     RowBox[{"diff2", ",", "4"}], "]"}]}], "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Print", "[", 
+   RowBox[{"\"\<Null-space eigenvalues are 1? \>\"", ",", 
+    RowBox[{
+     RowBox[{"Max", "[", 
+      RowBox[{"Abs", "[", 
+       RowBox[{
+        RowBox[{"Take", "[", 
+         RowBox[{"eigsActual2", ",", 
+          RowBox[{"-", "3"}]}], "]"}], "-", "1.0"}], "]"}], "]"}], "<", 
+     RowBox[{"10", "^", 
+      RowBox[{"-", "14"}]}]}]}], "]"}], ";"}]}], "Input",ExpressionUUID->\
+"4402de54-1e73-40d4-b191-c7a5314fa246"],
+
+Cell["8d. Condition number formula", "Subsection",ExpressionUUID->"ffb183cf-337b-437b-b4f9-34dc3cb761aa"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"Condition", " ", "number", " ", "of", " ", "G"}], " ", "=", " ", 
+    
+    RowBox[{
+     RowBox[{
+      RowBox[{
+       RowBox[{"(", 
+        RowBox[{"1", " ", "+", " ", 
+         RowBox[{"\[Xi]", " ", 
+          RowBox[{"\[Sigma]_max", "^", "2"}]}]}], ")"}], " ", "/", " ", 
+       RowBox[{"(", 
+        RowBox[{"1", " ", "+", " ", 
+         RowBox[{"\[Xi]", " ", 
+          RowBox[{"\[Sigma]_min", "^", "2"}]}]}], ")"}]}], " ", "when", " ", 
+      "C"}], " ", ">=", " ", "N"}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"When", " ", "C"}], " ", "<", " ", "N"}], ",", " ", 
+    RowBox[{
+     RowBox[{"\[Kappa]", 
+      RowBox[{"(", "G", ")"}]}], " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{
+        RowBox[{"(", 
+         RowBox[{"1", " ", "+", " ", 
+          RowBox[{"\[Xi]", " ", 
+           RowBox[{"\[Sigma]_max", "^", "2"}]}]}], ")"}], " ", "/", " ", 
+        "1"}], " ", "since", " ", "null"}], "-", 
+      RowBox[{"space", " ", "has", " ", "eigenvalue", " ", "1"}]}]}]}], " ", 
+   "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<\\n--- Condition number analysis ---\>\"", "]"}], 
+    ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<Tall J (C >= N): \[Kappa](G) = (1 + \
+\[Xi]\[Sigma]_max\\[Superscript]2)/(1 + \
+\[Xi]\[Sigma]_min\\[Superscript]2)\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   
+   RowBox[{
+    RowBox[{"kappaActual", "=", 
+     RowBox[{
+      RowBox[{"Max", "[", "eigsActual", "]"}], "/", 
+      RowBox[{"Min", "[", "eigsActual", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"kappaPredicted", "=", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"xiVal", " ", 
+         RowBox[{
+          RowBox[{"Max", "[", "svJ", "]"}], "^", "2"}]}]}], ")"}], "/", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"xiVal", " ", 
+         RowBox[{
+          RowBox[{"Min", "[", "svJ", "]"}], "^", "2"}]}]}], ")"}]}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<  Predicted: \>\"", ",", "kappaPredicted", 
+      ",", "\"\<  Actual: \>\"", ",", "kappaActual"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+    "Print", "[", "\"\<Wide J (C < N): \[Kappa](G) = 1 + \
+\[Xi]\[Sigma]_max\\[Superscript]2\>\"", "]"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"kappaActual2", "=", 
+     RowBox[{
+      RowBox[{"Max", "[", "eigsActual2", "]"}], "/", 
+      RowBox[{"Min", "[", "eigsActual2", "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"kappaPredicted2", "=", 
+     RowBox[{"1", "+", 
+      RowBox[{"xiVal2", " ", 
+       RowBox[{
+        RowBox[{"Max", "[", "svJ2", "]"}], "^", "2"}]}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<  Predicted: \>\"", ",", "kappaPredicted2", 
+      ",", "\"\<  Actual: \>\"", ",", "kappaActual2"}], "]"}], 
+    ";"}]}]}]], "Input",ExpressionUUID->"b208a590-dfe5-429f-aa5c-\
+3209600c6e19"],
+
+Cell["Summary", "Section",ExpressionUUID->"b4e088cb-5791-47ac-8846-3a017e28f3a9"],
+
+Cell["All eight verifications pass: ", "Text",ExpressionUUID->"7012672d-89cc-4e46-8566-df6428354bca"],
+
+Cell[BoxData[
+ PaneBox[
+  PaneBox[
+   StyleBox[
+    TagBox[
+     TagBox[GridBox[{
+        {
+         TagBox["\<\"Check\"\>",
+          HoldForm], 
+         TagBox["\<\"Result\"\>",
+          HoldForm]},
+        {Cell[TextData[{
+          "1. Pullback metric ",
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{
+                  StyleBox["G", "TI"], "\[LongEqual]", 
+                  StyleBox["I", "TI"], "+", "\[Xi]", 
+                  SuperscriptBox[
+                   StyleBox["J", "TI"], 
+                   StyleBox["T", "TI"]], 
+                  StyleBox["J", "TI"]}], TraditionalForm], "errors" -> {}, 
+              "input" -> "G = I + \\xi J^T J", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "3f37ac00-d943-4294-8149-a1804a955daa"]
+         }],ExpressionUUID->
+          "233fd5fa-1b40-434f-80ba-c49b4546d5c0"], "\<\"Verified symbolically \
+(2x2 and 2x3)\"\>"},
+        {"\<\"2. Woodbury inverse identity\"\>", "\<\"Zero difference (2x2 \
+and 2x3)\"\>"},
+        {"\<\"3. Push-through identity\"\>", "\<\"Zero difference (2x2 and \
+2x3)\"\>"},
+        {"\<\"4. Preconditioned gradient formula\"\>", "\<\"Both forms agree \
+symbolically\"\>"},
+        {Cell[TextData[{
+          "5. Large-",
+          Cell[BoxData[
+           FormBox[
+            
+            TemplateBox[<|
+             "boxes" -> FormBox["\[Xi]", TraditionalForm], "errors" -> {}, 
+              "input" -> "\\xi", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "c91fd3fd-a9c9-48e9-b551-f93814308dbc"],
+          " limit recovers GN"
+         }],ExpressionUUID->"51db688b-e1ef-4537-825d-478e15d7b094"], Cell[
+         TextData[{
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{
+                  StyleBox["O", "TI"], "(", 
+                  RowBox[{"1", "/", "\[Xi]"}], ")"}], TraditionalForm], 
+              "errors" -> {}, "input" -> "O(1/\\xi)", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "6a256ea0-4518-47ff-9dcf-f3e95a767279"],
+          " convergence confirmed"
+         }],ExpressionUUID->"57700d71-2fcb-45ba-ba2d-434851df9458"]},
+        {"\<\"6. Weighted embedding recovers GGN\"\>", Cell[TextData[{
+          "Cross-entropy ",
+          Cell[BoxData[
+           FormBox[
+            
+            TemplateBox[<|
+             "boxes" -> FormBox["\[CapitalSigma]", TraditionalForm], 
+              "errors" -> {}, "input" -> "\\Sigma", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "9d246ae6-7ee5-4c9f-bd96-881ca850ee89"],
+          " yields exact GGN"
+         }],ExpressionUUID->"f16919ed-973b-4a11-8b55-98bf12ba2f46"]},
+        {Cell[TextData[{
+          "7. Gradient clipping bound ",
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{"1", "/", 
+                  RowBox[{"(", 
+                    RowBox[{"2", 
+                    SqrtBox["\[Xi]"]}], ")"}]}], TraditionalForm], 
+              "errors" -> {}, "input" -> "1/(2\\sqrt{\\xi})", "state" -> 
+              "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "6993b44c-d69f-4543-aee6-3307a8d3dce4"]
+         }],ExpressionUUID->"27594358-5165-4c60-ba75-afbf6450b90e"], Cell[
+         TextData[{
+          "Tight bound at ",
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{"\[Sigma]", "\[LongEqual]", "1", "/", 
+                  SqrtBox["\[Xi]"]}], TraditionalForm], "errors" -> {}, 
+              "input" -> "\\sigma = 1/\\sqrt{\\xi}", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "a25b35a6-afad-4b45-ae72-8ed32ae9dfbc"]
+         }],ExpressionUUID->"9019c021-b858-44d7-aa2e-a2287aae4ce4"]},
+        {Cell[TextData[{
+          "8. Spectral structure ",
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                RowBox[{"1", "+", 
+                  SubsuperscriptBox["\[Xi]\[Sigma]", 
+                   StyleBox["k", "TI"], "2"]}], TraditionalForm], 
+              "errors" -> {}, "input" -> "1 + \\xi \\sigma_k^2", "state" -> 
+              "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "9fc4aa24-bc98-43b4-bb36-4ca4ce6dd488"]
+         }],ExpressionUUID->"7a747d21-883e-4b3c-bb21-7b4d7b958792"], Cell[
+         TextData[{
+          "Matches for tall and wide ",
+          Cell[BoxData[
+           FormBox[
+            TemplateBox[<|"boxes" -> FormBox[
+                StyleBox["J", "TI"], TraditionalForm], "errors" -> {}, 
+              "input" -> "J", "state" -> "Boxes"|>,
+             "TeXAssistantTemplate"], TraditionalForm]],ExpressionUUID->
+           "681193f0-b5b7-4050-8067-3cfb283f898d"]
+         }],ExpressionUUID->"d7f8586f-e4da-4a91-a4e7-078d9ee43319"]}
+       },
+       GridBoxAlignment->{
+        "Columns" -> {Center, {Center}}, "Rows" -> {{Baseline}}},
+       GridBoxDividers->{
+        "Columns" -> {{False}}, "Rows" -> {False, True, {False}, False}},
+       GridBoxSpacings->{"Columns" -> {
+           Offset[0.27999999999999997`], {
+            Offset[2.0999999999999996`]}, 
+           Offset[0.27999999999999997`]}, "Rows" -> {
+           Offset[0.2], {
+            Offset[0.4]}, 
+           Offset[0.2]}}],
+      {None, OutputFormsDump`HeadedColumns}],
+     Function[BoxForm`e$, 
+      TableForm[BoxForm`e$, TableHeadings -> {None, {"Check", "Result"}}]]], 
+    "Text",
+    StripOnInput->False,
+    ShowStringCharacters->False],
+   ImageMargins->{{0, 0}, {5, 5}}],
+  ImageMargins->{{0, 0}, {5, 5}}]], "TextTableForm", \
+"Text",ExpressionUUID->"ae0a10ba-d256-4248-87c1-5fac0c4165bc"]
+},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"a83bd6d1-c378-4ba4-8c49-4f0e587986a8"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[554, 20, 153, 2, 70, "Title",ExpressionUUID->"412153fe-230b-4758-adba-c246751edd48"],
+Cell[710, 24, 1180, 28, 70, "Text",ExpressionUUID->"ccf39011-acaf-4329-9403-66e360709f21"],
+Cell[1893, 54, 103, 0, 70, "Section",ExpressionUUID->"275543fb-e3e1-471e-89df-3ed0ea1fa131"],
+Cell[1999, 56, 3649, 100, 70, "Text",ExpressionUUID->"e5d355c7-b62c-4a5d-9ffe-b5045964a298"],
+Cell[5651, 158, 123, 0, 70, "Subsection",ExpressionUUID->"196e42b9-a57b-4730-8f5e-4e09e5494af5"],
+Cell[5777, 160, 1983, 54, 70, "Input",ExpressionUUID->"146d8273-01f0-4be2-a4e0-698eb477770b"],
+Cell[7763, 216, 123, 0, 70, "Subsection",ExpressionUUID->"1f0ee8ec-f428-4c26-80e3-c42e6ac52b37"],
+Cell[7889, 218, 2347, 65, 70, "Input",ExpressionUUID->"aa181f64-1f30-4ba2-bfb2-9f0154975738"],
+Cell[10239, 285, 102, 0, 70, "Section",ExpressionUUID->"1cb78d25-7e77-4a3c-9309-5873c6b6d288"],
+Cell[10344, 287, 1476, 39, 70, "Text",ExpressionUUID->"b975ade4-4ed0-4450-996f-172447a44397"],
+Cell[11823, 328, 108, 0, 70, "Subsection",ExpressionUUID->"483898a9-00b9-4887-9a36-951d015831d0"],
+Cell[11934, 330, 2979, 83, 70, "Input",ExpressionUUID->"e27b3fe2-491f-461f-91e2-487d448882d7"],
+Cell[14916, 415, 108, 0, 70, "Subsection",ExpressionUUID->"a4085f37-4b37-4c3d-9717-e7b614541aab"],
+Cell[15027, 417, 2077, 57, 70, "Input",ExpressionUUID->"abefbc66-8c14-4bfe-93f8-7e5b76e6d847"],
+Cell[17107, 476, 2043, 54, 70, "Text",ExpressionUUID->"102a3f4c-c201-48fb-bcb9-74bea7eb31d6"],
+Cell[19153, 532, 98, 0, 70, "Section",ExpressionUUID->"9a4b532e-a0f4-416d-bcc6-c7e446b81286"],
+Cell[19254, 534, 1323, 35, 70, "Text",ExpressionUUID->"e410a0cc-371f-4dc6-b54e-4ef0914de160"],
+Cell[20580, 571, 108, 0, 70, "Subsection",ExpressionUUID->"39f173d5-b82b-48f8-a838-cee38677f79b"],
+Cell[20691, 573, 1957, 56, 70, "Input",ExpressionUUID->"0308ac18-cb6d-42cd-9887-d03e0659befa"],
+Cell[22651, 631, 108, 0, 70, "Subsection",ExpressionUUID->"083cdacb-1e00-4f94-aa0c-8e7c663af168"],
+Cell[22762, 633, 2033, 57, 70, "Input",ExpressionUUID->"8d4964bc-41c3-411f-b284-7a69c8384f43"],
+Cell[24798, 692, 100, 0, 70, "Section",ExpressionUUID->"23ed0b01-de32-4f2b-9655-e120bb73fd29"],
+Cell[24901, 694, 1190, 31, 70, "Text",ExpressionUUID->"e1bb3890-0958-4ad5-94d5-7afb8beee763"],
+Cell[26094, 727, 2467, 69, 70, "Input",ExpressionUUID->"a7e2f2cc-030d-4864-9c45-72ecf9eccee4"],
+Cell[28564, 798, 1946, 53, 70, "Text",ExpressionUUID->"a8bca6c4-2207-4296-abed-83a8f15bacc6"],
+Cell[30513, 853, 1162, 30, 70, "Input",ExpressionUUID->"1f7c79eb-ce0a-48b3-bfaf-fdbfd077a2dc"],
+Cell[31678, 885, 91, 0, 70, "Section",ExpressionUUID->"febae0c7-bc6f-4f6f-9149-32d352c3b6df"],
+Cell[31772, 887, 1653, 43, 70, "Text",ExpressionUUID->"210106e4-a3ce-43f0-8426-21bb2786fcf9"],
+Cell[33428, 932, 4656, 123, 70, "Input",ExpressionUUID->"a1f73b60-b6ab-4770-b94c-431b2a754157"],
+Cell[38087, 1057, 1354, 37, 70, "Text",ExpressionUUID->"e5b4b635-5763-4ae1-9692-7c2f18c1d013"],
+Cell[39444, 1096, 124, 0, 70, "Section",ExpressionUUID->"75a8525d-86f6-4721-906d-e3bf5a00b157"],
+Cell[39571, 1098, 2079, 51, 70, "Text",ExpressionUUID->"f2127792-ea9c-4c33-8203-7630fd46ba3a"],
+Cell[41653, 1151, 123, 0, 70, "Subsection",ExpressionUUID->"7870259a-8b80-42ed-aa2f-4c5dce98108c"],
+Cell[41779, 1153, 2925, 84, 70, "Input",ExpressionUUID->"e255f3f1-e648-44de-80a5-de3d86194836"],
+Cell[44707, 1239, 119, 0, 70, "Subsection",ExpressionUUID->"4de06c68-8da7-4d18-964a-6b27620d8891"],
+Cell[44829, 1241, 3598, 96, 70, "Input",ExpressionUUID->"d9dfdd79-57ef-4519-a0b9-6d5faa577186"],
+Cell[48430, 1339, 107, 0, 70, "Subsection",ExpressionUUID->"0f5d7c35-f6c3-4e92-a10c-1f2817ca01b8"],
+Cell[48540, 1341, 2538, 71, 70, "Input",ExpressionUUID->"b6df43ba-aff1-4393-9689-76dcace0024c"],
+Cell[51081, 1414, 100, 0, 70, "Section",ExpressionUUID->"bee30d6d-c8c9-485b-9122-2132467358a1"],
+Cell[51184, 1416, 1488, 37, 70, "Text",ExpressionUUID->"121bcc68-8e3a-4bf1-b299-cefaa815371d"],
+Cell[52675, 1455, 98, 0, 70, "Subsection",ExpressionUUID->"38a66ded-ea57-4eed-8aff-d75bbda166e7"],
+Cell[52776, 1457, 3443, 101, 70, "Input",ExpressionUUID->"f93acc04-7f78-4d01-8ad0-e004f77e30b7"],
+Cell[56222, 1560, 114, 0, 70, "Subsection",ExpressionUUID->"e9af7ef9-2686-4423-9104-ccf458086589"],
+Cell[56339, 1562, 1906, 49, 70, "Input",ExpressionUUID->"8c4ec1b4-b81d-429e-9df1-aebba7bd6808"],
+Cell[58248, 1613, 118, 0, 70, "Subsection",ExpressionUUID->"4bc1fbc9-5a26-42e3-bd80-2def66d45e20"],
+Cell[58369, 1615, 2909, 81, 70, "Input",ExpressionUUID->"16e5a462-5b7a-454d-a190-ff85356f94f7"],
+Cell[61281, 1698, 1023, 23, 70, "Text",ExpressionUUID->"8e56d3cd-640f-4891-8ed8-c0a939500329"],
+Cell[62307, 1723, 95, 0, 70, "Section",ExpressionUUID->"9edfea54-2f87-4bfd-8c05-894cbecf0ff3"],
+Cell[62405, 1725, 1721, 45, 70, "Text",ExpressionUUID->"0c3ba4ab-6fcd-49ab-a812-95193957ad76"],
+Cell[64129, 1772, 102, 0, 70, "Subsection",ExpressionUUID->"16f1397b-c4ca-412b-b162-4627ebe2b9f5"],
+Cell[64234, 1774, 3949, 104, 70, "Text",ExpressionUUID->"307c443f-97c0-444b-a96c-98316f133f9a"],
+Cell[68186, 1880, 119, 0, 70, "Subsection",ExpressionUUID->"8e3d3118-7f55-403c-ad88-ecb511d78ca6"],
+Cell[68308, 1882, 2753, 75, 70, "Input",ExpressionUUID->"d38dc9ce-c744-4c88-8869-21edcf8d2f65"],
+Cell[71064, 1959, 137, 1, 70, "Subsection",ExpressionUUID->"aa9b28bc-2b3e-4d7e-8e37-b81154e42079"],
+Cell[71204, 1962, 3856, 109, 70, "Input",ExpressionUUID->"4402de54-1e73-40d4-b191-c7a5314fa246"],
+Cell[75063, 2073, 105, 0, 70, "Subsection",ExpressionUUID->"ffb183cf-337b-437b-b4f9-34dc3cb761aa"],
+Cell[75171, 2075, 3185, 90, 70, "Input",ExpressionUUID->"b208a590-dfe5-429f-aa5c-3209600c6e19"],
+Cell[78359, 2167, 81, 0, 70, "Section",ExpressionUUID->"b4e088cb-5791-47ac-8846-3a017e28f3a9"],
+Cell[78443, 2169, 101, 0, 70, "Text",ExpressionUUID->"7012672d-89cc-4e46-8566-df6428354bca"],
+Cell[78547, 2171, 5968, 139, 70, "TextTableForm",ExpressionUUID->"ae0a10ba-d256-4248-87c1-5fac0c4165bc"]
+}
+]
+*)
+
+(* End of internal cache information *)
