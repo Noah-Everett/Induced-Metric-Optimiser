@@ -32,6 +32,7 @@ from optimisers.jax_learnable_diag_curv import (
 )
 from optimisers.jax_offdiag import custom_sgd_offdiag
 from optimisers.jax_derived_newton_diag import derived_newton_diag
+from optimisers.jax_adam_imo import adam_imo, adam_clip
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +42,8 @@ from optimisers.jax_derived_newton_diag import derived_newton_diag
 ALL_OPTIMIZERS = [
     "adam",
     "adamw",
+    "adam_imo",
+    "adam_clip",
     "sgd",
     "muon",
     "sgd_metric",
@@ -128,6 +131,8 @@ _PARAM_BOUNDS = {
     "curv_ratio": (0.2, 5.0, True),    # IMO-48: replaces independent curv_beta in Optuna sweeps
     # Off-diagonal parameters
     "gamma": (1e-4, 10.0, True),
+    # Adam-clip / global-norm clip threshold
+    "clip_norm": (0.1, 10.0, True),
 }
 
 
@@ -224,6 +229,26 @@ def create_optimizer(name, config):
     if name == "adamw":
         return optax.adamw(
             learning_rate=config["learning_rate"],
+            b1=config.get("beta1", 0.9),
+            b2=config.get("beta2", 0.999),
+            eps=config.get("eps", 1e-8),
+            weight_decay=config.get("weight_decay", 0.0),
+        )
+
+    if name == "adam_imo":
+        return adam_imo(
+            learning_rate=config["learning_rate"],
+            b1=config.get("beta1", 0.9),
+            b2=config.get("beta2", 0.999),
+            eps=config.get("eps", 1e-8),
+            xi=config.get("xi", 0.1),
+            weight_decay=config.get("weight_decay", 0.0),
+        )
+
+    if name == "adam_clip":
+        return adam_clip(
+            learning_rate=config["learning_rate"],
+            max_norm=config.get("clip_norm", 1.0),
             b1=config.get("beta1", 0.9),
             b2=config.get("beta2", 0.999),
             eps=config.get("eps", 1e-8),
@@ -466,6 +491,26 @@ def get_sweep_parameters(name, overrides=None):
             "weight_decay": _param("weight_decay"),
         }
 
+    if name == "adam_imo":
+        return {
+            "learning_rate": _param("learning_rate"),
+            "beta1": _param("beta1"),
+            "beta2": _param("beta2"),
+            "eps": _param("eps", default_fixed=1e-8),
+            "xi": _param("xi"),
+            "weight_decay": _param("weight_decay"),
+        }
+
+    if name == "adam_clip":
+        return {
+            "learning_rate": _param("learning_rate"),
+            "beta1": _param("beta1"),
+            "beta2": _param("beta2"),
+            "eps": _param("eps", default_fixed=1e-8),
+            "clip_norm": _param("clip_norm"),
+            "weight_decay": _param("weight_decay"),
+        }
+
     if name == "sgd":
         return {
             "learning_rate": _param("learning_rate"),
@@ -632,6 +677,26 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
             "weight_decay": _suggest("weight_decay"),
         }
 
+    if name == "adam_imo":
+        return {
+            "learning_rate": _suggest("learning_rate"),
+            "beta1": _suggest("beta1"),
+            "beta2": _suggest("beta2"),
+            "eps": _suggest("eps", default_fixed=1e-8),
+            "xi": _suggest("xi"),
+            "weight_decay": _suggest("weight_decay"),
+        }
+
+    if name == "adam_clip":
+        return {
+            "learning_rate": _suggest("learning_rate"),
+            "beta1": _suggest("beta1"),
+            "beta2": _suggest("beta2"),
+            "eps": _suggest("eps", default_fixed=1e-8),
+            "clip_norm": _suggest("clip_norm"),
+            "weight_decay": _suggest("weight_decay"),
+        }
+
     if name == "sgd":
         return {
             "learning_rate": _suggest("learning_rate"),
@@ -752,6 +817,8 @@ def suggest_optuna_parameters(name, trial, prefix="", overrides=None):
 _OPTIMIZER_COLORS = {
     "adam": "#1f77b4",
     "adamw": "#ff7f0e",
+    "adam_imo": "#e7298a",
+    "adam_clip": "#999999",
     "sgd": "#2ca02c",
     "muon": "#00bcd4",
     "sgd_metric": "#9467bd",

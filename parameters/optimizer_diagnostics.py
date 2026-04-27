@@ -162,6 +162,108 @@ def _extract_optax_sgd(opt_state, config):
     return m
 
 
+def _extract_adam_imo(opt_state, config, grads=None):
+    """AdamIMOState — Adam stats plus rank-1 clip diagnostics.
+
+    Reports ``zeta = xi * quad`` (clipping pressure), ``c_t`` (the smooth
+    clip factor that multiplies the Adam update), and ``fraction_active`` —
+    the per-call indicator that the rank-1 term is non-trivially shrinking
+    the step. Recomputes ``quad`` on the fly so the optimizer state itself
+    stays minimal.
+    """
+    m = {}
+    try:
+        step_val = _scalar(opt_state.step)
+        m['step'] = step_val
+
+        m.update(_global_stats(opt_state.mu, 'mu'))
+        m.update(_per_leaf_stats(opt_state.mu, 'mu'))
+        m.update(_global_stats(opt_state.nu, 'nu'))
+        m.update(_per_leaf_stats(opt_state.nu, 'nu'))
+
+        b2 = config.get('beta2', config.get('b2', 0.999))
+        eps = config.get('eps', 1e-8)
+        lr_raw = config.get('learning_rate', 1e-3)
+        # Resolve schedule callables to a scalar at the current step.
+        # Narrow exception list — only swallow predictable coercion failures
+        # so genuine schedule bugs surface instead of being masked.
+        try:
+            lr = (float(lr_raw(int(step_val))) if callable(lr_raw)
+                  else float(lr_raw))
+        except (TypeError, ValueError):
+            lr = float('nan')
+        xi = config.get('xi', 0.1)
+
+        if step_val > 0 and b2 < 1.0:
+            bc2 = 1.0 - b2 ** step_val
+            nu_leaves = jax.tree.leaves(opt_state.nu)
+            nu_hat_all = jnp.concatenate([
+                (nu_l / bc2).ravel() for nu_l in nu_leaves
+            ])
+            sqrt_nu_hat_eps = jnp.sqrt(nu_hat_all) + eps
+            m['nu_hat/mean'] = _scalar(jnp.mean(nu_hat_all))
+            m['nu_hat/std']  = _scalar(jnp.std(nu_hat_all))
+            m['nu_hat/min']  = _scalar(jnp.min(nu_hat_all))
+            m['nu_hat/max']  = _scalar(jnp.max(nu_hat_all))
+
+            # Effective LR = lr * c_t / (sqrt(nu_hat) + eps); without c_t this
+            # is the bare Adam effective LR. We surface both: bare and clipped.
+            eff_lr_bare = lr / sqrt_nu_hat_eps
+            m['eff_lr_bare/mean'] = _scalar(jnp.mean(eff_lr_bare))
+            m['eff_lr_bare/min']  = _scalar(jnp.min(eff_lr_bare))
+            m['eff_lr_bare/max']  = _scalar(jnp.max(eff_lr_bare))
+
+            if grads is not None:
+                # quad = sum_i g_i^2 / (sqrt(v_hat_i) + eps)
+                g_leaves = jax.tree.leaves(grads)
+                quad = 0.0
+                for g, nu_l in zip(g_leaves, nu_leaves):
+                    quad = quad + jnp.sum((g * g) / (jnp.sqrt(nu_l / bc2) + eps))
+                quad_val = _scalar(quad)
+                zeta = xi * quad_val
+                c_t = 1.0 / (1.0 + zeta)
+                m['quad'] = quad_val
+                m['zeta'] = zeta
+                m['c_t']  = c_t
+                m['fraction_active'] = 1.0 if c_t < 0.95 else 0.0
+                # Effective LR with the smooth clip applied
+                m['eff_lr/mean'] = c_t * m['eff_lr_bare/mean']
+                m['eff_lr/min']  = c_t * m['eff_lr_bare/min']
+                m['eff_lr/max']  = c_t * m['eff_lr_bare/max']
+    except Exception:
+        pass
+    return m
+
+
+def _extract_adam_chain(opt_state, config):
+    """optax.chain(clip_by_global_norm, adam[w]) — extract Adam stats from
+    the inner state and the global-norm-clip's last computed norm if available.
+    """
+    m = {}
+    try:
+        if isinstance(opt_state, tuple):
+            for s in opt_state:
+                if hasattr(s, 'mu'):
+                    inner_state = s
+                    break
+                if isinstance(s, tuple):
+                    for ss in s:
+                        if hasattr(ss, 'mu'):
+                            inner_state = ss
+                            break
+                    else:
+                        continue
+                    break
+            else:
+                inner_state = opt_state
+        else:
+            inner_state = opt_state
+        m.update(_extract_optax_adam(inner_state, config))
+    except Exception:
+        pass
+    return m
+
+
 def _extract_optax_adam(opt_state, config):
     m = {}
     try:
@@ -184,7 +286,13 @@ def _extract_optax_adam(opt_state, config):
             # Bias-corrected second moment nu_hat
             b2 = config.get('beta2', config.get('b2', 0.999))
             eps = config.get('eps', 1e-8)
-            lr = config.get('learning_rate', 0.001)
+            lr_raw = config.get('learning_rate', 0.001)
+            # Narrow exception list — see _extract_adam_imo for rationale.
+            try:
+                lr = (float(lr_raw(int(count))) if callable(lr_raw)
+                      else float(lr_raw))
+            except (TypeError, ValueError):
+                lr = float('nan')
             if count > 0:
                 bc2 = 1.0 - b2 ** count
                 nu_leaves = jax.tree.leaves(adam.nu)
@@ -689,6 +797,10 @@ def _get_family(name):
         return 'optax_sgd'
     if name in ('adam', 'adamw'):
         return 'optax_adam'
+    if name == 'adam_imo':
+        return 'adam_imo'
+    if name == 'adam_clip':
+        return 'optax_adam_chain'
     if name == 'muon':
         return 'optax_muon'
     if name == 'sgd_metric':
@@ -730,6 +842,22 @@ def _get_momentum_tree(family, opt_state):
             return inner.mu if hasattr(inner, 'mu') else None
         except Exception:
             return None
+    if family == 'adam_imo':
+        return getattr(opt_state, 'mu', None)
+    if family == 'optax_adam_chain':
+        # optax.chain(clip_by_global_norm, adam[w]) -> tuple of states.
+        # The Adam state is the last EmptyState/tuple-aware element.
+        try:
+            for s in opt_state:
+                if hasattr(s, 'mu'):
+                    return s.mu
+                if isinstance(s, tuple):
+                    for inner in s:
+                        if hasattr(inner, 'mu'):
+                            return inner.mu
+        except Exception:
+            return None
+        return None
     if hasattr(opt_state, 'momentum'):
         return opt_state.momentum
     return None
@@ -787,6 +915,12 @@ def collect_diagnostics(
         metrics.update(_extract_optax_sgd(opt_state, config))
     elif family in ('optax_adam', 'optax_muon'):
         metrics.update(_extract_optax_adam(opt_state, config))
+    elif family == 'adam_imo':
+        # optax wraps custom GradientTransformations in a 1-tuple; unwrap.
+        inner = opt_state[0] if isinstance(opt_state, tuple) and len(opt_state) == 1 else opt_state
+        metrics.update(_extract_adam_imo(inner, config, grads=grads))
+    elif family == 'optax_adam_chain':
+        metrics.update(_extract_adam_chain(opt_state, config))
     elif family in ('fixed', 'fixed_log'):
         metrics.update(_extract_fixed(opt_state, config,
                                        is_log=('log' in family)))
